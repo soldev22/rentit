@@ -1,5 +1,9 @@
 import NextAuth, { type AuthOptions } from "next-auth";
+import { MongoDBAdapter } from "@next-auth/mongodb-adapter";
+import clientPromise from "@/lib/mongodb";
 import CredentialsProvider from "next-auth/providers/credentials";
+import EmailProvider from "next-auth/providers/email";
+import resend from "@/lib/resend";
 import { compare } from "bcrypt";
 import { z } from "zod";
 import { getUserByEmail } from "@/lib/user";
@@ -11,6 +15,7 @@ const loginSchema = z.object({
 });
 
 export const authOptions: AuthOptions = {
+  adapter: MongoDBAdapter(clientPromise),
   session: {
     strategy: "jwt",
   },
@@ -21,29 +26,59 @@ export const authOptions: AuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
+        console.log('NextAuth authorize() credentials:', credentials);
+        // Standard email/password login only
         const parsed = loginSchema.safeParse(credentials);
-        if (!parsed.success) return null;
+        if (!parsed.success) {
+          console.log('Login schema validation failed:', parsed.error);
+          return null;
+        }
 
         const { email, password } = parsed.data;
-
         const user = await getUserByEmail(email);
-        if (!user || !user.hashedPassword) return null;
+        if (!user) {
+          console.log('No user found for email:', email);
+          return null;
+        }
+        if (!user.hashedPassword) {
+          console.log('User has no hashedPassword:', user);
+          return null;
+        }
 
         const isValid = await compare(password, user.hashedPassword);
-        if (!isValid) return null;
+        if (!isValid) {
+          console.log('Password check failed for user:', email);
+          return null;
+        }
 
         const id = user._id?.toString();
-        if (!id) return null;
+        if (!id) {
+          console.log('User has no valid id:', user);
+          return null;
+        }
 
-        // Fetch primary role for session
         const role = await getPrimaryRole(id);
-        return {
+        const result = {
           id,
           email: user.email,
           name: user.name,
           role: role || undefined,
         };
+        console.log('Login success, returning user:', result);
+        return result as any;
+      },
+    }),
+    EmailProvider({
+      from: "RentIT <no-reply@solutionsdeveloped.co.uk>",
+      maxAge: 15 * 60, // 15 minutes
+      async sendVerificationRequest({ identifier, url }) {
+        await resend.emails.send({
+          from: "RentIT <no-reply@solutionsdeveloped.co.uk>",
+          to: identifier,
+          subject: "Your sign-in link for RentIT",
+          html: `<p>Click the link below to sign in:</p><p><a href="${url}">${url}</a></p>`
+        });
       },
     }),
   ],
