@@ -46,6 +46,9 @@ function LoginForm() {
       <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded disabled:opacity-50" disabled={loading}>
         {loading ? "Logging in..." : "Login"}
       </button>
+      <div className="mt-4 text-center">
+        <a href="/password-reset/request" className="text-blue-600 underline text-sm hover:text-blue-800">Forgot password?</a>
+      </div>
     </form>
   );
 }

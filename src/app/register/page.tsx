@@ -7,7 +7,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [tel, setTel] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("RENTER");
+  const [role, setRole] = useState("APPLICANT");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -54,8 +54,11 @@ export default function RegisterPage() {
         <label className="block mb-4">
           Role
           <select className="mt-1 w-full p-2 border rounded" value={role} onChange={e => setRole(e.target.value)}>
-            <option value="RENTER">Renter</option>
+            <option value="APPLICANT">Applicant</option>
+            <option value="TENANT">Tenant</option>
             <option value="LANDLORD">Landlord</option>
+            <option value="TRADESPERSON">Tradesperson</option>
+            <option value="ACCOUNTANT">Accountant</option>
           </select>
         </label>
         <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded disabled:opacity-50" disabled={loading}>

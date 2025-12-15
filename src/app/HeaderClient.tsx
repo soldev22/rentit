@@ -20,6 +20,14 @@ export function HeaderClient() {
       <span className="hidden sm:inline text-white font-semibold text-base md:text-lg truncate max-w-xs" title={session.user.name}>
         {session.user.name}
       </span>
+      {session.user.role && (
+        <span
+          className="inline-block px-2 py-0.5 rounded bg-white/20 text-xs font-bold uppercase tracking-wide text-white border border-white/30"
+          title={session.user.role}
+        >
+          {session.user.role}
+        </span>
+      )}
       <button
         onClick={() => signOut({ callbackUrl: "/" })}
         className="px-3 py-1 rounded bg-white/20 hover:bg-white/40 text-white font-semibold text-sm transition border border-white/30"
