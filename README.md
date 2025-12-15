@@ -1,4 +1,9 @@
 
+## Authentication
+This project follows a documented authentication pattern.
+Read `AUTH_PATTERN.md` before making auth changes.
+
+
 # RentIT: Multi-Role Rental Platform
 
 This is a Next.js 13+ (App Router, TypeScript) project for a multi-role rental platform supporting Admin, Landlord, Tenant, Applicant, Tradesperson, and Accountant experiences. It uses MongoDB, NextAuth.js, and Tailwind CSS.

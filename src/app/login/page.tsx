@@ -3,6 +3,10 @@
 // Password login works.
 // Magic-link UI intentionally deferred.
 // Do not reintroduce default NextAuth sign-in page.
+// AUTH PATTERN
+// This is the only sign-in UI.
+// Do not reintroduce NextAuth default sign-in.
+// See AUTH_PATTERN.md before making changes.
 "use client";
 import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";

@@ -1,3 +1,7 @@
+// AUTH PATTERN
+// Uses custom /login page.
+// Do not add auth UI outside /login.
+// See AUTH_PATTERN.md.
 import NextAuth, { type AuthOptions } from "next-auth";
 import { MongoDBAdapter } from "@next-auth/mongodb-adapter";
 import clientPromise from "@/lib/mongodb";
