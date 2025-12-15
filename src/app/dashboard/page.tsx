@@ -10,7 +10,7 @@ export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
 
   if (!session || !session.user?.id) {
-    redirect("/login?next=/dashboard");
+    redirect("/api/auth/signin?next=/dashboard");
   }
 
   const role = (await getPrimaryRole(session.user.id)) as Role | null;

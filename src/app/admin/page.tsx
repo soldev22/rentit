@@ -6,7 +6,7 @@ import { authOptions } from "../api/auth/[...nextauth]/route";
 export default async function AdminPage() {
   const session = await getServerSession(authOptions);
   if (!session) {
-    redirect("/login?next=/admin");
+    redirect("/api/auth/signin?next=/admin");
   }
   // @ts-ignore
   if (session.user?.role !== "ADMIN") {

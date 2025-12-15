@@ -38,7 +38,7 @@ function PasswordResetConfirmForm() {
       return;
     }
     setSuccess(true);
-    setTimeout(() => router.push("/login?reset=1"), 2000);
+    setTimeout(() => router.push("/api/auth/signin?reset=1"), 2000);
   }
 
   return (
@@ -47,7 +47,7 @@ function PasswordResetConfirmForm() {
         <h1 className="text-2xl font-bold mb-4">Reset Password</h1>
         {error && <div className="mb-2 text-red-600">{error}</div>}
         {success ? (
-          <div className="mb-2 text-green-600">Password reset! Redirecting to login...</div>
+          <div className="mb-2 text-green-600">Password reset! Redirecting to sign in...</div>
         ) : (
           <>
             <label className="block mb-2">

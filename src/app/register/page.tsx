@@ -27,7 +27,7 @@ export default function RegisterPage() {
       setError(data.error || "Registration failed");
       return;
     }
-    router.push("/login?registered=1");
+    router.push("/api/auth/signin?registered=1");
   }
 
   return (

@@ -7,7 +7,7 @@ import { getPrimaryRole } from "@/lib/roles";
 export default async function LandlordPage() {
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.id) {
-    redirect("/login?next=/landlord");
+    redirect("/api/auth/signin?next=/landlord");
   }
   const role = await getPrimaryRole(session.user.id);
   if (role !== "LANDLORD") {

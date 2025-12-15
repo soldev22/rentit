@@ -41,7 +41,7 @@ function MagicLinkCallbackInner() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50">
       <div className="p-6 bg-white rounded shadow text-center">
-        <h1 className="text-xl font-bold mb-2">Magic Link Login</h1>
+        <h1 className="text-xl font-bold mb-2">Magic Link Sign In</h1>
         <div>{status}</div>
       </div>
     </main>

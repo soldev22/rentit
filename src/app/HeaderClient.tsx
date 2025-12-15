@@ -7,11 +7,11 @@ export function HeaderClient() {
   if (!session?.user?.name) {
     return (
       <button
-        onClick={() => window.location.href = "/login"}
+        onClick={() => window.location.href = "/api/auth/signin"}
         className="ml-auto px-3 py-1 rounded bg-white/20 hover:bg-white/40 text-white font-semibold text-sm transition border border-white/30"
-        title="Login"
+        title="Sign in"
       >
-        Login
+        Sign in
       </button>
     );
   }
