@@ -19,7 +19,7 @@ export async function sendPasswordResetEmail({
     <p>Thanks,<br/>The RentIT Team</p>
   `;
   return resend.emails.send({
-    from: 'RentIT <onboarding@resend.dev>',
+    from: 'RentIT <https://rentit-nine.vercel.app/>',
     to,
     subject,
     html,
