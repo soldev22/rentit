@@ -1,6 +1,5 @@
-import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { Resend } from 'resend';
 
 export async function sendPasswordResetEmail({
   to,
@@ -9,6 +8,7 @@ export async function sendPasswordResetEmail({
   to: string;
   token: string;
 }) {
+  const resend = new Resend(process.env.RESEND_API_KEY);
   const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/password-reset/confirm?token=${token}`;
   const subject = 'Reset your RentIT password';
   const html = `
