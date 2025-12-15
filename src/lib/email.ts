@@ -1,5 +1,7 @@
 import { Resend } from 'resend';
 
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 export async function sendPasswordResetEmail({
   to,
   token,
@@ -7,8 +9,6 @@ export async function sendPasswordResetEmail({
   to: string;
   token: string;
 }) {
-  // Lazily initialize Resend to avoid build-time errors
-  const resend = new Resend(process.env.RESEND_API_KEY);
   const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/password-reset/confirm?token=${token}`;
   const subject = 'Reset your RentIT password';
   const html = `
@@ -19,7 +19,7 @@ export async function sendPasswordResetEmail({
     <p>Thanks,<br/>The RentIT Team</p>
   `;
   return resend.emails.send({
-    from: 'RentIT <https://rentit-nine.vercel.app/>',
+    from: 'RentIT <mike@solutionsdeveloped.co.uk>',
     to,
     subject,
     html,
