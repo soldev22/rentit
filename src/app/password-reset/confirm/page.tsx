@@ -2,7 +2,9 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function PasswordResetConfirmPage() {
+import { Suspense } from "react";
+
+function PasswordResetConfirmForm() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
@@ -63,5 +65,13 @@ export default function PasswordResetConfirmPage() {
         )}
       </form>
     </main>
+  );
+}
+
+export default function PasswordResetConfirmPage() {
+  return (
+    <Suspense>
+      <PasswordResetConfirmForm />
+    </Suspense>
   );
 }
