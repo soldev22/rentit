@@ -31,7 +31,7 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}>
         <AppSessionProvider>
           <Header />
-          <main className="min-h-screen w-full flex flex-col items-center justify-center">
+          <main className="min-h-screen w-full">
             {children}
           </main>
         </AppSessionProvider>

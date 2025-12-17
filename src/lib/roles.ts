@@ -1,6 +1,6 @@
 import clientPromise from "@/lib/mongodb";
 
-export type RoleType = "APPLICANT" | "TENANT" | "LANDLORD" | "TRADESPERSON" | "ACCOUNTANT" | "ADMIN";
+export type RoleType = "APPLICANT" | "TENANT" | "LANDLORD" | "TRADESPERSON" | "ACCOUNTANT" | "ADMIN" | "AGENT";
 
 export async function getUserRoles(userId: string) {
   const client = await clientPromise;

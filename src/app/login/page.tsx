@@ -87,6 +87,9 @@ function LoginForm() {
         <div className="mt-4 text-center">
           <Link href="/password-reset/request" className="text-blue-600 underline text-sm hover:text-blue-800">Forgot password?</Link>
         </div>
+        <div className="mt-2 text-center">
+          <Link href="/register" className="text-blue-600 underline text-sm hover:text-blue-800">Don't have an account? Register</Link>
+        </div>
       </form>
       <div className="my-6 flex items-center">
         <div className="flex-grow border-t border-gray-200" />

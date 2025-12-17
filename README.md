@@ -1,80 +1,105 @@
+# RentIT — Multi-Role Rental Platform
+⚠️ Auth and roles are opinionated. Read AUTH_PATTERN.md before making changes.
 
-## Authentication
-This project follows a documented authentication pattern.
-Read `AUTH_PATTERN.md` before making auth changes.
+RentIT is a modern, multi-role rental management platform built with
+**Next.js (App Router)**, **TypeScript**, **MongoDB**, and **NextAuth.js**.
 
+It supports distinct experiences for:
+- Admin
+- Agent
+- Landlord
+- Tenant
+- Applicant
+- Tradesperson
+- Accountant
 
-# RentIT: Multi-Role Rental Platform
+---
 
-This is a Next.js 13+ (App Router, TypeScript) project for a multi-role rental platform supporting Admin, Landlord, Tenant, Applicant, Tradesperson, and Accountant experiences. It uses MongoDB, NextAuth.js, and Tailwind CSS.
+## Authentication & Authorisation (Important)
+
+This project follows a **documented, opinionated authentication and role model**.
+
+⚠️ **Do not modify auth or role behaviour without reading:**
+
+- `AUTH_PATTERN.md`
+- `PROJECT_BOOTSTRAP.md`
+
+These documents are **authoritative** and exist to prevent regressions.
+
+---
 
 ## Getting Started
 
+### 1. Install dependencies
+```bash
+npm install
+```
 
-## Getting Started
+### 2. Environment variables
 
-1. Install dependencies:
-	```bash
-	npm install
-	```
-2. Create a `.env.local` file with your MongoDB URI and NextAuth secret:
-	```env
-	MONGODB_URI=your-mongodb-uri
-	NEXTAUTH_SECRET=your-random-secret
-	```
-3. Start the development server:
+Create a `.env.local` file in the project root:
+
+```env
+NEXTAUTH_SECRET=your-long-random-secret
+NEXTAUTH_URL=http://localhost:3000
+
+MONGODB_URI=your-mongodb-uri
+RESEND_API_KEY=your-resend-api-key
+
+APP_BASE_URL=http://localhost:3000
+```
+
+Restart the dev server after changing env vars.
+
+---
+
+### 3. Run the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open:
+- http://localhost:3000
 
+---
 
-Open [http://localhost:3000](http://localhost:3000) to use the app.
+## Project Structure (High Level)
 
-## Features
+- `src/app/` — App Router routes
+  - `admin/` — Admin-only control plane
+  - `agent/` — Agent dashboards & workflows
+  - `landlord/` — Landlord dashboards
+- `src/lib/` — Shared server utilities (auth, guards, helpers)
+- `docs/` — Authoritative project documentation
 
-- Role-based dashboards: Landlord, Tenant, Applicant, Tradesperson, Accountant, Admin
-- Secure authentication with NextAuth.js (credentials provider, JWT, MongoDBAdapter)
-- Roles are stored in a dedicated `roles` collection (not on the user object)
-- Registration flow allows selection of any role
-- Session and dashboard logic always fetches the latest role from the DB
-- Audit logging for user registration and role changes
-- Modern, mobile-first UI with Tailwind CSS and Geist font
+Role protection is enforced **server-side**, primarily via layout guards.
 
-## Architecture & Conventions
+---
 
-- All role checks go through `src/lib/roles.ts`
-- Registration creates the user's first role in the `roles` collection
-- Session includes the user's primary role for UI display (badge in header)
-- Dashboards and protected pages check both session and DB for role
-- See `.github/copilot-instructions.md` for AI agent onboarding
+## Development Scripts
 
-
-## Development
-
+- Dev: `npm run dev`
 - Lint: `npm run lint`
 - Build: `npm run build`
-- Start: `npm run start`
-- Dev: `npm run dev`
+- Start (prod): `npm start`
 
-## Environment
+---
 
-- Requires `MONGODB_URI` and `NEXTAUTH_SECRET` in `.env.local`
-- Designed for Vercel, but runs anywhere Next.js is supported
+## Deployment
+
+- Designed for **Vercel**
+- Works on any platform that supports Next.js
+- Ensure all environment variables are configured correctly
+- Production `NEXTAUTH_URL` must match the deployed domain
+
+---
 
 ## Learn More
 
-- [Next.js Documentation](https://nextjs.org/docs)
-- [NextAuth.js Documentation](https://next-auth.js.org/)
-- [MongoDB Documentation](https://mongodb.com/docs/)
+- Next.js — https://nextjs.org/docs
+- NextAuth.js — https://next-auth.js.org
+- MongoDB — https://mongodb.com/docs
 
 ---
 

@@ -7,7 +7,6 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [tel, setTel] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("APPLICANT");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -19,7 +18,7 @@ export default function RegisterPage() {
     const res = await fetch("/api/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, tel, password, role })
+      body: JSON.stringify({ name, email, tel, password })
     });
     const data = await res.json();
     setLoading(false);
@@ -51,19 +50,12 @@ export default function RegisterPage() {
           Password
           <input type="password" className="mt-1 w-full p-2 border rounded" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />
         </label>
-        <label className="block mb-4">
-          Role
-          <select className="mt-1 w-full p-2 border rounded" value={role} onChange={e => setRole(e.target.value)}>
-            <option value="APPLICANT">Applicant</option>
-            <option value="TENANT">Tenant</option>
-            <option value="LANDLORD">Landlord</option>
-            <option value="TRADESPERSON">Tradesperson</option>
-            <option value="ACCOUNTANT">Accountant</option>
-          </select>
-        </label>
         <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded disabled:opacity-50" disabled={loading}>
           {loading ? "Registering..." : "Register"}
         </button>
+        <div className="mt-4 text-center">
+          <a href="/login" className="text-blue-600 underline text-sm hover:text-blue-800">Already have an account? Sign in</a>
+        </div>
       </form>
     </main>
   );

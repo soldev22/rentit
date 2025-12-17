@@ -1,4 +1,13 @@
-import NextAuth, { DefaultSession, DefaultUser } from "next-auth";
+import { DefaultSession, DefaultUser } from "next-auth";
+
+export type AppRole =
+  | "ADMIN"
+  | "TENANT"
+  | "LANDLORD"
+  | "AGENT"
+  | "APPLICANT"
+  | "TRADESPERSON"
+  | "ACCOUNTANT";
 
 declare module "next-auth" {
   interface Session {
@@ -6,19 +15,20 @@ declare module "next-auth" {
       id?: string;
       name?: string;
       email?: string;
-      role?: string;
+      role?: AppRole;
       [key: string]: any;
     } & DefaultSession["user"];
   }
+
   interface User extends DefaultUser {
-    role?: string;
+    role?: AppRole;
     name?: string;
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
-    role?: string;
+    role?: AppRole;
     name?: string;
   }
 }

@@ -20,28 +20,55 @@ export async function POST(req: Request) {
   // Hash the incoming token to match stored tokenHash
   const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
 
-  // Find the reset record in the correct collection and with correct fields
+  // 1. Try legacy/normal password reset flow
   const reset = await db.collection("password_resets").findOne({
     tokenHash,
     used: { $ne: true },
     expiresAt: { $gt: new Date() },
   });
-  if (!reset) {
-    return NextResponse.json({ error: "Invalid or expired token" }, { status: 400 });
+  if (reset) {
+    // Update user password (userId is stored as string)
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await db.collection("users").updateOne(
+      { _id: new ObjectId(reset.userId) },
+      { $set: { hashedPassword } }
+    );
+
+    // Mark token as used
+    await db.collection("password_resets").updateOne(
+      { _id: reset._id },
+      { $set: { used: true } }
+    );
+
+    return NextResponse.json({ ok: true });
   }
 
-  // Update user password (userId is stored as string)
-  const hashedPassword = await bcrypt.hash(password, 10);
-  await db.collection("users").updateOne(
-    { _id: new ObjectId(reset.userId) },
-    { $set: { hashedPassword } }
-  );
+  // 2. Try invite flow (user record with resetToken, tokenType: 'INVITE', not expired)
+  const user = await db.collection("users").findOne({
+    resetToken: token,
+    resetTokenExpiresAt: { $gt: new Date() },
+    tokenType: "INVITE",
+    status: "INVITED",
+  });
+  if (user) {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await db.collection("users").updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          hashedPassword,
+          status: "ACTIVE",
+        },
+        $unset: {
+          resetToken: "",
+          resetTokenExpiresAt: "",
+          tokenType: "",
+        },
+      }
+    );
+    return NextResponse.json({ ok: true });
+  }
 
-  // Mark token as used
-  await db.collection("password_resets").updateOne(
-    { _id: reset._id },
-    { $set: { used: true } }
-  );
-
-  return NextResponse.json({ ok: true });
+  // If neither flow matched, token is invalid
+  return NextResponse.json({ error: "Invalid or expired token" }, { status: 400 });
 }

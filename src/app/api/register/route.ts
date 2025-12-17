@@ -3,16 +3,23 @@ import bcrypt from "bcrypt";
 import clientPromise from "@/lib/mongodb";
 import { auditEvent } from "@/lib/audit";
 
-type RoleType = "APPLICANT" | "TENANT" | "LANDLORD" | "TRADESPERSON" | "ACCOUNTANT";
+type RoleType = "APPLICANT" | "TENANT" | "LANDLORD" | "TRADESPERSON" | "ACCOUNTANT" | "AGENT";
 
 export async function POST(req: Request) {
   const body = await req.json();
 
-  const { email, password, name, role } = body as {
+  // Block any client-supplied role
+  if ("role" in body) {
+    return NextResponse.json(
+      { error: "Role assignment not allowed" },
+      { status: 400 }
+    );
+  }
+
+  const { email, password, name } = body as {
     email?: string;
     password?: string;
     name?: string;
-    role?: "APPLICANT" | "TENANT" | "LANDLORD" | "TRADESPERSON" | "ACCOUNTANT";
   };
 
   // Core identity validation
@@ -23,12 +30,8 @@ export async function POST(req: Request) {
     );
   }
 
-  // Decide role:
-  // - If role is one of the allowed, use it, otherwise default to APPLICANT
-  const allowedRoles: RoleType[] = ["APPLICANT", "TENANT", "LANDLORD", "TRADESPERSON", "ACCOUNTANT"];
-  const assignedRole: RoleType = allowedRoles.includes(role as RoleType)
-    ? (role as RoleType)
-    : "APPLICANT";
+  // Always assign safe default role
+  const assignedRole: RoleType = "APPLICANT";
 
   const client = await clientPromise;
   const db = client.db();
@@ -47,6 +50,7 @@ export async function POST(req: Request) {
     email,
     name,
     hashedPassword,
+    role: assignedRole,
     createdAt: new Date(),
   });
 
