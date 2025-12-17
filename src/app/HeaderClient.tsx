@@ -2,12 +2,18 @@
 
 import { signIn, signOut, useSession } from "next-auth/react";
 
+
 export default function HeaderClient() {
   const { data: session, status } = useSession();
 
   const isProd = process.env.NODE_ENV === "production";
   const gitSha = process.env.NEXT_PUBLIC_GIT_SHA;
   const appVersion = process.env.NEXT_PUBLIC_APP_VERSION;
+const isBrowser = typeof window !== "undefined";
+
+if (!isBrowser) {
+  return null;
+}
 
   let versionLabel = "dev";
 
