@@ -1,32 +1,14 @@
-// AUTH PATTERN
-// Uses custom /login page.
-// Do not add auth UI outside /login.
-// See AUTH_PATTERN.md.
-import NextAuth, { type AuthOptions } from "next-auth";
-import { MongoDBAdapter } from "@next-auth/mongodb-adapter";
-import clientPromise from "@/lib/mongodb";
+import NextAuth, { type Session, type User } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import EmailProvider from "next-auth/providers/email";
-import resend from "@/lib/resend";
-import { compare } from "bcrypt";
-import { z } from "zod";
-import { getUserByEmail } from "@/lib/user";
-import { getPrimaryRole } from "@/lib/roles";
-import type { AppRole } from "@/types/next-auth"; // add at top if not present
+import type { JWT } from "next-auth/jwt";
+import clientPromise from "@/lib/mongodb";
+import bcrypt from "bcrypt";
 
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-});
-
-export const authOptions: AuthOptions = {
-  adapter: MongoDBAdapter(clientPromise),
+export const authOptions = {
   session: {
-    strategy: "jwt",
+    strategy: "jwt" as const,
   },
-  pages: {
-    signIn: "/login",
-  },
+
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -34,76 +16,109 @@ export const authOptions: AuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials, req) {
-       // Standard email/password login only
-        const parsed = loginSchema.safeParse(credentials);
-        if (!parsed.success) {
-         return null;
-        }
 
-        const { email, password } = parsed.data;
-        const user = await getUserByEmail(email);
-        if (!user) {
-         return null;
-        }
-        if (!user.hashedPassword) {
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
           return null;
         }
 
-        const isValid = await compare(password, user.hashedPassword);
-        if (!isValid) {
-         return null;
-        }
+        const client = await clientPromise;
+        const db = client.db();
 
-        const id = user._id?.toString();
-        if (!id) {
-          return null;
-        }
-
-        const role = await getPrimaryRole(id);
-        const result = {
-          id,
-          email: user.email,
-          name: user.name,
-          role: role?.trim() || undefined,
-        };
-         return result as any;
-      },
-    }),
-    EmailProvider({
-      from: "RentIT <no-reply@solutionsdeveloped.co.uk>",
-      maxAge: 15 * 60, // 15 minutes
-      async sendVerificationRequest({ identifier, url }) {
-        await resend.emails.send({
-          from: "RentIT <no-reply@solutionsdeveloped.co.uk>",
-          to: identifier,
-          subject: "Your sign-in link for RentIT",
-          html: `<p>Click the link below to sign in:</p><p><a href="${url}">${url}</a></p>`
+        const dbUser: any = await db.collection("users").findOne({
+          email: credentials.email,
         });
+
+        if (!dbUser || !dbUser.hashedPassword) {
+          return null;
+        }
+
+        // ✅ Block paused users BEFORE password check (optional, but clean)
+        if (dbUser.status === "PAUSED") {
+          console.log("LOGIN BLOCKED (PAUSED):", { email: dbUser.email });
+          return null;
+        }
+
+        const isValid = await bcrypt.compare(
+          credentials.password,
+          dbUser.hashedPassword
+        );
+
+        if (!isValid) {
+          return null;
+        }
+
+        console.log("AUTHORIZE USER:", {
+          email: dbUser.email,
+          role: dbUser.role,
+          status: dbUser.status ?? "ACTIVE",
+        });
+
+        return {
+          id: dbUser._id.toString(),
+          email: dbUser.email,
+          name: dbUser.name,
+          role: dbUser.role,
+          status: dbUser.status ?? "ACTIVE",
+        } as any;
       },
     }),
   ],
+
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({
+      token,
+      user,
+    }: {
+      token: JWT;
+      user?: User;
+    }) {
+      // First login: copy fields from user onto token
       if (user) {
-        token.userId = user.id;
+        token.role = (user as any).role;
         token.name = user.name;
-        token.role = user.role;
+        token.status = (user as any).status ?? "ACTIVE";
       }
       return token;
     },
-    
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.userId as string;
-        session.user.name = token.name as string;
-        session.user.role = token.role as AppRole;
+
+    async session({
+      session,
+      token,
+    }: {
+      session: Session;
+      token: JWT;
+    }) {
+      // ✅ Optional: block existing sessions if user gets paused later
+      // (This will force them to re-auth and fail)
+      if ((token as any).status === "PAUSED") {
+        return {
+          ...session,
+          user: {
+            ...session.user,
+            role: token.role as string,
+            name: token.name as string,
+            status: "PAUSED",
+          },
+        };
       }
-      return session;
+
+      return {
+        ...session,
+        user: {
+          ...session.user,
+          role: token.role as string,
+          name: token.name as string,
+          status: ((token as any).status as string) ?? "ACTIVE",
+        },
+      };
     },
+  },
+
+  pages: {
+    signIn: "/login",
   },
 };
 
 const handler = NextAuth(authOptions);
-
 export { handler as GET, handler as POST };

@@ -10,6 +10,13 @@ export type AuditAction =
   | "PASSWORD_RESET_REQUESTED"
   | "PASSWORD_RESET_COMPLETED"
 
+  // Admin / security
+  | "ACCESS_DENIED"
+  | "USER_INVITED"
+  | "USER_INVITE_RESENT"
+  | "USER_UPDATED"
+  | "USER_UPDATE_FAILED"
+
   // Property & tenancy
   | "PROPERTY_CREATED"
   | "APPLICATION_SUBMITTED"
@@ -26,6 +33,8 @@ export type AuditAction =
   | "CHECKLIST_SUBMITTED"
   | "COMMENT_ADDED";
 
+
+
 export interface AuditEventInput {
   action: AuditAction;
   actorUserId: string;
@@ -37,7 +46,14 @@ export interface AuditEventInput {
 
   description: string;
   metadata?: Record<string, any>;
+
+  // NEW (optional, critical)
+  success?: boolean;
+  source?: string;        // api/admin/users/[id]
+  errorCode?: string;     // UNAUTHORIZED, VALIDATION_ERROR
+  errorMessage?: string;  // stack / message
 }
+
 
 /**
  * Append-only audit log writer
@@ -47,12 +63,18 @@ export async function auditEvent(input: AuditEventInput) {
   const client = await clientPromise;
   const db = client.db();
 
-  await db.collection("audit_events").insertOne({
-    ...input,
-    actorUserId: new ObjectId(input.actorUserId),
-    targetUserId: input.targetUserId
-      ? new ObjectId(input.targetUserId)
-      : undefined,
-    createdAt: new Date(),
-  });
+await db.collection("audit_events").insertOne({
+  ...input,
+  actorUserId: input.actorUserId, // store as string
+  targetUserId: ObjectId.isValid(input.targetUserId ?? "")
+    ? new ObjectId(input.targetUserId!)
+    : input.targetUserId ?? null,
+  success: input.success ?? true,
+  source: input.source ?? null,
+  errorCode: input.errorCode ?? null,
+  errorMessage: input.errorMessage ?? null,
+  createdAt: new Date(),
+});
+
+
 }

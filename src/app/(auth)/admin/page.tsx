@@ -1,16 +1,19 @@
+import Link from "next/link";
 
-import { getServerSession } from "next-auth/next";
-import { redirect } from "next/navigation";
-import { authOptions } from "../../api/auth/[...nextauth]/route"
+export default function AdminPage() {
+  return (
+    <div style={{ padding: 24 }}>
+      <h1>Admin</h1>
 
-export default async function AdminPage() {
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    redirect("/api/auth/signin?next=/admin");
-  }
-  // @ts-ignore
-  if (session.user?.role !== "ADMIN") {
-    redirect("/unauthorized");
-  }
-  return <div className="p-8">Welcome, {session.user?.name || "Admin"}!</div>;
+      <ul style={{ marginTop: 16 }}>
+        <li>
+          <Link href="/admin/users">
+            Manage users
+          </Link><br></br>
+          <a href="/admin/audit">Audit log</a>
+
+        </li>
+      </ul>
+    </div>
+  );
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { getCollection } from "@/lib/db";
+import clientPromise from "@/lib/mongodb";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -10,17 +10,22 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
-  const users = await getCollection("users");
+  const client = await clientPromise;
+  const db = client.db();
 
-  const result = await users
+  const events = await db
+    .collection("audit_events")
     .find({})
     .sort({ createdAt: -1 })
+    .limit(100)
     .toArray();
 
   return NextResponse.json(
-    result.map((u) => ({
-      ...u,
-      _id: u._id.toString(),
+    events.map((e) => ({
+      ...e,
+      _id: e._id.toString(),
+      targetUserId: e.targetUserId?.toString?.() ?? null,
+      createdAt: e.createdAt?.toISOString?.() ?? null,
     }))
   );
 }

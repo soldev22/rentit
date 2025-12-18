@@ -1,4 +1,3 @@
-// src/app/dashboard/page.tsx
 "use client";
 
 import { useEffect } from "react";
@@ -10,14 +9,18 @@ export default function DashboardPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (status === "loading") return;
-
-    if (!session || !session.user?.role) {
+    // Only redirect to login if NextAuth has confirmed you're NOT signed in
+    if (status === "unauthenticated") {
       router.replace("/login");
       return;
     }
 
-    switch (session.user.role) {
+    // If authenticated but role isn't there yet, just wait.
+    // This avoids the bounce-back loop you’re seeing.
+    const role = session?.user?.role;
+    if (status !== "authenticated" || !role) return;
+
+    switch (role) {
       case "AGENT":
         router.replace("/agent/dashboard");
         break;
@@ -46,7 +49,13 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6">
-      Redirecting to your dashboard…
+      <h1 className="text-lg font-semibold">Signing you in…</h1>
+      <p className="mt-2 text-sm text-gray-600">
+        {status === "loading" && "Loading session…"}
+        {status === "authenticated" && !session?.user?.role && "Loading your profile…"}
+        {status === "authenticated" && session?.user?.role && "Redirecting…"}
+        {status === "unauthenticated" && "Redirecting to login…"}
+      </p>
     </div>
   );
 }
