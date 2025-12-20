@@ -3,7 +3,15 @@ import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 
 function formatDate(d: Date) {
-  return d.toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "2-digit" });
+  return d.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
+  });
 }
 // lib/tenant/dashboard.ts
 
@@ -98,7 +106,10 @@ export async function getTenantIssueDetailById(
     id: issue._id.toString(),
     title: issue.title,
     description: issue.description,
-    descriptionHistory: issue.descriptionHistory ?? [],
+    descriptionHistory: (issue.descriptionHistory ?? []).map((entry: any) => ({
+      ...entry,
+      createdAtLabel: entry.createdAt ? formatDate(new Date(entry.createdAt)) : ""
+    })),
     status: issue.status,
     priority: issue.priority,
     createdAtLabel: issue.createdAt

@@ -33,11 +33,11 @@ export default async function TenantIssueDetailPage({ params }: PageProps) {
         <div className="max-h-64 overflow-y-auto w-full">
           {issue.descriptionHistory && issue.descriptionHistory.length > 0 ? (
             <ul className="space-y-1">
-              {issue.descriptionHistory.map((item: any, index: number) => (
+              {[...issue.descriptionHistory].reverse().map((item: any, index: number, arr) => (
                 <li
                   key={index}
                   className={`rounded border px-3 py-2 ${
-                    index === issue.descriptionHistory.length - 1
+                    index === 0
                       ? "bg-white border-foreground text-foreground"
                       : "bg-gray-400 border-foreground text-foreground"
                   }`}
@@ -45,7 +45,7 @@ export default async function TenantIssueDetailPage({ params }: PageProps) {
                   <div className="text-sm text-gray-800 mb-1">
                     <strong className="uppercase">{item.role}</strong>
                     {" · "}
-                    {new Date(item.createdAt).toLocaleString()}
+                    {item.createdAtLabel}
                   </div>
                   <div className="whitespace-pre-wrap text-gray-900">
                     {item.text}
