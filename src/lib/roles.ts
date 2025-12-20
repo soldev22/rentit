@@ -11,6 +11,14 @@ export async function getUserRoles(userId: string) {
     .find({ userId })
     .toArray();
 }
+export const ROLES = ["ADMIN", "LANDLORD", "TENANT", "APPLICANT"] as const;
+
+export type Role = (typeof ROLES)[number];
+
+export function isRole(value: unknown): value is Role {
+  return ROLES.includes(value as Role);
+}
+
 
 export async function getPrimaryRole(userId: string): Promise<RoleType | null> {
   const client = await clientPromise;

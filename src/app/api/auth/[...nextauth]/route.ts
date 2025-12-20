@@ -3,6 +3,9 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import type { JWT } from "next-auth/jwt";
 import clientPromise from "@/lib/mongodb";
 import bcrypt from "bcrypt";
+import { isRole, type Role } from "@/lib/roles"; // 🔧 ADD Role import
+import { isUserStatus } from "@/lib/status";
+
 
 export const authOptions = {
   session: {
@@ -33,9 +36,9 @@ export const authOptions = {
           return null;
         }
 
-        // ✅ Block paused users BEFORE password check (optional, but clean)
+        // ⛔ Block paused users
         if (dbUser.status === "PAUSED") {
-          console.log("LOGIN BLOCKED (PAUSED):", { email: dbUser.email });
+          console.log("LOGIN BLOCKED (PAUSED):", dbUser.email);
           return null;
         }
 
@@ -48,19 +51,29 @@ export const authOptions = {
           return null;
         }
 
+        // 🔧 VALIDATE + NARROW ROLE (this fixes your error)
+        if (!isRole(dbUser.role)) {
+          console.error("INVALID ROLE IN DB:", dbUser.role);
+          return null;
+        }
+const status = isUserStatus(dbUser.status)
+  ? dbUser.status
+  : "ACTIVE";
+
         console.log("AUTHORIZE USER:", {
           email: dbUser.email,
           role: dbUser.role,
           status: dbUser.status ?? "ACTIVE",
         });
 
-        return {
-          id: dbUser._id.toString(),
-          email: dbUser.email,
-          name: dbUser.name,
-          role: dbUser.role,
-          status: dbUser.status ?? "ACTIVE",
-        } as any;
+     return {
+  id: dbUser._id.toString(),
+  email: dbUser.email,
+  name: dbUser.name,
+  role: dbUser.role,
+  status, // now typed as UserStatus
+};
+
       },
     }),
   ],
@@ -73,9 +86,9 @@ export const authOptions = {
       token: JWT;
       user?: User;
     }) {
-      // First login: copy fields from user onto token
       if (user) {
-        token.role = (user as any).role;
+        token.id = (user as any).id; // ✅ REQUIRED
+        token.role = (user as any).role as Role; // 🔧 narrow once
         token.name = user.name;
         token.status = (user as any).status ?? "ACTIVE";
       }
@@ -89,29 +102,18 @@ export const authOptions = {
       session: Session;
       token: JWT;
     }) {
-      // ✅ Optional: block existing sessions if user gets paused later
-      // (This will force them to re-auth and fail)
-      if ((token as any).status === "PAUSED") {
-        return {
-          ...session,
-          user: {
-            ...session.user,
-            role: token.role as string,
-            name: token.name as string,
-            status: "PAUSED",
-          },
-        };
+      if (!session.user) {
+        // Extremely defensive – should never happen
+        return session;
       }
 
-      return {
-        ...session,
-        user: {
-          ...session.user,
-          role: token.role as string,
-          name: token.name as string,
-          status: ((token as any).status as string) ?? "ACTIVE",
-        },
-      };
+      session.user.id = (token as any).id as string;
+      session.user.role = token.role as Role; // 🔧 FIXED
+      session.user.name = token.name as string;
+     session.user.status = token.status ?? "ACTIVE";
+
+
+      return session;
     },
   },
 
