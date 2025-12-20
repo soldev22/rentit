@@ -1,4 +1,6 @@
 /** @type {import('tailwindcss').Config} */
+const colors = require('tailwindcss/colors');
+
 module.exports = {
   content: [
     "./src/app/**/*.{js,ts,jsx,tsx}",
@@ -7,6 +9,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        ...colors, // Add all Tailwind default colors
         primary: '#7F5AF0', // Vibrant purple
         accent: '#FF5470',  // Trendy pink
         background: '#F5F7FA', // Soft light background
