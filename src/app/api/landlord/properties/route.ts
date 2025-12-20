@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getDb, getCollection } from "@/lib/db";
+import { ObjectId } from "mongodb";
+
 // import Property from "@/models/Property";
 
 /**
@@ -57,7 +59,7 @@ export async function POST(req: Request) {
     // 6. Create property (ALWAYS draft)
     const propertiesCollection = await getCollection("properties");
     const propertyDoc = {
-      landlordId: session.user.id,
+      landlordId: new ObjectId(session.user.id),
       title,
       description,
       address,

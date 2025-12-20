@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getTenantIssueDetailById } from "@/lib/tenant/dashboard";
-import TenantIssueEditor from "./tenantIssueEditor";
+import TenantIssueEditor from "../../../../../components/maintenance/IssueEditor";
 
 type PageProps = {
   params: Promise<{ id: string }>;

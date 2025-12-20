@@ -12,7 +12,7 @@ export default function HeaderClient() {
     <header className="w-full border-b border-blue-600 bg-blue-600 px-4 py-3 text-white">
       <div className="flex items-center justify-between">
         {/* Logo on the left */}
-        <div className="flex items-center">
+        <a href="/" className="flex items-center hover:opacity-80 transition-opacity">
           <Image
             src="/image.png"
             alt="RentIT Logo"
@@ -24,7 +24,7 @@ export default function HeaderClient() {
           <span className="text-lg font-semibold tracking-tight">
             RentIT
           </span>
-        </div>
+        </a>
 
         {/* Right side */}
         <div className="flex items-center gap-3">
