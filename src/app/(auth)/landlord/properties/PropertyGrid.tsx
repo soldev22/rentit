@@ -38,6 +38,7 @@ type Property = {
     postcode?: string;
   };
   createdAt: string;
+  photos?: { url: string; blobName: string }[];
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -81,6 +82,13 @@ export default function PropertyGrid({
             onClick={() => setSelected(property)}
             className="cursor-pointer rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md"
           >
+            {property.photos && property.photos.length > 0 && (
+              <img
+                src={property.photos[0].url}
+                alt="Property thumbnail"
+                style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 6, marginBottom: 8, border: '1px solid #eee' }}
+              />
+            )}
             <h3 className="text-base font-semibold leading-tight">
               {property.title}
             </h3>

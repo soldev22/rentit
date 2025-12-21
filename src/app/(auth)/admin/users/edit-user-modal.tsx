@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 
 type User = {
@@ -8,8 +7,14 @@ type User = {
   name?: string;
   role: string;
   status: "ACTIVE" | "INVITED" | "PAUSED";
+  profile?: any;
+  phone?: string;
+  address?: any;
+  addressVerified?: boolean;
+  profileCompleteness?: number;
+  createdAt?: string;
+  updatedAt?: string;
 };
-
 
 export default function EditUserModal({
   user,
@@ -19,10 +24,9 @@ export default function EditUserModal({
   user: User;
   onClose: () => void;
   onSaved: (updated: { _id: string; role: string; status: "ACTIVE" | "INVITED" | "PAUSED" }) => void;
-
 }) {
+  // Only declare state and functions once
   const [role, setRole] = useState(user.role);
-  
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState(user.status);
@@ -34,7 +38,7 @@ export default function EditUserModal({
     const res = await fetch(`/api/admin/users/${user._id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role,status}),
+      body: JSON.stringify({ role, status }),
     });
 
     setSaving(false);
@@ -44,8 +48,8 @@ export default function EditUserModal({
       return;
     }
 
-   onSaved({ _id: user._id, role,status });
-onClose();
+    onSaved({ _id: user._id, role, status });
+    onClose();
   }
 
   return (
@@ -91,6 +95,32 @@ onClose();
 
         {/* Body */}
         <div style={{ padding: 20 }}>
+          {/* Show all available user details */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 14, marginBottom: 4 }}><b>Name:</b> {user.name || <span style={{ color: '#aaa' }}>(none)</span>}</div>
+            <div style={{ fontSize: 14, marginBottom: 4 }}><b>Email:</b> {user.email}</div>
+            {/* Support both user.phone/address and user.profile.phone/address */}
+            {(user.phone || user.profile?.phone) && (
+              <div style={{ fontSize: 14, marginBottom: 4 }}><b>Phone:</b> {user.phone || user.profile?.phone}</div>
+            )}
+            {(user.address || user.profile?.address) && (
+              <div style={{ fontSize: 14, marginBottom: 4 }}>
+                <b>Address:</b> {user.address?.line1 || user.profile?.address?.line1 || ''}
+                {user.address?.line2 || user.profile?.address?.line2 ? ', ' + (user.address?.line2 || user.profile?.address?.line2) : ''}
+                {user.address?.city || user.profile?.address?.city ? ', ' + (user.address?.city || user.profile?.address?.city) : ''}
+                {user.address?.postcode || user.profile?.address?.postcode ? ', ' + (user.address?.postcode || user.profile?.address?.postcode) : ''}
+                {user.address?.country || user.profile?.address?.country ? ', ' + (user.address?.country || user.profile?.address?.country) : ''}
+              </div>
+            )}
+            {typeof user.addressVerified !== 'undefined' && (
+              <div style={{ fontSize: 14, marginBottom: 4 }}><b>Address Verified:</b> {user.addressVerified ? 'Yes' : 'No'}</div>
+            )}
+            {typeof user.profileCompleteness !== 'undefined' && (
+              <div style={{ fontSize: 14, marginBottom: 4 }}><b>Profile Completeness:</b> {user.profileCompleteness}%</div>
+            )}
+            {user.createdAt && <div style={{ fontSize: 14, marginBottom: 4 }}><b>Created:</b> {new Date(user.createdAt).toLocaleString()}</div>}
+            {user.updatedAt && <div style={{ fontSize: 14, marginBottom: 4 }}><b>Updated:</b> {new Date(user.updatedAt).toLocaleString()}</div>}
+          </div>
           <div style={{ marginBottom: 16 }}>
             <label
               style={{
@@ -102,7 +132,6 @@ onClose();
             >
               Role
             </label>
-
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
@@ -114,45 +143,39 @@ onClose();
                 fontSize: 14,
               }}
             >
-              <option value="ADMIN">Admin</option>
-              <option value="LANDLORD">Landlord</option>
-              <option value="TENANT">Tenant</option>
               <option value="APPLICANT">Applicant</option>
-              <option value="TRADESPERSON">Tradesperson</option>
+              <option value="TENANT">Tenant</option>
             </select>
           </div>
           <div style={{ marginBottom: 16 }}>
-  <label
-    style={{
-      display: "block",
-      fontSize: 13,
-      marginBottom: 6,
-      fontWeight: 600,
-    }}
-  >
-    Status
-  </label>
-
-  <select
-    value={status}
-    onChange={(e) =>
-      setStatus(e.target.value as "ACTIVE" | "INVITED" | "PAUSED")
-    }
-    style={{
-      width: "100%",
-      padding: "8px 10px",
-      borderRadius: 6,
-      border: "1px solid #d1d5db",
-      fontSize: 14,
-    }}
-  >
-    <option value="ACTIVE">Active</option>
-    <option value="INVITED">Invited</option>
-    <option value="PAUSED">Paused</option>
-  </select>
-</div>
-
-
+            <label
+              style={{
+                display: "block",
+                fontSize: 13,
+                marginBottom: 6,
+                fontWeight: 600,
+              }}
+            >
+              Status
+            </label>
+            <select
+              value={status}
+              onChange={(e) =>
+                setStatus(e.target.value as "ACTIVE" | "INVITED" | "PAUSED")
+              }
+              style={{
+                width: "100%",
+                padding: "8px 10px",
+                borderRadius: 6,
+                border: "1px solid #d1d5db",
+                fontSize: 14,
+              }}
+            >
+              <option value="ACTIVE">Active</option>
+              <option value="INVITED">Invited</option>
+              <option value="PAUSED">Paused</option>
+            </select>
+          </div>
           {error && (
             <div
               style={{

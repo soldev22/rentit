@@ -1,0 +1,187 @@
+# RENTIT PROJECT ARCHITECTURE OVERVIEW
+
+**Generated:** 2025-12-20T23:14:34.433Z
+
+## Key Conventions
+- Next.js 13+ (App Router, TypeScript)
+- MongoDB via mongodb driver
+- NextAuth.js (credentials, roles, JWT, MongoDB adapter)
+- Tailwind CSS, Geist font
+- Role-based routing: /admin, /landlord, /tenant, /agent, /dashboard, etc.
+- Zod for input validation
+- All DB access via src/lib/
+
+## Main Directories & Files
+
+src/
+- app/
+- app\(auth)/
+- app\(auth)\accountant/
+  - app\(auth)\accountant\page.tsx
+- app\(auth)\admin/
+- app\(auth)\admin\audit/
+  - app\(auth)\admin\audit\page.tsx
+  - app\(auth)\admin\layout.tsx
+  - app\(auth)\admin\page.tsx
+- app\(auth)\admin\users/
+  - app\(auth)\admin\users\edit-user-modal.tsx
+- app\(auth)\admin\users\invite/
+  - app\(auth)\admin\users\invite\page.tsx
+  - app\(auth)\admin\users\page.tsx
+  - app\(auth)\admin\users\users-table.tsx
+- app\(auth)\agent/
+- app\(auth)\agent\dashboard/
+  - app\(auth)\agent\dashboard\page.tsx
+- app\(auth)\agent\properties/
+  - app\(auth)\agent\properties\AgentPropertyGrid.tsx
+  - app\(auth)\agent\properties\page.tsx
+- app\(auth)\applicant/
+  - app\(auth)\applicant\page.tsx
+- app\(auth)\dashboard/
+- app\(auth)\dashboard\issues/
+- app\(auth)\dashboard\issues\[id]/
+  - app\(auth)\dashboard\issues\[id]\page.tsx
+  - app\(auth)\dashboard\issues\page.tsx
+  - app\(auth)\dashboard\LandlordDashboardSummary.tsx
+  - app\(auth)\dashboard\page.tsx
+- app\(auth)\landlord/
+- app\(auth)\landlord\dashboard/
+  - app\(auth)\landlord\dashboard\page.tsx
+  - app\(auth)\landlord\layout.tsx
+  - app\(auth)\landlord\page.tsx
+- app\(auth)\landlord\properties/
+  - app\(auth)\landlord\properties\EditPropertyModal.tsx
+- app\(auth)\landlord\properties\new/
+  - app\(auth)\landlord\properties\new\page.tsx
+  - app\(auth)\landlord\properties\page.tsx
+  - app\(auth)\landlord\properties\PropertyGrid.tsx
+  - app\(auth)\layout.tsx
+- app\(auth)\magic-link/
+- app\(auth)\magic-link\callback/
+  - app\(auth)\magic-link\callback\page.tsx
+- app\(auth)\profile/
+  - app\(auth)\profile\page.tsx
+- app\(auth)\tenant/
+- app\(auth)\tenant\dashboard/
+  - app\(auth)\tenant\dashboard\page.tsx
+- app\(auth)\tenant\issues/
+- app\(auth)\tenant\issues\[id]/
+  - app\(auth)\tenant\issues\[id]\page.tsx
+  - app\(auth)\tenant\layout.tsx
+  - app\(auth)\tenant\page.tsx
+- app\(auth)\tenant\report-issue/
+  - app\(auth)\tenant\report-issue\page.tsx
+  - app\(auth)\tenant\report-issue\ReportIssueForm.tsx
+- app\(auth)\tradesperson/
+  - app\(auth)\tradesperson\page.tsx
+- app\(public)/
+  - app\(public)\layout.tsx
+- app\(public)\login/
+  - app\(public)\login\page.tsx
+  - app\(public)\page.tsx
+- app\(public)\password-reset/
+- app\(public)\password-reset\confirm/
+  - app\(public)\password-reset\confirm\page.tsx
+- app\(public)\password-reset\request/
+  - app\(public)\password-reset\request\page.tsx
+- app\(public)\register/
+  - app\(public)\register\page.tsx
+- app\(public)\signin/
+  - app\(public)\signin\page.tsx
+- app\api/
+- app\api\admin/
+- app\api\admin\audit/
+  - app\api\admin\audit\route.ts
+- app\api\admin\users/
+- app\api\admin\users\[id]/
+  - app\api\admin\users\[id]\route.ts
+- app\api\admin\users\invite/
+  - app\api\admin\users\invite\route.ts
+  - app\api\admin\users\route.ts
+- app\api\agent-landlords/
+  - app\api\agent-landlords\route.ts
+- app\api\auth/
+- app\api\auth\[...nextauth]/
+  - app\api\auth\[...nextauth]\route.ts
+- app\api\auth\magic-link/
+- app\api\auth\magic-link\consume/
+  - app\api\auth\magic-link\consume\route.ts
+- app\api\auth\magic-link\request/
+  - app\api\auth\magic-link\request\route.ts
+- app\api\auth\magic-link\verify/
+- app\api\auth\password-reset/
+- app\api\auth\password-reset\confirm/
+  - app\api\auth\password-reset\confirm\route.ts
+- app\api\auth\password-reset\request/
+  - app\api\auth\password-reset\request\route.ts
+- app\api\landlord/
+- app\api\landlord\properties/
+- app\api\landlord\properties\list/
+  - app\api\landlord\properties\list\route.ts
+- app\api\landlord\properties\status/
+  - app\api\landlord\properties\status\route.ts
+- app\api\landlord\properties\update/
+  - app\api\landlord\properties\update\route.ts
+- app\api\maintenance/
+- app\api\maintenance\[id]/
+  - app\api\maintenance\[id]\route.ts
+  - app\api\maintenance\route.ts
+- app\api\profile/
+  - app\api\profile\route.ts
+- app\api\register/
+  - app\api\register\route.ts
+  - app\AppSessionProvider.tsx
+  - app\favicon.ico
+  - app\globals.css
+  - app\Header.tsx
+  - app\HeaderClient.tsx
+  - app\layout.tsx
+- app\unauthorized/
+  - app\unauthorized\page.tsx
+  - app\UserHeaderName.tsx
+- components/
+- components\admin/
+  - components\admin\AdminModal.tsx
+  - components\admin\AdminTableShell.tsx
+  - components\admin\StatusBadge.tsx
+  - components\LandlordPropertiesActions.tsx
+- components\maintenance/
+  - components\maintenance\IssueEditor.tsx
+  - components\maintenance\IssueHistoryList.tsx
+  - components\SimplePageLayout.tsx
+- lib/
+  - lib\agentLandlord.ts
+  - lib\audit.ts
+  - lib\auth-options.ts
+  - lib\db.ts
+  - lib\email.ts
+  - lib\formatAddress.ts
+- lib\maintenance/
+  - lib\maintenance\issues.ts
+  - lib\maintenance\transitions.ts
+  - lib\maintenance\types.ts
+  - lib\mongodb.ts
+  - lib\pagination.ts
+  - lib\propertyStatus.ts
+  - lib\requireRole.ts
+  - lib\resend.ts
+  - lib\roles.ts
+  - lib\status.ts
+- lib\tenant/
+  - lib\tenant\dashboard.ts
+  - lib\tenant\reportIssue.ts
+  - lib\useFormFields.ts
+  - lib\user.ts
+  - lib\version.ts
+- models/
+  - models\AgentLandlord.ts
+  - models\AuditEvent.ts
+  - models\Property.ts
+  - models\Role.ts
+  - models\User.ts
+- types/
+  - types\next-auth.d.ts
+
+---
+
+To update: Run `node scripts/generate-architecture-overview.js`

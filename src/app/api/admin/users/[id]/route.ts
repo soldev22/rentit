@@ -1,3 +1,24 @@
+export async function GET(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const session = await getServerSession(authOptions);
+  if (!session || (session.user.role !== "ADMIN" && session.user.role !== "LANDLORD")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+  const { id } = await context.params;
+  if (!ObjectId.isValid(id)) {
+    return NextResponse.json({ error: "Invalid user id" }, { status: 400 });
+  }
+  const users = await getCollection("users");
+  const user = await users.findOne({ _id: new ObjectId(id) });
+  if (!user) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+  // Hide sensitive fields
+  delete user.hashedPassword;
+  return NextResponse.json({ user });
+}
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";

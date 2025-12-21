@@ -97,6 +97,11 @@ const PropertySchema = new Schema(
       index: true,
     },
 
+    photos: {
+      type: [PhotoSchema],
+      default: [],
+      validate: [arr => arr.length <= 20, 'Maximum 20 photos allowed per property'],
+    },
     rooms: {
       type: [RoomSchema],
       default: [],

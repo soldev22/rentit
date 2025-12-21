@@ -87,6 +87,8 @@ export default async function LandlordPropertiesPage(
         ? doc.createdAt
         : doc.createdAt.toISOString()
       : "",
+    photos: doc.photos ?? [],
+    interests: doc.interests ?? [],
   }));
 
   // 3. Render
