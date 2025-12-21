@@ -61,8 +61,11 @@ export default async function LandlordDashboardSummary({ landlordId }: { landlor
     }));
 
   return (
-    <div className="w-full max-w-5xl mx-auto pt-6">
-      <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
+    <div className="w-full pt-6">
+      <div className="flex items-center mb-4 gap-3">
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <span className="inline-block bg-[#6b4eff] text-white text-xs font-semibold px-3 py-1 rounded-full align-middle">Next Version</span>
+      </div>
       <div className="flex gap-6 mb-6">
         <div className="bg-white rounded-lg shadow p-4 flex-1">
           <div className="text-3xl font-bold">{allProperties.length}</div>
@@ -86,10 +89,11 @@ export default async function LandlordDashboardSummary({ landlordId }: { landlor
           </Link>
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Client-side interactivity for interest dialog */}
-        {/* Render InterestDialogWrapper as a client component below */}
-        <InterestDialogWrapper properties={propertiesWithInterests} />
+     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+
+          {propertiesWithInterests.map((property) => (
+            <InterestDialogWrapper key={property._id} property={property} />
+          ))}
       </div>
     </div>
   );

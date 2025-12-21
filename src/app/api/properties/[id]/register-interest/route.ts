@@ -12,11 +12,21 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+
   const propertyId = params.id;
   const applicantId = session.user.id;
   const applicantName = session.user.name;
   const applicantEmail = session.user.email;
-  const applicantTel = session.user.tel;
+
+  // Fetch applicant's phone/tel from users collection
+  let applicantTel = null;
+  try {
+    const users = await getCollection("users");
+    const applicant = await users.findOne({ _id: new ObjectId(applicantId) });
+    applicantTel = applicant?.phone || applicant?.tel || null;
+  } catch (e) {
+    applicantTel = null;
+  }
 
   // Store interest in property document
   const properties = await getCollection("properties");
@@ -46,13 +56,14 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     landlordEmail = landlord?.email;
   }
 
+
   if (landlordEmail) {
     await sendInterestEmail({
-      landlordEmail,
-      applicantName,
-      applicantEmail,
-      applicantTel,
-      propertyTitle
+      landlordEmail: landlordEmail || "",
+      applicantName: applicantName || "",
+      applicantEmail: applicantEmail || "",
+      applicantTel: applicantTel || undefined,
+      propertyTitle: propertyTitle || "Property"
     });
   }
 

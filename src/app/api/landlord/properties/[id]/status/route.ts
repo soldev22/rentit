@@ -7,16 +7,19 @@ import { getCollection } from "@/lib/db";
 import { canTransition } from "@/lib/propertyStatus";
 import type { PropertyStatus } from "@/models/Property";
 
+import type { NextRequest } from "next/server";
+
 export async function PATCH(
-  req: Request,
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
+  const { id } = await context.params;
+
 
   try {
     // 1️⃣ Auth check
     const session = await getServerSession(authOptions);
-    console.log("STATUS ROUTE PARAMS:", params);
+    console.log("STATUS ROUTE PARAMS:", id);
 
     if (!session?.user?.id || session.user.role !== "LANDLORD") {
       return NextResponse.json(

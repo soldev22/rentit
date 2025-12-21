@@ -6,10 +6,14 @@ import { ObjectId } from "mongodb";
 import PropertyDetailClient from "../PropertyDetailClient";
 
 
-export default async function ApplicantPropertyDetailPage({ params }: { params: { id: string } | Promise<{ id: string }> }) {
-  const resolvedParams = typeof params.then === "function" ? await params : params;
+
+interface ApplicantPropertyDetailPageProps {
+  params: { id: string };
+}
+
+export default async function ApplicantPropertyDetailPage({ params }: ApplicantPropertyDetailPageProps) {
   const propertiesCollection = await getCollection("properties");
-  const property = await propertiesCollection.findOne({ _id: new ObjectId(resolvedParams.id) });
+  const property = await propertiesCollection.findOne({ _id: new ObjectId(params.id) });
 
   if (!property) return notFound();
 
@@ -31,5 +35,5 @@ export default async function ApplicantPropertyDetailPage({ params }: { params: 
     updatedAt: property.updatedAt?.toISOString?.() ?? property.updatedAt,
   };
 
-  return <PropertyDetailClient property={safeProperty} propertyId={resolvedParams.id} />;
+  return <PropertyDetailClient property={safeProperty} propertyId={params.id} />;
 }

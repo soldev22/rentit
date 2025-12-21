@@ -1,4 +1,4 @@
-import PropertyImageUpload from "../PropertyImageUpload";
+import PropertyImageUpload from "./PropertyImageUpload";
 import { useState } from "react";
 
 export default function PropertyImageUploadOnCreate({ propertyId, onUploaded }: { propertyId: string, onUploaded: (photo: { url: string, blobName: string }) => void }) {

@@ -74,13 +74,16 @@ export default function PropertyGrid({
 
   return (
     <>
-      {/* Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 items-start">
+      {/* Responsive Grid - true fill */}
+      <div
+        className="w-full grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+      >
         {properties.map((property) => (
           <div
             key={property._id}
             onClick={() => setSelected(property)}
-            className="cursor-pointer rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md"
+            className="cursor-pointer rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md"
+            style={{width: 600}}
           >
             {property.photos && property.photos.length > 0 && (
               <img
@@ -89,13 +92,13 @@ export default function PropertyGrid({
                 style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 6, marginBottom: 8, border: '1px solid #eee' }}
               />
             )}
-            <h3 className="text-base font-semibold leading-tight">
+            <h3 className="text-base font-semibold leading-tight truncate" title={property.title}>
               {property.title}
             </h3>
-            <p className="mt-1 text-sm font-medium text-gray-800">
+            <p className="mt-1 text-sm font-medium text-gray-800 truncate" title={property.address?.line1}>
               {property.address?.line1}
             </p>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-500 truncate" title={`${property.address?.city} ${property.address?.postcode}`}>
               {property.address?.city} {property.address?.postcode}
             </p>
             <p className="mt-2 text-sm">
