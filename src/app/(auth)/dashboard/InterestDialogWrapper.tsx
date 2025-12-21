@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import InterestDialog from "@/components/landlord/InterestDialog";
+import { useState, useEffect } from "react";
+import  InterestDialog  from "@/components/landlord/InterestDialog";
 import ManageUserModal from "@/components/landlord/ManageUserModal";
 import { useRouter } from "next/navigation";
+
 
 export default function InterestDialogWrapper({ property }: { property: any }) {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -26,6 +27,37 @@ export default function InterestDialogWrapper({ property }: { property: any }) {
     router.push(`/landlord/dialogue/${applicantId}`);
   };
 
+
+  // State to hold latest user names for interests
+  const [interestUserNames, setInterestUserNames] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    async function fetchNames() {
+      if (!property.interests) return;
+      const updates: Record<string, string> = {};
+      await Promise.all(
+        property.interests.map(async (interest: any) => {
+          if (interest.applicantId) {
+            try {
+              const res = await fetch(`/api/admin/users/${interest.applicantId}`);
+              if (res.ok) {
+                const data = await res.json();
+                updates[interest.applicantId] = data.user?.name || interest.applicantName;
+              } else {
+                updates[interest.applicantId] = interest.applicantName;
+              }
+            } catch {
+              updates[interest.applicantId] = interest.applicantName;
+            }
+          }
+        })
+      );
+      setInterestUserNames(updates);
+    }
+    fetchNames();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [property.interests?.length]);
+
   return (
     <>
       <div className="h-full flex flex-col bg-white rounded-xl shadow p-5">
@@ -35,8 +67,7 @@ export default function InterestDialogWrapper({ property }: { property: any }) {
               {property.title}
             </span>
             <div className="text-gray-500 text-sm">
-              {property.address.line1}, {property.address.city},{" "}
-              {property.address.postcode}
+              {property.address.line1}, {property.address.city}, {property.address.postcode}
             </div>
           </div>
 
@@ -63,7 +94,7 @@ export default function InterestDialogWrapper({ property }: { property: any }) {
                     onClick={() => handleInterestClick(interest)}
                   >
                     <div className="font-semibold">
-                      {interest.applicantName}
+                      {interestUserNames[interest.applicantId] || interest.applicantName}
                     </div>
                     <div className="text-xs text-gray-700">
                       {interest.applicantEmail}
@@ -90,13 +121,15 @@ export default function InterestDialogWrapper({ property }: { property: any }) {
         </div>
       </div>
 
-      <InterestDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        interest={selectedInterest}
-        onEditUser={handleEditUser}
-        onMessage={handleMessage}
-      />
+      {selectedInterest && (
+        <InterestDialog
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+          interest={selectedInterest}
+          onEditUser={handleEditUser}
+          onMessage={handleMessage}
+        />
+      )}
 
       {manageUserId && (
         <ManageUserModal

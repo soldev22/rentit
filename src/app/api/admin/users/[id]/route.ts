@@ -32,12 +32,12 @@ export async function PATCH(
 ) {
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user.role !== "ADMIN") {
+  if (!session || (session.user.role !== "ADMIN" && session.user.role !== "LANDLORD")) {
     if (session?.user?.id) {
       await auditEvent({
         action: "ACCESS_DENIED",
         actorUserId: session.user.id,
-        description: "Non-admin attempted to update user",
+        description: "Non-admin/landlord attempted to update user",
         success: false,
         source: "api/admin/users/[id]",
       });

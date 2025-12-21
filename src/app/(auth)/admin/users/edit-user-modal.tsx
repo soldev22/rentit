@@ -7,6 +7,7 @@ type User = {
   name?: string;
   role: string;
   status: "ACTIVE" | "INVITED" | "PAUSED";
+  description?: string;
   profile?: any;
   phone?: string;
   address?: any;
@@ -15,6 +16,9 @@ type User = {
   createdAt?: string;
   updatedAt?: string;
 };
+
+
+import { useEffect } from "react";
 
 export default function EditUserModal({
   user,
@@ -25,11 +29,26 @@ export default function EditUserModal({
   onClose: () => void;
   onSaved: (updated: { _id: string; role: string; status: "ACTIVE" | "INVITED" | "PAUSED" }) => void;
 }) {
-  // Only declare state and functions once
   const [role, setRole] = useState(user.role);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState(user.status);
+  const [latestUser, setLatestUser] = useState<User>(user);
+  const [description, setDescription] = useState<string>(user.description || "");
+
+  // Fetch latest user data on open
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const res = await fetch(`/api/admin/users/${user._id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setLatestUser(data.user);
+        }
+      } catch {}
+    }
+    fetchUser();
+  }, [user._id]);
 
   async function save() {
     setSaving(true);
@@ -38,7 +57,7 @@ export default function EditUserModal({
     const res = await fetch(`/api/admin/users/${user._id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role, status }),
+      body: JSON.stringify({ role, status, description }),
     });
 
     setSaving(false);
@@ -47,6 +66,15 @@ export default function EditUserModal({
       setError("Failed to update user");
       return;
     }
+
+    // Refetch latest user data after save
+    try {
+      const res2 = await fetch(`/api/admin/users/${user._id}`);
+      if (res2.ok) {
+        const data = await res2.json();
+        setLatestUser(data.user);
+      }
+    } catch {}
 
     onSaved({ _id: user._id, role, status });
     onClose();
@@ -97,7 +125,32 @@ export default function EditUserModal({
         <div style={{ padding: 20 }}>
           {/* Show all available user details */}
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 14, marginBottom: 4 }}><b>Name:</b> {user.name || <span style={{ color: '#aaa' }}>(none)</span>}</div>
+            <label
+              style={{
+                display: "block",
+                fontSize: 13,
+                marginBottom: 6,
+                fontWeight: 600,
+              }}
+            >
+              Description
+            </label>
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              style={{
+                width: "100%",
+                minHeight: 60,
+                padding: "8px 10px",
+                borderRadius: 6,
+                border: "1px solid #d1d5db",
+                fontSize: 14,
+                marginBottom: 10,
+                resize: "vertical"
+              }}
+              placeholder="Enter a description for this user..."
+            />
+            <div style={{ fontSize: 14, marginBottom: 4 }}><b>Name:</b> {latestUser.name || <span style={{ color: '#aaa' }}>(none)</span>}</div>
             <div style={{ fontSize: 14, marginBottom: 4 }}><b>Email:</b> {user.email}</div>
             {/* Support both user.phone/address and user.profile.phone/address */}
             {(user.phone || user.profile?.phone) && (
@@ -133,7 +186,7 @@ export default function EditUserModal({
               Role
             </label>
             <select
-              value={role}
+              value={role ?? ""}
               onChange={(e) => setRole(e.target.value)}
               style={{
                 width: "100%",
@@ -159,9 +212,9 @@ export default function EditUserModal({
               Status
             </label>
             <select
-              value={status}
+              value={status ?? ""}
               onChange={(e) =>
-                setStatus(e.target.value as "ACTIVE" | "INVITED" | "PAUSED")
+                setStatus((e.target.value || "ACTIVE") as "ACTIVE" | "INVITED" | "PAUSED")
               }
               style={{
                 width: "100%",

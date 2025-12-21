@@ -33,14 +33,19 @@ export default async function LandlordDashboardSummary({ landlordId }: { landlor
     })
     .toArray();
 
+
   // Status breakdown
   const statusCounts: Record<string, number> = {};
   allProperties.forEach((p: any) => {
     statusCounts[p.status ?? "draft"] = (statusCounts[p.status ?? "draft"] || 0) + 1;
   });
 
-  // All properties with interests
+  // Total revenue (sum of rentPcm for all properties)
+  const totalRevenue = allProperties.reduce((sum: number, p: any) => sum + (p.rentPcm ?? 0), 0);
+
+  // Only properties with registered interests
   const propertiesWithInterests = allProperties
+    .filter((doc: any) => Array.isArray(doc.interests) && doc.interests.length > 0)
     .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .map((doc: any) => ({
       _id: doc._id.toString(),
@@ -71,6 +76,10 @@ export default async function LandlordDashboardSummary({ landlordId }: { landlor
           <div className="text-3xl font-bold">{allProperties.length}</div>
           <div className="text-gray-600">Total Properties</div>
         </div>
+        <div className="bg-white rounded-lg shadow p-4 flex-1">
+          <div className="text-3xl font-bold">£{totalRevenue.toLocaleString("en-GB")}</div>
+          <div className="text-gray-600">Total Revenue (pcm)</div>
+        </div>
         {Object.entries(statusCounts).map(([status, count]) => (
           <div key={status} className="bg-white rounded-lg shadow p-4 flex-1">
             <div className="text-3xl font-bold">{count}</div>
@@ -79,7 +88,7 @@ export default async function LandlordDashboardSummary({ landlordId }: { landlor
         ))}
       </div>
       <div className="mb-4 mt-8 flex items-center justify-between">
-        <h2 className="text-lg font-semibold">All Properties & Registered Interests</h2>
+        <h2 className="text-lg font-semibold">Properties with Registered Interests</h2>
         <div className="flex gap-3">
           <Link href="/landlord/properties" className="text-[#6b4eff] font-semibold hover:underline">
             View all listings →
@@ -89,11 +98,16 @@ export default async function LandlordDashboardSummary({ landlordId }: { landlor
           </Link>
         </div>
       </div>
-     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-
-          {propertiesWithInterests.map((property) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {propertiesWithInterests.length === 0 ? (
+          <div className="col-span-full text-gray-600 text-center py-8">
+            No properties have registered interest yet.
+          </div>
+        ) : (
+          propertiesWithInterests.map((property) => (
             <InterestDialogWrapper key={property._id} property={property} />
-          ))}
+          ))
+        )}
       </div>
     </div>
   );
