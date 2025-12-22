@@ -71,26 +71,27 @@ interface InterestDialogProps {
                   <div className="font-semibold text-gray-800 mb-1">Profile Details:</div>
                   {Object.entries(userDetails.profile).map(([pkey, pval]) => {
                     if (pkey === 'address' && typeof pval === 'object' && pval !== null) {
+                      const addr: any = pval;
                       return (
                         <div key={pkey} className="pl-2 mt-1">
                           <div className="font-semibold text-xs text-gray-700">Address:</div>
-                          {pval.line1 && (
-                            <div className="text-xs text-gray-700 pl-2"><span className="font-semibold">Address Line 1:</span> {pval.line1}</div>
+                          {addr.line1 && (
+                            <div className="text-xs text-gray-700 pl-2"><span className="font-semibold">Address Line 1:</span> {addr.line1}</div>
                           )}
-                          {pval.line2 && (
-                            <div className="text-xs text-gray-700 pl-2"><span className="font-semibold">Address Line 2:</span> {pval.line2}</div>
+                          {addr.line2 && (
+                            <div className="text-xs text-gray-700 pl-2"><span className="font-semibold">Address Line 2:</span> {addr.line2}</div>
                           )}
-                          {pval.city && (
-                            <div className="text-xs text-gray-700 pl-2"><span className="font-semibold">City:</span> {pval.city}</div>
+                          {addr.city && (
+                            <div className="text-xs text-gray-700 pl-2"><span className="font-semibold">City:</span> {addr.city}</div>
                           )}
-                          {pval.county && (
-                            <div className="text-xs text-gray-700 pl-2"><span className="font-semibold">County:</span> {pval.county}</div>
+                          {addr.county && (
+                            <div className="text-xs text-gray-700 pl-2"><span className="font-semibold">County:</span> {addr.county}</div>
                           )}
-                          {pval.postcode && (
-                            <div className="text-xs text-gray-700 pl-2"><span className="font-semibold">Postcode:</span> {pval.postcode}</div>
+                          {addr.postcode && (
+                            <div className="text-xs text-gray-700 pl-2"><span className="font-semibold">Postcode:</span> {addr.postcode}</div>
                           )}
-                          {pval.country && (
-                            <div className="text-xs text-gray-700 pl-2"><span className="font-semibold">Country:</span> {pval.country}</div>
+                          {addr.country && (
+                            <div className="text-xs text-gray-700 pl-2"><span className="font-semibold">Country:</span> {addr.country}</div>
                           )}
                         </div>
                       );
