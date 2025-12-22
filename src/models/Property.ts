@@ -90,6 +90,120 @@ const PropertySchema = new Schema(
       min: 0,
     },
 
+    // Additional listing fields modeled after OpenRent
+    headline: {
+      type: String,
+      trim: true,
+      maxlength: 120,
+    },
+
+    propertyType: {
+      type: String,
+      enum: ['flat', 'house', 'maisonette', 'studio', 'room', 'other'],
+      default: 'flat',
+    },
+
+    bedrooms: {
+      type: Number,
+      min: 0,
+      default: 1,
+    },
+
+    bathrooms: {
+      type: Number,
+      min: 0,
+      default: 1,
+    },
+
+    furnished: {
+      type: String,
+      enum: ['furnished', 'part-furnished', 'unfurnished', 'unknown'],
+      default: 'unknown',
+    },
+
+    rentFrequency: {
+      type: String,
+      enum: ['pcm', 'pw'],
+      default: 'pcm',
+    },
+
+    deposit: {
+      type: Number,
+      min: 0,
+    },
+
+    availabilityDate: {
+      type: Date,
+    },
+
+    tenancyLengthMonths: {
+      type: Number,
+      min: 0,
+    },
+
+    billsIncluded: {
+      type: [String],
+      default: [],
+    },
+
+    petsAllowed: {
+      type: Boolean,
+      default: false,
+    },
+
+    smokingAllowed: {
+      type: Boolean,
+      default: false,
+    },
+
+    epcRating: {
+      type: String,
+      enum: ['A','B','C','D','E','F','G','unknown'],
+      default: 'unknown',
+    },
+
+    councilTaxBand: {
+      type: String,
+      enum: ['A','B','C','D','E','F','G','H','unknown'],
+      default: 'unknown',
+    },
+
+    sizeSqm: {
+      type: Number,
+      min: 0,
+    },
+
+    parking: {
+      type: String,
+      enum: ['none','on-street','off-street','garage','driveway','permit','other'],
+      default: 'none',
+    },
+
+    amenities: {
+      type: [String],
+      default: [],
+    },
+
+    virtualTourUrl: {
+      type: String,
+      trim: true,
+    },
+
+    floor: {
+      type: String,
+      trim: true,
+    },
+
+    hmoLicenseRequired: {
+      type: Boolean,
+      default: false,
+    },
+
+    viewingInstructions: {
+      type: String,
+      trim: true,
+    },
+
     status: {
       type: String,
       enum: PROPERTY_STATUSES,
@@ -115,6 +229,47 @@ const PropertySchema = new Schema(
 /**
  * Export model safely for Next.js hot reload
  */
+export interface PropertyDocument {
+  _id?: any;
+  landlordId: mongoose.Types.ObjectId;
+  title: string;
+  headline?: string;
+  description?: string;
+  address: {
+    line1: string;
+    line2?: string;
+    city: string;
+    postcode: string;
+    county?: string;
+  };
+  rentPcm: number;
+  rentFrequency?: 'pcm' | 'pw';
+  propertyType?: 'flat' | 'house' | 'maisonette' | 'studio' | 'room' | 'other';
+  bedrooms?: number;
+  bathrooms?: number;
+  furnished?: 'furnished' | 'part-furnished' | 'unfurnished' | 'unknown';
+  deposit?: number;
+  availabilityDate?: Date;
+  tenancyLengthMonths?: number;
+  billsIncluded?: string[];
+  petsAllowed?: boolean;
+  smokingAllowed?: boolean;
+  epcRating?: string;
+  councilTaxBand?: string;
+  sizeSqm?: number;
+  parking?: string;
+  amenities?: string[];
+  virtualTourUrl?: string;
+  floor?: string;
+  hmoLicenseRequired?: boolean;
+  viewingInstructions?: string;
+  photos?: { url: string; blobName: string }[];
+  rooms?: any[];
+  status?: PropertyStatus;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 export const Property =
   models.Property || model("Property", PropertySchema);
 

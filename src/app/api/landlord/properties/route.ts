@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getDb, getCollection } from "@/lib/db";
 import { ObjectId } from "mongodb";
+import { z } from "zod";
 
 // import Property from "@/models/Property";
 
@@ -30,28 +31,67 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3. Parse request body
+    // 3. Parse request body and validate using Zod
     const body = await req.json();
 
-    const {
-      title,
-      description,
-      address,
-      rentPcm,
-    } = body;
+    const createPropertySchema = z.object({
+      title: z.string().min(1),
+      headline: z.string().max(120).optional(),
+      description: z.string().optional(),
+      address: z.object({
+        line1: z.string().min(1),
+        line2: z.string().optional(),
+        city: z.string().min(1),
+        postcode: z.string().min(1),
+        county: z.string().optional(),
+      }),
+      rentPcm: z.number().min(0),
+      rentFrequency: z.enum(['pcm', 'pw']).optional(),
+      propertyType: z.enum(['flat', 'house', 'maisonette', 'studio', 'room', 'other']).optional(),
+      bedrooms: z.number().int().min(0).optional(),
+      bathrooms: z.number().int().min(0).optional(),
+      furnished: z.enum(['furnished', 'part-furnished', 'unfurnished', 'unknown']).optional(),
+      deposit: z.number().min(0).optional(),
+      availabilityDate: z.union([z.string(), z.date()]).optional(),
+      tenancyLengthMonths: z.number().int().min(0).optional(),
+      billsIncluded: z.array(z.string()).optional(),
+      petsAllowed: z.boolean().optional(),
+      smokingAllowed: z.boolean().optional(),
+      epcRating: z.enum(['A','B','C','D','E','F','G','unknown']).optional(),
+      councilTaxBand: z.enum(['A','B','C','D','E','F','G','H','unknown']).optional(),
+      sizeSqm: z.number().min(0).optional(),
+      parking: z.enum(['none','on-street','off-street','garage','driveway','permit','other']).optional(),
+      amenities: z.array(z.string()).optional(),
+      virtualTourUrl: z.string().url().optional(),
+      floor: z.string().optional(),
+      hmoLicenseRequired: z.boolean().optional(),
+      viewingInstructions: z.string().optional(),
+      photos: z.array(z.object({ url: z.string().url(), blobName: z.string() })).optional(),
+    });
 
-    // 4. Minimal validation (keep it simple)
-    if (
-      !title ||
-      !address?.line1 ||
-      !address?.city ||
-      !address?.postcode ||
-      typeof rentPcm !== "number"
-    ) {
+    const parsed = createPropertySchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Missing or invalid required fields" },
+        { error: 'Invalid input', details: parsed.error.flatten() },
         { status: 400 }
       );
+    }
+
+    const data = parsed.data;
+
+    // normalize availabilityDate
+    let availabilityDate: Date | undefined = undefined;
+    if (data.availabilityDate) {
+      availabilityDate = typeof data.availabilityDate === 'string'
+        ? new Date(data.availabilityDate)
+        : data.availabilityDate;
+
+      if (Number.isNaN(availabilityDate.getTime())) {
+        return NextResponse.json(
+          { error: 'Invalid availabilityDate' },
+          { status: 400 }
+        );
+      }
     }
 
     // 5. Connect to DB (handled by getDb/getCollection)
@@ -60,10 +100,32 @@ export async function POST(req: Request) {
     const propertiesCollection = await getCollection("properties");
     const propertyDoc = {
       landlordId: new ObjectId(session.user.id),
-      title,
-      description,
-      address,
-      rentPcm,
+      title: data.title,
+      headline: data.headline,
+      description: data.description,
+      address: data.address,
+      rentPcm: data.rentPcm,
+      rentFrequency: data.rentFrequency,
+      propertyType: data.propertyType,
+      bedrooms: data.bedrooms,
+      bathrooms: data.bathrooms,
+      furnished: data.furnished,
+      deposit: data.deposit,
+      availabilityDate: availabilityDate,
+      tenancyLengthMonths: data.tenancyLengthMonths,
+      billsIncluded: data.billsIncluded || [],
+      petsAllowed: data.petsAllowed ?? false,
+      smokingAllowed: data.smokingAllowed ?? false,
+      epcRating: data.epcRating,
+      councilTaxBand: data.councilTaxBand,
+      sizeSqm: data.sizeSqm,
+      parking: data.parking,
+      amenities: data.amenities || [],
+      virtualTourUrl: data.virtualTourUrl,
+      floor: data.floor,
+      hmoLicenseRequired: data.hmoLicenseRequired ?? false,
+      viewingInstructions: data.viewingInstructions,
+      photos: data.photos || [],
       status: "draft",
       rooms: [],
       createdAt: new Date(),
