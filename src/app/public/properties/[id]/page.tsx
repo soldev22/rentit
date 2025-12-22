@@ -1,7 +1,6 @@
 import { getCollection } from '@/lib/db';
 import { ObjectId } from 'mongodb';
 import Link from 'next/link';
-import { format } from 'date-fns';
 import Image from 'next/image';
 
 export const dynamic = 'force-dynamic';
@@ -59,7 +58,7 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
             <a href="#apply" className="w-full inline-block rounded-md bg-indigo-600 px-4 py-2 text-white text-center">Apply for this property</a>
           </div>
 
-          <div className="mt-6 text-xs text-gray-500">Listed: {property.createdAt ? format(new Date(property.createdAt), 'dd/MM/yyyy') : ''}</div>
+          <div className="mt-6 text-xs text-gray-500">Listed: {property.createdAt ? new Date(property.createdAt).toLocaleDateString('en-GB') : ''}</div>
         </aside>
       </div>
     </main>
