@@ -125,7 +125,7 @@ export default function NewPropertyPage() {
       sizeSqm: sizeSqm ? Number(sizeSqm) : undefined,
       parking,
       amenities,
-      virtualTourUrl,
+      virtualTourUrl: virtualTourUrl || undefined,
       floor,
       hmoLicenseRequired,
       viewingInstructions,
