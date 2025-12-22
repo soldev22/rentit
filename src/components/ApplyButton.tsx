@@ -1,34 +1,38 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function ApplyButton({ propertyId, propertyTitle }: { propertyId: string; propertyTitle?: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [showGuestModal, setShowGuestModal] = useState(false);
 
-  async function handleApply() {
+  useEffect(() => {
+    // determine auth state on mount
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/auth/session');
+        if (!mounted) return;
+        setIsAuthenticated(res.ok);
+      } catch (err) {
+        if (!mounted) return;
+        setIsAuthenticated(false);
+      }
+    })();
+    return () => { mounted = false };
+  }, []);
+
+  async function handleApplyAuthenticated() {
     setMessage(null);
     setLoading(true);
-
     try {
       const sessionRes = await fetch("/api/auth/session");
-      if (!sessionRes.ok) {
-        // Not authenticated: redirect to sign-in with callback
-        const cb = encodeURIComponent(window.location.pathname + window.location.search);
-        window.location.href = `/signin?callbackUrl=${cb}`;
-        return;
-      }
-
       const session = await sessionRes.json();
       const user = session?.user;
-      if (!user?.id || !user?.email) {
-        const cb = encodeURIComponent(window.location.pathname + window.location.search);
-        window.location.href = `/signin?callbackUrl=${cb}`;
-        return;
-      }
-
       const body = {
         applicantId: user.id,
         applicantName: user.name || "",
@@ -47,8 +51,6 @@ export default function ApplyButton({ propertyId, propertyTitle }: { propertyId:
         setMessage(data.error || "Failed to register interest");
       } else {
         setMessage("Interest registered. We'll email you with next steps.");
-        // Optionally refresh profile or navigate to applicant profile
-        // router.push('/profile');
       }
     } catch (err: any) {
       console.error("apply error", err);
@@ -56,6 +58,17 @@ export default function ApplyButton({ propertyId, propertyTitle }: { propertyId:
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleApplyClick() {
+    // If auth check is not yet known, wait
+    if (isAuthenticated === null) return;
+    if (isAuthenticated) {
+      handleApplyAuthenticated();
+      return;
+    }
+    // Not authenticated: open the guest modal instead of redirect
+    setShowGuestModal(true);
   }
 
   return (
