@@ -44,6 +44,22 @@ if (fs.existsSync(dotenvPath)) {
     }
   }
 
+  // Capture server responses for debug (particularly POST /api/landlord/properties)
+  page.on('response', async (resp) => {
+    try {
+      const url = resp.url();
+      if (url.includes('/api/landlord/properties') && resp.request().method() === 'POST') {
+        const status = resp.status();
+        const text = await resp.text();
+        const out = { url, status, text };
+        fs.writeFileSync(path.join(artifactsDir, `api-prop-${Date.now()}.json`), JSON.stringify(out, null, 2));
+        console.log('Saved API response for property POST:', status);
+      }
+    } catch (e) {
+      // ignore
+    }
+  });
+
   if (!base) {
     console.error('Could not reach the dev server on any configured host');
     await browser.close();
@@ -87,15 +103,23 @@ if (fs.existsSync(dotenvPath)) {
   if (!fs.existsSync(artifactsDir)) fs.mkdirSync(artifactsDir);
   await page.screenshot({ path: path.join(artifactsDir, `upload-${Date.now()}.png`), fullPage: true });
 
-  // submit
-  await page.click('button:has-text("Create Draft Property")');
+  // submit and wait for redirect; on failure capture debug artifacts
+  try {
+    await page.click('button:has-text("Create Draft Property")');
+    await page.waitForURL('**/landlord/properties', { timeout: 20000 });
+    console.log('Form submitted and redirected');
 
-  // wait for redirect back to properties list
-  await page.waitForURL('**/landlord/properties', { timeout: 20000 });
-  console.log('Form submitted and redirected');
-
-  // screenshot after submit
-  await page.screenshot({ path: path.join(artifactsDir, `submitted-${Date.now()}.png`), fullPage: true });
+    // screenshot after submit
+    await page.screenshot({ path: path.join(artifactsDir, `submitted-${Date.now()}.png`), fullPage: true });
+  } catch (e) {
+    console.error('Submit failed or redirect missing:', e.message);
+    const debugShot = path.join(artifactsDir, `submit-failed-${Date.now()}.png`);
+    await page.screenshot({ path: debugShot, fullPage: true });
+    const html = await page.content();
+    fs.writeFileSync(path.join(artifactsDir, `submit-failed-${Date.now()}.html`), html);
+    console.error('Saved debug screenshot and page HTML to', artifactsDir);
+    throw e;
+  }
 
   // verify in MongoDB
   const uri = process.env.MONGODB_URI;

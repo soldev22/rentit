@@ -1,0 +1,5 @@
+{
+  "url": "https://rentit-nine.vercel.app/api/landlord/properties",
+  "status": 400,
+  "text": "{\"error\":\"Invalid input\",\"details\":{\"formErrors\":[],\"fieldErrors\":{\"virtualTourUrl\":[\"Invalid URL\"]}}}"
+}
