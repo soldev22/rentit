@@ -4,6 +4,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import PropertyGallery from '@/components/PropertyGallery';
 import ShareButtons from '@/components/ShareButtons';
+import dynamic from 'next/dynamic';
+const ApplyButton = dynamic(() => import('@/components/ApplyButton'), { ssr: false });
 
 export const dynamic = 'force-dynamic';
 
@@ -76,7 +78,8 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
           </div>
 
           <div className="mt-6">
-            <a href="#apply" className="w-full inline-block text-center rounded-md bg-indigo-600 px-4 py-2 text-white font-semibold">Apply for this property</a>
+            {/* Client-side apply button handles auth and registers interest via API */}
+            <ApplyButton propertyId={property._id} propertyTitle={property.title} />
           </div>
 
           <div className="mt-6 text-sm text-gray-700 space-y-1">
