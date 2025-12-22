@@ -1,6 +1,7 @@
 import { getAllPublicProperties } from '@/lib/property';
 import Link from 'next/link';
 import PropertyFilters from '@/components/PropertyFilters';
+import React, { Suspense } from 'react';
 
 export const metadata = {
   title: 'Available Properties | RentIT',
@@ -24,7 +25,9 @@ export default async function PublicPropertiesPage({ searchParams }: { searchPar
         <p className="text-sm text-slate-500">Browse all listed properties. Share this page with anyone interested!</p>
       </header>
 
-      <PropertyFilters />
+      <Suspense fallback={<div className="text-sm text-slate-400">Loading filters…</div>}>
+        <PropertyFilters />
+      </Suspense>
 
       <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         {properties.length === 0 ? (
