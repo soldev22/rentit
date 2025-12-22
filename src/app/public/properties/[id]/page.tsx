@@ -4,8 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import PropertyGallery from '@/components/PropertyGallery';
 import ShareButtons from '@/components/ShareButtons';
-import dynamic from 'next/dynamic';
-const ApplyButton = dynamic(() => import('@/components/ApplyButton'), { ssr: false });
+import ApplyButton from '@/components/ApplyButton';
 
 export const dynamic = 'force-dynamic';
 
