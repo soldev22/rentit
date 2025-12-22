@@ -46,8 +46,8 @@ export default function HeaderClient() {
           <a href="/who-we-are" className="hover:underline font-medium">Who We Are</a>
           <a href="/contact" className="hover:underline font-medium">Contact</a>
         </nav>
-        {/* Right side */}
-        <div className="flex items-center gap-3">
+        {/* Right side (hidden on small, use mobile menu) */}
+        <div className="hidden sm:flex items-center gap-3">
           {status === "loading" && (
             <span className="text-sm text-blue-200">
               Loading…

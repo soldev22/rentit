@@ -19,7 +19,7 @@ export default function HeroSearch() {
   }
 
   return (
-    <form onSubmit={onSearch} className="w-full max-w-3xl mx-auto flex flex-col sm:flex-row gap-3">
+    <form onSubmit={onSearch} className="w-full flex flex-col sm:flex-row gap-3">
       <input
         aria-label="Location"
         placeholder="City or postcode"

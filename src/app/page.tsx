@@ -17,8 +17,8 @@ export default async function HomePage() {
       <header className="space-y-2 text-center">
         <h1 className="text-3xl font-bold text-indigo-800">Find your next home</h1>
         <p className="text-lg text-slate-600">Browse available properties from landlords across the UK.</p>
-        <div className="mt-6">
-          <div className="rounded-xl bg-gradient-to-r from-indigo-50 via-white to-white p-8 shadow-md">
+        <div className="mt-6 flex justify-center">
+          <div className="mx-auto w-full max-w-md sm:max-w-3xl rounded-xl bg-gradient-to-r from-indigo-50 via-white to-white p-6 sm:p-8 shadow-md">
             <h2 className="text-xl font-semibold mb-3">Search properties</h2>
             <HeroSearch />
           </div>
