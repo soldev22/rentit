@@ -11,7 +11,8 @@ if (fs.existsSync(dotenvPath)) {
       const k = m[1].trim();
       let v = m[2];
       if (v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1);
-      process.env[k] = v;
+      // Do not overwrite already-set environment variables (allow CLI overrides)
+      if (!process.env[k]) process.env[k] = v;
     }
   });
 }
