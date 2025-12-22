@@ -1,6 +1,7 @@
 import { getAllPublicProperties } from '@/lib/property';
 import Link from 'next/link';
 import PropertyFilters from '@/components/PropertyFilters';
+import PropertyCard from '@/components/PropertyCard';
 import React, { Suspense } from 'react';
 
 export const metadata = {
@@ -37,12 +38,7 @@ export default async function PublicPropertiesPage({ searchParams }: { searchPar
           <div className="col-span-full text-slate-400">No properties currently listed.</div>
         ) : (
           properties.map((property: any) => (
-            <div key={property._id} className="rounded-xl border bg-white shadow p-4 flex flex-col gap-2">
-              <div className="font-semibold text-lg">{property.title || property.address?.line1}</div>
-              <div className="text-sm text-gray-600">{property.address?.line1}{property.address?.line2 && `, ${property.address.line2}`}, {property.address?.city}, {property.address?.postcode}</div>
-              <div className="text-xs text-gray-400">Status: {property.status}</div>
-              <Link href={`/public/properties/${property._id}`} className="mt-2 text-indigo-600 hover:underline text-sm font-medium">View Details</Link>
-            </div>
+            <PropertyCard key={property._id} property={property} />
           ))
         )}
       </section>
