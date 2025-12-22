@@ -1,0 +1,107 @@
+name: E2E Preview Tests
+
+on:
+  push:
+    branches: [ 'staging/e2e' ]
+  pull_request:
+    branches: [ 'staging/e2e' ]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    env:
+      # Will be set to the Vercel preview URL when available
+      APP_BASE_URL: ''
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies (including dev)
+        run: npm ci --include=dev
+
+      - name: Verify Playwright is installed
+        run: |
+          node -e "try { require('playwright'); console.log('playwright module present'); } catch(e) { console.error('playwright missing', e.message); process.exit(2); }"
+
+      - name: Fetch Vercel preview URL (robust)
+        id: vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "Missing Vercel secrets. Please add VERCEL_TOKEN and VERCEL_PROJECT_ID to repo secrets." >&2
+            exit 1
+          fi
+
+          echo "Looking for preview for branch: $BRANCH"
+
+          resp=''
+          for i in $(seq 1 60); do
+            echo "Attempt $i to find deployment..."
+            # capture HTTP status and body
+            http=$(curl -s -w "%{http_code}" -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&limit=50")
+            status=${http: -3}
+            resp=${http:: -3}
+
+            echo "HTTP status: $status"
+            # save raw response each attempt for debugging
+            echo "$resp" > vercel-last-raw.json
+
+            # safe jq usage: use (.deployments // []) to avoid iterating null
+            url=$(echo "$resp" | jq -r --arg BRANCH "$BRANCH" '(.deployments // [])[] | select((.meta.githubCommitRef==$BRANCH) or (.gitBranch==$BRANCH)) | .url' | head -n1 || true)
+
+            # show number of deployments found
+            count=$(echo "$resp" | jq -r '.deployments | length // 0' 2>/dev/null || echo 0)
+            echo "deployments found: $count"
+
+            if [ -n "$url" ] && [ "$url" != "null" ]; then
+              echo "Found preview: $url"
+              echo "APP_BASE_URL=https://$url" >> $GITHUB_ENV
+              # persist the successful response
+              echo "$resp" | jq '.' > vercel-last.json || echo "$resp" > vercel-last.json
+              exit 0
+            fi
+            sleep 5
+          done
+
+          echo "Preview not found after waiting" >&2
+          # save last raw response and a pretty JSON if possible
+          echo "$resp" > vercel-last-raw.json
+          echo "$resp" | jq '.' > vercel-last.json 2>/dev/null || echo "$resp" > vercel-last.json
+          echo "Last response saved to vercel-last.json and vercel-last-raw.json" >&2
+          exit 1
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run E2E UI test against preview
+        id: e2e
+        continue-on-error: true
+        env:
+          APP_BASE_URL: ${{ env.APP_BASE_URL }}
+        run: |
+          mkdir -p e2e-results
+          node scripts/e2e-ui-test.js 2>&1 | tee e2e-results/e2e.log || true
+
+      - name: Upload E2E artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-artifacts
+          path: |
+            e2e-artifacts/**
+            e2e-results/**
+            vercel-last.json
+
+      - name: Fail on error
+        if: steps.e2e.outcome != 'success'
+        run: |
+          echo "E2E tests failed - see artifacts" && exit 1
