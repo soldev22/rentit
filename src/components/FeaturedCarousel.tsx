@@ -47,7 +47,7 @@ export default function FeaturedCarousel({ items = [] }: { items: any[] }) {
           <h3 className="text-2xl md:text-3xl font-semibold">{slide.title}</h3>
           <p className="mt-1 text-sm md:text-base">{slide.address?.line1}, {slide.address?.city} {slide.address?.postcode}</p>
           <div className="mt-3">
-            <Link href={`/public/properties/${slide._id}`} className="inline-block rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold">View property</Link>
+            <Link href={`/public/properties/${slide._id}`} className="inline-block rounded-md bg-clay px-4 py-2 text-sm font-semibold text-white">View property</Link>
           </div>
         </div>
       </div>

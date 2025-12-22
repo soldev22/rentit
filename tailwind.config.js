@@ -9,16 +9,16 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        ...colors, // Add all Tailwind default colors
-        primary: '#7F5AF0', // Vibrant purple
-        accent: '#FF5470',  // Trendy pink
-        background: '#F5F7FA', // Soft light background
-        foreground: '#22223B', // Deep navy for text
-        gold: '#FFD700', // Luxury accent
+        ...colors,
+        clay: '#8B5E3C', // warm clay
+        terracotta: '#D9A066', // soft terracotta
+        olive: '#78866B', // muted green
+        warm: '#F7F3EE', // warm neutral background
+        'text-dark': '#2E2A25',
       },
       fontFamily: {
-        sans: ['Geist', 'Arial', 'Helvetica', 'sans-serif'],
-        mono: ['Geist Mono', 'monospace'],
+        heading: ['"Playfair Display"', 'serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
       },
     },
   },

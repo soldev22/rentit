@@ -25,7 +25,7 @@ export default function HeroSearch() {
         placeholder="City or postcode"
         value={location}
         onChange={(e) => setLocation(e.target.value)}
-        className="flex-1 rounded-md border px-4 py-3"
+        className="flex-1 rounded-full border px-4 py-3"
       />
       <input
         aria-label="Min rent"
@@ -43,7 +43,7 @@ export default function HeroSearch() {
         onChange={(e) => setMaxRent(Number(e.target.value))}
         className="w-28 rounded-md border px-3 py-3"
       />
-      <button className="rounded-md bg-[#6b4eff] px-5 py-3 text-white font-semibold hover:bg-[#5533ff]" type="submit">Browse</button>
+      <button className="rounded-full bg-terracotta px-5 py-3 text-white font-semibold hover:opacity-95" type="submit">Browse</button>
     </form>
   );
 }

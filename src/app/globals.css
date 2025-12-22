@@ -1,36 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Playfair+Display:wght@400;700&display=swap');
 @import "tailwindcss";
 
-
 :root {
-  --background: #F5F7FA;
-  --foreground: #22223B;
-  --primary: #7F5AF0;
-  --accent: #FF5470;
-  --gold: #FFD700;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-primary: var(--primary);
-  --color-accent: var(--accent);
-  --color-gold: var(--gold);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --background: #F7F3EE; /* warm neutral */
+  --foreground: #2E2A25; /* dark text */
+  --clay: #8B5E3C;
+  --terracotta: #D9A066;
+  --olive: #78866B;
+  --gold: #CBA44B;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-heading: 'Playfair Display', serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #22223B;
-    --foreground: #F5F7FA;
-    --primary: #A685E2;
-    --accent: #FF8FAB;
-    --gold: #FFD700;
+    --background: #2E2A25;
+    --foreground: #F7F3EE;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
 }
+
+h1,h2,h3,h4,h5,h6 {
+  font-family: var(--font-heading);
+}
+
