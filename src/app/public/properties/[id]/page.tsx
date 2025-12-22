@@ -30,8 +30,9 @@ async function getPropertyById(id: string) {
   };
 }
 
-export default async function PropertyDetailPage({ params }: { params: { id: string } }) {
-  const property = await getPropertyById(params.id);
+export default async function PropertyDetailPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
+  const { id } = (typeof (params as any)?.then === 'function') ? await (params as any) : (params as any);
+  const property = await getPropertyById(id);
   if (!property) return <div className="p-6">Property not found</div>;
 
   return (
