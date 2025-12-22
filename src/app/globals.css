@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Playfair+Display:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
 @import "tailwindcss";
 
 :root {
@@ -9,7 +9,7 @@
   --olive: #78866B;
   --gold: #CBA44B;
   --font-sans: 'Inter', system-ui, sans-serif;
-  --font-heading: 'Playfair Display', serif;
+  --font-heading: 'Inter', system-ui, sans-serif; /* use sans-serif for headings */
 }
 
 @media (prefers-color-scheme: dark) {

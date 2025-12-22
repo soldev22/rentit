@@ -17,7 +17,7 @@ module.exports = {
         'text-dark': '#2E2A25',
       },
       fontFamily: {
-        heading: ['"Playfair Display"', 'serif'],
+        heading: ['Inter', 'system-ui', 'sans-serif'],
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },
     },
