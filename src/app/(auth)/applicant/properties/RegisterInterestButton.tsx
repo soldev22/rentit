@@ -19,7 +19,7 @@ export default function RegisterInterestButton({ propertyId, hasRegisteredIntere
         applicantId: user?.id || "",
         applicantName: user?.name || "",
         applicantEmail: user?.email || "",
-        applicantTel: user?.tel || "",
+        applicantTel: (user as any)?.phone || (user as any)?.profile?.phone || "",
       };
       if (!payload.applicantId || !payload.applicantName || !payload.applicantEmail) {
         setError("Missing applicant information. Please ensure you are logged in.");
