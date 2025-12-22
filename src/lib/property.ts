@@ -1,8 +1,25 @@
 // Fetch all listed properties for public property listings
-export async function getAllPublicProperties() {
+export async function getAllPublicProperties(filters?: { city?: string; minRent?: number; maxRent?: number; rooms?: number }) {
   const propertiesCollection = await getCollection("properties");
+  const query: any = { status: "listed" };
+  if (filters?.city) {
+    // simple case-insensitive substring match
+    query["address.city"] = { $regex: filters.city, $options: "i" };
+  }
+  if (filters?.minRent !== undefined) {
+    query.rentPcm = query.rentPcm || {};
+    query.rentPcm.$gte = Number(filters.minRent);
+  }
+  if (filters?.maxRent !== undefined) {
+    query.rentPcm = query.rentPcm || {};
+    query.rentPcm.$lte = Number(filters.maxRent);
+  }
+  if (filters?.rooms !== undefined) {
+    query.rooms = Number(filters.rooms);
+  }
+
   const properties = await propertiesCollection
-    .find({ status: "listed" })
+    .find(query)
     .sort({ createdAt: -1 })
     .toArray();
   return properties.map((p) => ({
