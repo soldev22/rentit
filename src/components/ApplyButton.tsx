@@ -10,6 +10,8 @@ export default function ApplyButton({ propertyId, propertyTitle }: { propertyId:
   const [message, setMessage] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [showGuestModal, setShowGuestModal] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string>('');
 
   useEffect(() => {
     // determine auth state on mount
@@ -135,20 +137,35 @@ export default function ApplyButton({ propertyId, propertyTitle }: { propertyId:
       {showGuestModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-md p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-2">Apply for this property</h3>
-            <p className="text-sm text-gray-600 mb-4">Sign in, register an account, or provide minimal details to apply.</p>
+            {!showSuccess ? (
+              <>
+                <h3 className="text-lg font-semibold mb-2">Apply for this property</h3>
+                <p className="text-sm text-gray-600 mb-4">Sign in, register an account, or provide minimal details to apply.</p>
 
-            <div className="space-y-4">
-              <GuestApplyForm propertyId={propertyId} propertyTitle={propertyTitle} onClose={() => setShowGuestModal(false)} onSuccess={() => { setShowGuestModal(false); setMessage('Interest registered. We\'ll email you with next steps.'); }} />
+                <div className="space-y-4">
+                  <GuestApplyForm propertyId={propertyId} propertyTitle={propertyTitle} onClose={() => setShowGuestModal(false)} onSuccess={(msg?: string) => { setShowSuccess(true); setSuccessMessage(msg || "Interest registered. We'll email you with next steps."); }} />
 
-              <div className="border-t pt-4">
-                <RegisterForm propertyId={propertyId} propertyTitle={propertyTitle} onClose={() => setShowGuestModal(false)} onSuccess={() => { setShowGuestModal(false); setMessage('Registration and interest successful. We\'ll email you with next steps.'); }} />
+                  <div className="border-t pt-4">
+                    <RegisterForm propertyId={propertyId} propertyTitle={propertyTitle} onClose={() => setShowGuestModal(false)} onSuccess={(msg?: string) => { setShowSuccess(true); setSuccessMessage(msg || "Registration and interest successful. We'll email you with next steps."); }} />
+                  </div>
+                </div>
+
+                <div className="mt-4 text-right">
+                  <button onClick={() => setShowGuestModal(false)} className="rounded-md border px-3 py-2">Cancel</button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center">
+                <div className="text-4xl mb-3">✅</div>
+                <h3 className="text-lg font-semibold mb-2">You're all set</h3>
+                <p className="text-sm text-gray-600 mb-4">{successMessage}</p>
+                <div className="flex gap-2 justify-center">
+                  <button onClick={() => { setShowGuestModal(false); router.push('/profile'); }} className="rounded-md bg-clay px-4 py-2 text-white">View profile</button>
+                  <button onClick={() => { setShowGuestModal(false); router.push('/dashboard'); }} className="rounded-md border px-4 py-2">Go to dashboard</button>
+                  <button onClick={() => setShowGuestModal(false)} className="rounded-md px-4 py-2">Close</button>
+                </div>
               </div>
-            </div>
-
-            <div className="mt-4 text-right">
-              <button onClick={() => setShowGuestModal(false)} className="rounded-md border px-3 py-2">Cancel</button>
-            </div>
+            )}
           </div>
         </div>
       )}
