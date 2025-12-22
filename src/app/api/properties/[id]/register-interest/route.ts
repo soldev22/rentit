@@ -38,42 +38,11 @@ export async function POST(
   // Prevent duplicate interest --- accept either an authenticated applicantId or an email-based guest id
   const interests = Array.isArray(property.interests) ? property.interests : [];
 
-  // If an applicantId isn't provided, try to find or create a user with the provided email
-  const users = await getCollection('users');
-  let applicantUser: any | null = null;
-
-  if (applicantId) {
-    try {
-      applicantUser = await users.findOne({ _id: new ObjectId(applicantId) });
-    } catch (e) {
-      applicantUser = null;
-    }
-  }
-
-  if (!applicantUser) {
-    applicantUser = await users.findOne({ email: String(applicantEmail).toLowerCase() });
-  }
-
-  if (!applicantUser) {
-    // Create a lightweight applicant user account with a random password
-    const randomPass = (Math.random().toString(36).slice(2, 10)) + Math.random().toString(36).slice(2, 6);
-    const hashedPassword = await bcrypt.hash(randomPass, 10);
-    const insertResult = await users.insertOne({
-      email: String(applicantEmail).toLowerCase(),
-      name: applicantName,
-      hashedPassword,
-      role: 'APPLICANT',
-      profile: { phone: applicantTel || null },
-      createdAt: new Date(),
-    });
-    applicantUser = await users.findOne({ _id: insertResult.insertedId });
-  }
-
-  const canonicalApplicantId = String(applicantUser._id);
+  const emailLower = String(applicantEmail).toLowerCase();
 
   const alreadyRegistered = interests.some((i: any) => {
-    if (i.applicantId && String(i.applicantId) === canonicalApplicantId) return true;
-    if (i.applicantEmail && String(i.applicantEmail).toLowerCase() === String(applicantEmail).toLowerCase()) return true;
+    if (applicantId && i.applicantId === applicantId) return true;
+    if (i.applicantEmail && String(i.applicantEmail).toLowerCase() === emailLower) return true;
     return false;
   });
 
@@ -81,15 +50,16 @@ export async function POST(
     return NextResponse.json({ error: "Interest already registered" }, { status: 409 });
   }
 
-  // Add new interest
+  // Add new interest (do NOT create a user account for guest submissions)
   const newInterest = {
-    applicantId: canonicalApplicantId,
+    applicantId: applicantId ?? null,
     applicantName,
-    applicantEmail: String(applicantEmail).toLowerCase(),
+    applicantEmail: emailLower,
     applicantTel,
     anonymous: !applicantId,
     date: new Date().toISOString(),
   };
+
   await properties.updateOne(
     { _id: new ObjectId(id) },
     { $push: { interests: newInterest } }
@@ -100,6 +70,7 @@ export async function POST(
     let landlordEmail: string | null = null;
     if (property.landlordId) {
       try {
+        const users = await getCollection('users');
         const landlord = await users.findOne({ _id: new ObjectId(property.landlordId) });
         landlordEmail = landlord?.email || null;
       } catch (e) {
@@ -111,7 +82,7 @@ export async function POST(
       await sendInterestEmail({
         landlordEmail,
         applicantName,
-        applicantEmail: String(applicantEmail).toLowerCase(),
+        applicantEmail: emailLower,
         applicantTel,
         propertyTitle: property.title || 'Property',
       });
