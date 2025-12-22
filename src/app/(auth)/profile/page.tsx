@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 export default function ProfilePage() {
+  const [interests, setInterests] = useState<any[]>([]);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
 
@@ -39,6 +41,15 @@ export default function ProfilePage() {
         city: data.profile?.address?.city ?? "",
         postcode: data.profile?.address?.postcode ?? "",
       });
+
+      // Fetch interests for this user
+      try {
+        const interestsRes = await fetch("/api/applicant/interests");
+        if (interestsRes.ok) {
+          const interestsData = await interestsRes.json();
+          setInterests(interestsData.interests || []);
+        }
+      } catch (e) {}
 
       setLoading(false);
     }
@@ -96,6 +107,25 @@ export default function ProfilePage() {
       }}
     >
       <h2>My profile</h2>
+
+      {/* Interests Section */}
+      <div style={{ marginBottom: 24 }}>
+        <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Registered Interests</h3>
+        {interests.length === 0 ? (
+          <div style={{ color: "#64748b", fontSize: 14 }}>No interests registered yet.</div>
+        ) : (
+          <ul style={{ paddingLeft: 0, listStyle: "none" }}>
+            {interests.map((interest) => (
+              <li key={interest.propertyId} style={{ marginBottom: 10, borderBottom: "1px solid #e5e7eb", paddingBottom: 8 }}>
+                <Link href={`/applicant/properties/${interest.propertyId}`} style={{ color: "#1e40af", fontWeight: 500, textDecoration: "underline" }}>
+                  {interest.propertyTitle || "Property"}
+                </Link>
+                <div style={{ fontSize: 13, color: "#475569" }}>{interest.date ? new Date(interest.date).toLocaleDateString() : ""}</div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       {isIncomplete && (
         <div

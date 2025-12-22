@@ -16,8 +16,7 @@ interface InterestDialogProps {
   onMessage?: (applicantId: string) => void;
 }
     export default function InterestDialog({ open, onClose, interest, onEditUser, onMessage }: InterestDialogProps) {
-      const [latestName, setLatestName] = useState<string>(interest.applicantName);
-      const [latestEmail, setLatestEmail] = useState<string>(interest.applicantEmail);
+      const [userDetails, setUserDetails] = useState<any | null>(null);
 
       useEffect(() => {
         async function fetchUser() {
@@ -26,8 +25,7 @@ interface InterestDialogProps {
             const res = await fetch(`/api/admin/users/${interest.applicantId}`);
             if (res.ok) {
               const data = await res.json();
-              setLatestName(data.user?.name || interest.applicantName);
-              setLatestEmail(data.user?.email || interest.applicantEmail);
+              setUserDetails(data);
             }
           } catch {}
         }
@@ -38,39 +36,101 @@ interface InterestDialogProps {
       if (!open) return null;
       return (
         <Modal onClose={onClose} title="Applicant Details">
-          {/* Move content directly into children, not as a return statement */}
-          <>
-            <div className="mb-2">
-              <div className="font-semibold">{latestName}</div>
-              <div className="text-xs text-gray-700">Email: {latestEmail}</div>
-              {interest.applicantTel && <div className="text-xs text-gray-700">Tel: {interest.applicantTel}</div>}
-              {interest.date && <div className="text-xs text-gray-500">Registered: {new Date(interest.date).toLocaleString()}</div>}
+          <div className="mb-2 space-y-2">
+            <div className="text-lg font-bold text-gray-900">{userDetails?.name || interest.applicantName}</div>
+            <div className="flex flex-col gap-1 text-sm text-gray-700">
+              <div><span className="font-semibold">Email:</span> {userDetails?.email || interest.applicantEmail}</div>
+              {userDetails?.phone && <div><span className="font-semibold">Phone:</span> {userDetails.phone}</div>}
+              {userDetails?.role && <div><span className="font-semibold">Role:</span> {userDetails.role}</div>}
+              {userDetails?.address && typeof userDetails.address === 'object' && (
+                <div className="bg-gray-50 rounded p-2 mt-2">
+                  <div className="font-semibold text-gray-800 mb-1">Address Details:</div>
+                  {userDetails.address.line1 && (
+                    <div className="text-xs text-gray-700 pl-2"><span className="font-semibold">Address Line 1:</span> {userDetails.address.line1}</div>
+                  )}
+                  {userDetails.address.line2 && (
+                    <div className="text-xs text-gray-700 pl-2"><span className="font-semibold">Address Line 2:</span> {userDetails.address.line2}</div>
+                  )}
+                  {userDetails.address.city && (
+                    <div className="text-xs text-gray-700 pl-2"><span className="font-semibold">City:</span> {userDetails.address.city}</div>
+                  )}
+                  {userDetails.address.county && (
+                    <div className="text-xs text-gray-700 pl-2"><span className="font-semibold">County:</span> {userDetails.address.county}</div>
+                  )}
+                  {userDetails.address.postcode && (
+                    <div className="text-xs text-gray-700 pl-2"><span className="font-semibold">Postcode:</span> {userDetails.address.postcode}</div>
+                  )}
+                  {userDetails.address.country && (
+                    <div className="text-xs text-gray-700 pl-2"><span className="font-semibold">Country:</span> {userDetails.address.country}</div>
+                  )}
+                </div>
+              )}
+              {/* Expanded profile object if present */}
+              {userDetails?.profile && typeof userDetails.profile === 'object' && (
+                <div className="bg-gray-50 rounded p-2 mt-2">
+                  <div className="font-semibold text-gray-800 mb-1">Profile Details:</div>
+                  {Object.entries(userDetails.profile).map(([pkey, pval]) => {
+                    if (pkey === 'address' && typeof pval === 'object' && pval !== null) {
+                      return (
+                        <div key={pkey} className="pl-2 mt-1">
+                          <div className="font-semibold text-xs text-gray-700">Address:</div>
+                          {pval.line1 && (
+                            <div className="text-xs text-gray-700 pl-2"><span className="font-semibold">Address Line 1:</span> {pval.line1}</div>
+                          )}
+                          {pval.line2 && (
+                            <div className="text-xs text-gray-700 pl-2"><span className="font-semibold">Address Line 2:</span> {pval.line2}</div>
+                          )}
+                          {pval.city && (
+                            <div className="text-xs text-gray-700 pl-2"><span className="font-semibold">City:</span> {pval.city}</div>
+                          )}
+                          {pval.county && (
+                            <div className="text-xs text-gray-700 pl-2"><span className="font-semibold">County:</span> {pval.county}</div>
+                          )}
+                          {pval.postcode && (
+                            <div className="text-xs text-gray-700 pl-2"><span className="font-semibold">Postcode:</span> {pval.postcode}</div>
+                          )}
+                          {pval.country && (
+                            <div className="text-xs text-gray-700 pl-2"><span className="font-semibold">Country:</span> {pval.country}</div>
+                          )}
+                        </div>
+                      );
+                    }
+                    return (
+                      <div key={pkey} className="text-xs text-gray-700 pl-2"><span className="font-semibold">{pkey}:</span> {typeof pval === 'object' ? JSON.stringify(pval) : String(pval)}</div>
+                    );
+                  })}
+                </div>
+              )}
+              {userDetails?.profileCompleteness !== undefined && (
+                <div><span className="font-semibold">Profile Completeness:</span> {userDetails.profileCompleteness}%</div>
+              )}
+              {interest.date && <div><span className="font-semibold">Registered Interest:</span> {new Date(interest.date).toLocaleString()}</div>}
+              {/* Show all other user fields except password/hash and createdAt */}
+              {userDetails && Object.entries(userDetails).map(([key, value]) => (
+                ["_id", "name", "email", "phone", "role", "address", "profileCompleteness", "createdAt", "hashedPassword", "password", "profile"].includes(key)
+                  ? null
+                  : (
+                    <div key={key} className="text-xs text-gray-500"><span className="font-semibold">{key}:</span> {typeof value === 'object' ? JSON.stringify(value) : String(value)}</div>
+                  )
+              ))}
             </div>
-            <div className="flex gap-2 mt-4">
-              {onEditUser && (
-                <button
-                  className="bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700"
-                  onClick={() => onEditUser(interest.applicantId)}
-                >
-                  Edit User
-                </button>
-              )}
-              {onMessage && (
-                <button
-                  className="bg-gray-200 text-gray-800 px-3 py-1 rounded hover:bg-gray-300"
-                  onClick={() => onMessage(interest.applicantId)}
-                >
-                  Start Conversation
-                </button>
-              )}
+          </div>
+          <div className="flex gap-2 mt-4">
+            {onMessage && (
               <button
-                className="ml-auto bg-gray-100 text-gray-600 px-3 py-1 rounded hover:bg-gray-200"
-                onClick={onClose}
+                className="bg-gray-200 text-gray-800 px-3 py-1 rounded hover:bg-gray-300"
+                onClick={() => onMessage(interest.applicantId)}
               >
-                Close
+                Start Conversation
               </button>
-            </div>
-          </>
+            )}
+            <button
+              className="ml-auto bg-gray-100 text-gray-600 px-3 py-1 rounded hover:bg-gray-200"
+              onClick={onClose}
+            >
+              Close
+            </button>
+          </div>
         </Modal>
       );
     }

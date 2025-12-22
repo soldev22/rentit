@@ -13,7 +13,7 @@ export async function PATCH(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params;
+  const { id } = context.params;
 
 
   try {

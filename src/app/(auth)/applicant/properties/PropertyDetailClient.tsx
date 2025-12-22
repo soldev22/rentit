@@ -5,7 +5,7 @@ import ImageModal from "./ImageModal";
 
 import Link from "next/link";
 
-export default function PropertyDetailClient({ property, propertyId }: { property: any, propertyId: string }) {
+export default function PropertyDetailClient({ property, propertyId, hasRegisteredInterest }: { property: any, propertyId: string, hasRegisteredInterest?: boolean }) {
   const allPhotos = (property.photos && property.photos.length > 0)
     ? property.photos
     : (property.rooms?.flatMap((room: any) => room.photos || []) || []);
@@ -62,7 +62,7 @@ export default function PropertyDetailClient({ property, propertyId }: { propert
               ))}
             </div>
           )}
-          <RegisterInterestButton propertyId={propertyId} />
+          <RegisterInterestButton propertyId={propertyId} hasRegisteredInterest={hasRegisteredInterest} />
         </div>
       </div>
       <ImageModal open={modalOpen} src={modalImg || ""} alt={property.title} onClose={closeModal} />

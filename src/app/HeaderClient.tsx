@@ -26,6 +26,13 @@ export default function HeaderClient() {
           </span>
         </a>
 
+        {/* Navigation links */}
+        <nav className="hidden md:flex gap-6 ml-8">
+          <a href="/" className="hover:underline font-medium">Home</a>
+          <a href="/public/properties" className="hover:underline font-medium">Properties</a>
+          <a href="/who-we-are" className="hover:underline font-medium">Who We Are</a>
+          <a href="/contact" className="hover:underline font-medium">Contact</a>
+        </nav>
         {/* Right side */}
         <div className="flex items-center gap-3">
           {status === "loading" && (
@@ -64,6 +71,16 @@ export default function HeaderClient() {
       <span className="rounded-md bg-white/20 px-2 py-1 text-xs font-semibold uppercase tracking-wide">
         {session.user.role}
       </span>
+    )}
+
+    {/* Landlord dashboard link */}
+    {session.user.role === 'LANDLORD' && (
+      <a
+        href="/landlord/dashboard"
+        className="rounded-md bg-white/10 px-3 py-1.5 text-sm font-semibold hover:bg-white/20"
+      >
+        Landlord Dashboard
+      </a>
     )}
 
     {/* My profile link */}

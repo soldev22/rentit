@@ -15,7 +15,6 @@ export async function DELETE(
   if (!session || session.user?.role !== "LANDLORD") {
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   }
-
   const { id: propertyId } = await context.params;
   const collection = await getCollection("properties");
   const filter = {
@@ -58,7 +57,6 @@ export async function PUT(
   if (!session || session.user?.role !== "LANDLORD") {
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   }
-
   const { id: propertyId } = await context.params;
 
   // 2. Parse body
@@ -88,10 +86,20 @@ export async function PUT(
       updatedAt: new Date(),
     },
   };
-  // Debug: log filter and session
-   const result = await collection.updateOne(filter, update);
-  if (result.matchedCount === 0) {
-    return NextResponse.json({ error: "Property not found or not owned by user" }, { status: 404 });
+  // Debug: log request body, filter, update and result
+  try {
+    console.log('Updating property', { propertyId, sessionUser: session.user?.id });
+    console.log('Request body:', body);
+    console.log('Update object:', update);
+    const result = await collection.updateOne(filter, update);
+    console.log('Update result:', result);
+    if (result.matchedCount === 0) {
+      return NextResponse.json({ error: "Property not found or not owned by user" }, { status: 404 });
+    }
+    // Always return 200 if property found, indicate if anything changed
+    return NextResponse.json({ ok: true, changed: result.modifiedCount > 0, matchedCount: result.matchedCount, modifiedCount: result.modifiedCount });
+  } catch (err) {
+    console.error("Failed to update property:", err);
+    return NextResponse.json({ error: "Failed to update property." }, { status: 500 });
   }
-  return NextResponse.json({ ok: true });
 }

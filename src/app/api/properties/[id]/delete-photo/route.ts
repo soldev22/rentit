@@ -6,7 +6,7 @@ import { containerClient } from "@/lib/azureBlob";
 export const runtime = "nodejs";
 
 export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params;
+  const { id } = context.params;
   const { blobName } = await req.json();
   if (!blobName) {
     return NextResponse.json({ error: "Missing blobName" }, { status: 400 });

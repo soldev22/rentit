@@ -71,6 +71,7 @@ export default function PropertyGrid({
   totalPages?: number;
 }) {
   const [selected, setSelected] = useState<Property | null>(null);
+  const [editUserId, setEditUserId] = useState<string | null>(null);
 
   return (
     <>

@@ -1,6 +1,8 @@
 
 "use client";
 import { useState } from "react";
+import InterestDialog from "@/components/landlord/InterestDialog";
+import ManageUserModal from "@/components/landlord/ManageUserModal";
 import PropertyImageUpload from "./PropertyImageUpload";
 import ImageDeleteModal from "./ImageDeleteModal";
 
@@ -48,6 +50,8 @@ export default function EditPropertyModal({
   const [description, setDescription] = useState(property.description || "");
   const [photos, setPhotos] = useState(property.photos || []);
   const [deleteIdx, setDeleteIdx] = useState<number | null>(null);
+  const [editUserId, setEditUserId] = useState<string | null>(null);
+  const [interestDialogIdx, setInterestDialogIdx] = useState<number | null>(null);
 
   async function handleSave() {
     setSaving(true);
@@ -69,10 +73,14 @@ export default function EditPropertyModal({
           },
         }),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.error || "Failed to save property");
+              const [editUserId, setEditUserId] = useState<string | null>(null);
+      const data = await res.json();
+      console.log('Save response status:', res.status, 'body:', data);
+      if (!res.ok || data?.error) {
+        // show explicit status to help debugging
+        setError(data?.error || `Failed to save property (status ${res.status})`);
       } else {
+        setError(null);
         onClose();
         window.location.reload();
       }
@@ -160,7 +168,11 @@ export default function EditPropertyModal({
             <label className="block text-sm font-medium mb-1">Registered Interests</label>
             <div className="bg-gray-50 rounded p-2 max-h-40 overflow-y-auto border">
               {property.interests.map((interest, idx) => (
-                <div key={idx} className="mb-2 pb-2 border-b last:border-b-0 last:mb-0 last:pb-0">
+                <div
+                  key={idx}
+                  className="mb-2 pb-2 border-b last:border-b-0 last:mb-0 last:pb-0 cursor-pointer hover:bg-indigo-50 rounded"
+                  onClick={() => setInterestDialogIdx(idx)}
+                >
                   <div className="font-semibold text-indigo-700">{interest.applicantName}</div>
                   <div className="text-xs text-gray-700">Email: {interest.applicantEmail}</div>
                   {interest.applicantTel && <div className="text-xs text-gray-700">Tel: {interest.applicantTel}</div>}
@@ -168,7 +180,70 @@ export default function EditPropertyModal({
                 </div>
               ))}
             </div>
+            <button
+              className="mt-2 rounded bg-red-500 px-3 py-1 text-xs font-semibold text-white hover:bg-red-600"
+              onClick={async () => {
+                if (!window.confirm('Are you sure you want to delete all registered interests for this property?')) return;
+                setSaving(true);
+                setError(null);
+                try {
+                  const res = await fetch(`/api/landlord/properties/${property._id}/interests`, {
+                    method: 'DELETE',
+                  });
+                  if (!res.ok) {
+                    const data = await res.json();
+                    setError(data.error || 'Failed to delete interests');
+                  } else {
+                    window.location.reload();
+                  }
+                } catch (err) {
+                  setError('Failed to delete interests');
+                } finally {
+                  setSaving(false);
+                }
+              }}
+              disabled={saving}
+            >
+              Delete all interests
+            </button>
           </div>
+        )}
+
+        {/* InterestDialog modal for selected interest */}
+        {interestDialogIdx !== null && property.interests && property.interests[interestDialogIdx] && (
+          <InterestDialog
+            open={true}
+            onClose={() => setInterestDialogIdx(null)}
+            interest={property.interests[interestDialogIdx]}
+          />
+        )}
+
+        {/* ManageUserModal for editing applicant */}
+        {/* Always render ManageUserModal at the top level for z-index/modal stacking */}
+        {editUserId && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <div style={{ background: 'white', padding: 32, borderRadius: 12, minWidth: 320, textAlign: 'center' }}>
+              <h2 style={{ marginBottom: 16 }}>Test Modal</h2>
+              <div>User ID: {editUserId}</div>
+              <button style={{ marginTop: 24 }} onClick={() => setEditUserId(null)}>Close</button>
+            </div>
+          </div>
+        )}
+
+        {/* ManageUserModal for editing applicant */}
+        {editUserId && (
+          <ManageUserModal userId={editUserId} onClose={() => setEditUserId(null)} />
         )}
 
         {/* Title */}

@@ -1,71 +1,57 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getCollection } from "@/lib/db";
 import { ObjectId } from "mongodb";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { sendInterestEmail } from "@/lib/email-interest";
+import { NextResponse } from "next/server";
+import { getCollection } from "@/lib/db";
 
-export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const params = await context.params;
-  const session = await getServerSession(authOptions);
-  if (!session || !session.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+
+  if (!ObjectId.isValid(id)) {
+    return NextResponse.json({ error: "Invalid property ID" }, { status: 400 });
   }
 
-
-  const propertyId = params.id;
-  const applicantId = session.user.id;
-  const applicantName = session.user.name;
-  const applicantEmail = session.user.email;
-
-  // Fetch applicant's phone/tel from users collection
-  let applicantTel = null;
-  try {
-    const users = await getCollection("users");
-    const applicant = await users.findOne({ _id: new ObjectId(applicantId) });
-    applicantTel = applicant?.phone || applicant?.tel || null;
-  } catch (e) {
-    applicantTel = null;
-  }
-
-  // Store interest in property document
   const properties = await getCollection("properties");
-  const result = await properties.updateOne(
-    { _id: new ObjectId(propertyId) },
-    {
-      $addToSet: {
-        interests: {
-          applicantId,
-          applicantName,
-          applicantEmail,
-          applicantTel,
-          date: new Date(),
-        },
-      },
-    }
+
+  let body;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  // Required applicant fields
+  const { applicantId, applicantName, applicantEmail, applicantTel } = body;
+  if (!applicantId || !applicantName || !applicantEmail) {
+    return NextResponse.json({ error: "Missing applicant information" }, { status: 400 });
+  }
+
+  // Find property
+  const property = await properties.findOne({ _id: new ObjectId(id) });
+  if (!property) {
+    return NextResponse.json({ error: "Property not found" }, { status: 404 });
+  }
+
+  // Prevent duplicate interest
+  const interests = Array.isArray(property.interests) ? property.interests : [];
+  const alreadyRegistered = interests.some((i: any) => i.applicantId === applicantId);
+  if (alreadyRegistered) {
+    return NextResponse.json({ error: "Interest already registered" }, { status: 409 });
+  }
+
+  // Add new interest
+  const newInterest = {
+    applicantId,
+    applicantName,
+    applicantEmail,
+    applicantTel,
+    date: new Date().toISOString(),
+  };
+  await properties.updateOne(
+    { _id: new ObjectId(id) },
+    { $push: { interests: newInterest } }
   );
 
-
-  // Fetch property to get landlordId and title
-  const property = await properties.findOne({ _id: new ObjectId(propertyId) });
-  let landlordEmail = null;
-  let propertyTitle = property?.title || "Property";
-  if (property?.landlordId) {
-    const users = await getCollection("users");
-    const landlord = await users.findOne({ _id: typeof property.landlordId === 'string' ? new ObjectId(property.landlordId) : property.landlordId });
-    landlordEmail = landlord?.email;
-  }
-
-
-  if (landlordEmail) {
-    await sendInterestEmail({
-      landlordEmail: landlordEmail || "",
-      applicantName: applicantName || "",
-      applicantEmail: applicantEmail || "",
-      applicantTel: applicantTel || undefined,
-      propertyTitle: propertyTitle || "Property"
-    });
-  }
-
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, interest: newInterest });
 }

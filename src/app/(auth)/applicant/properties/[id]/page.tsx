@@ -1,23 +1,43 @@
-
-
 import { getCollection } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { ObjectId } from "mongodb";
 import PropertyDetailClient from "../PropertyDetailClient";
-
-
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 interface ApplicantPropertyDetailPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
-export default async function ApplicantPropertyDetailPage({ params }: ApplicantPropertyDetailPageProps) {
+export default async function ApplicantPropertyDetailPage({
+  params,
+}: ApplicantPropertyDetailPageProps) {
+  // ✅ UNWRAP params (THIS is the missing piece)
+  const { id } = await params;
+
+  const session = await getServerSession(authOptions);
+  const userId = session?.user?.id;
+
+  // ✅ Guard stays valid
+  if (!ObjectId.isValid(id)) {
+    return notFound();
+  }
+
   const propertiesCollection = await getCollection("properties");
-  const property = await propertiesCollection.findOne({ _id: new ObjectId(params.id) });
+
+  const property = await propertiesCollection.findOne({
+    _id: new ObjectId(id),
+  });
 
   if (!property) return notFound();
 
-  // Serialize property for client component
+  // Check if applicant has already registered interest
+  const interests = Array.isArray(property.interests) ? property.interests : [];
+  const hasRegisteredInterest = interests.some(
+    (i: any) => i.applicantId === userId
+  );
+
+  // Serialize for client component
   const safeProperty = {
     ...property,
     _id: property._id?.toString?.() ?? property._id,
@@ -35,5 +55,11 @@ export default async function ApplicantPropertyDetailPage({ params }: ApplicantP
     updatedAt: property.updatedAt?.toISOString?.() ?? property.updatedAt,
   };
 
-  return <PropertyDetailClient property={safeProperty} propertyId={params.id} />;
+  return (
+    <PropertyDetailClient
+      property={safeProperty}
+      propertyId={id}
+      hasRegisteredInterest={hasRegisteredInterest}
+    />
+  );
 }
