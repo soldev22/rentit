@@ -7,7 +7,15 @@ export const dynamic = 'force-dynamic';
 
 async function getPropertyById(id: string) {
   const col = await getCollection('properties');
-  const p = await col.findOne({ _id: new ObjectId(id) });
+  let p: any | null = null;
+  try {
+    p = await col.findOne({ _id: new ObjectId(id) });
+  } catch (err) {
+    // Invalid ObjectId or DB error - surface minimal log and return null so page shows "not found"
+    console.error('getPropertyById error (invalid id or DB):', err);
+    return null;
+  }
+
   if (!p) return null;
   return {
     _id: p._id.toString(),
