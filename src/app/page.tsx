@@ -1,4 +1,7 @@
 import { getAllPublicProperties } from '@/lib/property';
+import HeroSearch from '@/components/HeroSearch';
+import PropertyCard from '@/components/PropertyCard';
+import FeaturedCarousel from '@/components/FeaturedCarousel';
 import Link from 'next/link';
 
 export const metadata = {
@@ -12,22 +15,23 @@ export default async function HomePage() {
   return (
     <main className="mx-auto max-w-6xl p-4 sm:p-8 space-y-8">
       <header className="space-y-2 text-center">
-        <h1 className="text-3xl font-bold text-indigo-800">Welcome to RentIT</h1>
-        <p className="text-lg text-slate-600">Find your next home from our list of available properties.</p>
+        <h1 className="text-3xl font-bold text-indigo-800">Find your next home</h1>
+        <p className="text-lg text-slate-600">Browse available properties from landlords across the UK.</p>
+        <div className="mt-6">
+          <div className="rounded-xl bg-gradient-to-r from-indigo-50 via-white to-white p-8 shadow-md">
+            <h2 className="text-xl font-semibold mb-3">Search properties</h2>
+            <HeroSearch />
+          </div>
+        </div>
       </header>
-      <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-        {properties.length === 0 ? (
-          <div className="col-span-full text-slate-400 text-center">No properties currently listed.</div>
-        ) : (
-          properties.map((property: any) => (
-            <div key={property._id} className="rounded-xl border bg-white shadow p-5 flex flex-col gap-2">
-              <div className="font-semibold text-xl text-indigo-900">{property.title || property.address?.line1}</div>
-              <div className="text-sm text-gray-600">{property.address?.line1}{property.address?.line2 && `, ${property.address.line2}`}, {property.address?.city}, {property.address?.postcode}</div>
-              <div className="text-xs text-gray-400">Status: {property.status}</div>
-              <Link href={`/public/properties/${property._id}`} className="mt-2 text-indigo-600 hover:underline text-sm font-medium">View Details</Link>
-            </div>
-          ))
-        )}
+      <section className="mt-8">
+        <h2 className="text-xl font-semibold mb-4">Featured properties</h2>
+        <FeaturedCarousel items={properties.slice(0, 8)} />
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          {properties.map((property: any) => (
+            <PropertyCard key={property._id} property={property} />
+          ))}
+        </div>
       </section>
     </main>
   );
