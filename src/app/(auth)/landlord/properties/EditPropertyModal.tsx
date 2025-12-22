@@ -73,7 +73,6 @@ export default function EditPropertyModal({
           },
         }),
       });
-              const [editUserId, setEditUserId] = useState<string | null>(null);
       const data = await res.json();
       console.log('Save response status:', res.status, 'body:', data);
       if (!res.ok || data?.error) {
@@ -84,8 +83,9 @@ export default function EditPropertyModal({
         onClose();
         window.location.reload();
       }
-    } catch (err) {
-      setError("Failed to save property");
+    } catch (err: any) {
+      console.error('handleSave error:', err);
+      setError(err?.message || "Failed to save property");
     } finally {
       setSaving(false);
     }
