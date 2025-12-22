@@ -19,34 +19,34 @@ export default function HeroSearch() {
   }
 
   return (
-    <form onSubmit={onSearch} className="w-full flex flex-row flex-wrap gap-2 items-center">
+    <form onSubmit={onSearch} className="w-full flex flex-row gap-2 items-center flex-nowrap overflow-x-auto">
       <input
-        aria-label="Location"
-        placeholder="City or postcode"
+        aria-label="Postcode or city"
+        placeholder="Postcode or city"
         value={location}
         onChange={(e) => setLocation(e.target.value)}
-        className="rounded-full border px-3 py-1 w-48 flex-shrink-0"
+        className="rounded-full border px-2 py-1 w-36 min-w-0"
       />
 
       <input
         aria-label="Min rent"
         type="number"
-        placeholder="Min rent"
+        placeholder="Min"
         value={minRent || ""}
         onChange={(e) => setMinRent(Number(e.target.value))}
-        className="w-20 rounded-md border px-2 py-1"
+        className="w-16 rounded-md border px-2 py-1"
       />
 
       <input
         aria-label="Max rent"
         type="number"
-        placeholder="Max rent"
+        placeholder="Max"
         value={maxRent || ""}
         onChange={(e) => setMaxRent(Number(e.target.value))}
-        className="w-20 rounded-md border px-2 py-1"
+        className="w-16 rounded-md border px-2 py-1"
       />
 
-      <button className="rounded-full bg-terracotta px-3 py-1 text-white font-semibold hover:opacity-95 w-24" type="submit">Browse</button>
+      <button className="rounded-full bg-terracotta px-3 py-1 text-white font-semibold hover:opacity-95 w-20 flex-shrink-0" type="submit">Search</button>
     </form>
   );
 }
