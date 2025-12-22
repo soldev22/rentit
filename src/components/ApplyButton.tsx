@@ -31,9 +31,30 @@ export default function ApplyButton({ propertyId, propertyTitle }: { propertyId:
     setMessage(null);
     setLoading(true);
     try {
-      const sessionRes = await fetch("/api/auth/session");
+      let sessionRes;
+      try {
+        sessionRes = await fetch("/api/auth/session");
+      } catch (err) {
+        // network failure when checking session - fall back to guest flow
+        console.error('session fetch failed, falling back to guest modal', err);
+        setShowGuestModal(true);
+        return;
+      }
+
+      if (!sessionRes.ok) {
+        // session endpoint returned non-OK - treat as anonymous
+        setShowGuestModal(true);
+        return;
+      }
+
       const session = await sessionRes.json();
       const user = session?.user;
+      if (!user?.id || !user?.email) {
+        // No usable session - open guest modal
+        setShowGuestModal(true);
+        return;
+      }
+
       const body = {
         applicantId: user.id,
         applicantName: user.name || "",
@@ -41,11 +62,20 @@ export default function ApplyButton({ propertyId, propertyTitle }: { propertyId:
         applicantTel: (user as any).tel || "",
       };
 
-      const res = await fetch(`/api/properties/${propertyId}/register-interest`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      let res;
+      try {
+        res = await fetch(`/api/properties/${propertyId}/register-interest`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      } catch (err) {
+        // network error when submitting interest - fall back to guest modal
+        console.error('register-interest fetch failed', err);
+        setShowGuestModal(true);
+        setMessage('Network error. Please try again or apply as guest.');
+        return;
+      }
 
       const data = await res.json();
       if (!res.ok) {
@@ -62,13 +92,33 @@ export default function ApplyButton({ propertyId, propertyTitle }: { propertyId:
   }
 
   async function handleApplyClick() {
-    // If auth check is not yet known, wait
-    if (isAuthenticated === null) return;
+    // If auth check is not yet known, synchronously check session now
+    if (isAuthenticated === null) {
+      try {
+        const res = await fetch('/api/auth/session');
+        const ok = res.ok;
+        setIsAuthenticated(ok);
+        if (ok) {
+          await handleApplyAuthenticated();
+          return;
+        }
+        setShowGuestModal(true);
+        return;
+      } catch (err) {
+        // Network error determining session - open guest modal
+        console.error('session fetch on click failed', err);
+        setIsAuthenticated(false);
+        setShowGuestModal(true);
+        return;
+      }
+    }
+
     if (isAuthenticated) {
-      handleApplyAuthenticated();
+      await handleApplyAuthenticated();
       return;
     }
-    // Not authenticated: open the guest modal instead of redirect
+
+    // Not authenticated: open the guest modal
     setShowGuestModal(true);
   }
 
