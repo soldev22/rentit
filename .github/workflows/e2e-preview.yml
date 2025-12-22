@@ -10,7 +10,8 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     env:
-      APP_BASE_URL: http://localhost:3000
+      # Will be set to the Vercel preview URL when available
+      APP_BASE_URL: ''
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,20 +24,41 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Next.js
-        run: npm run build
-
-      - name: Start server in background
+      - name: Fetch Vercel preview URL
+        id: vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          BRANCH: ${{ github.ref_name }}
         run: |
-          nohup npm start &
-          n=0; until curl -sSf http://localhost:3000/ > /dev/null || [ $n -ge 30 ]; do n=$((n+1)); sleep 2; done
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "Missing Vercel secrets. Please add VERCEL_TOKEN and VERCEL_PROJECT_ID to repo secrets." >&2
+            exit 1
+          fi
+          echo "Looking for preview for branch: $BRANCH"
+          for i in $(seq 1 30); do
+            echo "Attempt $i to find deployment..."
+            resp=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&limit=20")
+            url=$(echo "$resp" | jq -r --arg BRANCH "$BRANCH" '.deployments[] | select(.meta.githubCommitRef==$BRANCH or .gitBranch==$BRANCH) | .url' | head -n1)
+            if [ -n "$url" ] && [ "$url" != "null" ]; then
+              echo "Found preview: $url"
+              echo "APP_BASE_URL=https://$url" >> $GITHUB_ENV
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Preview not found after waiting" >&2
+          echo "$resp" | jq -r '.' > vercel-last.json || true
+          exit 1
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
 
-      - name: Run E2E UI test
+      - name: Run E2E UI test against preview
         id: e2e
         continue-on-error: true
+        env:
+          APP_BASE_URL: ${{ env.APP_BASE_URL }}
         run: |
           mkdir -p e2e-results
           node scripts/e2e-ui-test.js 2>&1 | tee e2e-results/e2e.log || true
@@ -49,6 +71,7 @@ jobs:
           path: |
             e2e-artifacts/**
             e2e-results/**
+            vercel-last.json
 
       - name: Fail on error
         if: steps.e2e.outcome != 'success'
