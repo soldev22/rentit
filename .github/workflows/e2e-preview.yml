@@ -21,8 +21,12 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install dependencies (including dev)
+        run: npm ci --include=dev
+
+      - name: Verify Playwright is installed
+        run: |
+          node -e "try { require('playwright'); console.log('playwright module present'); } catch(e) { console.error('playwright missing', e.message); process.exit(2); }"
 
       - name: Fetch Vercel preview URL (robust)
         id: vercel
