@@ -1,0 +1,56 @@
+name: E2E Preview Tests
+
+on:
+  push:
+    branches: [ 'staging/e2e' ]
+  pull_request:
+    branches: [ 'staging/e2e' ]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    env:
+      APP_BASE_URL: http://localhost:3000
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Next.js
+        run: npm run build
+
+      - name: Start server in background
+        run: |
+          nohup npm start &
+          n=0; until curl -sSf http://localhost:3000/ > /dev/null || [ $n -ge 30 ]; do n=$((n+1)); sleep 2; done
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run E2E UI test
+        id: e2e
+        continue-on-error: true
+        run: |
+          mkdir -p e2e-results
+          node scripts/e2e-ui-test.js 2>&1 | tee e2e-results/e2e.log || true
+
+      - name: Upload E2E artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-artifacts
+          path: |
+            e2e-artifacts/**
+            e2e-results/**
+
+      - name: Fail on error
+        if: steps.e2e.outcome != 'success'
+        run: |
+          echo "E2E tests failed - see artifacts" && exit 1
