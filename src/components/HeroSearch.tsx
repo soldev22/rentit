@@ -25,25 +25,27 @@ export default function HeroSearch() {
         placeholder="City or postcode"
         value={location}
         onChange={(e) => setLocation(e.target.value)}
-        className="flex-1 rounded-full border px-4 py-3"
+        className="flex-1 rounded-full border px-4 py-2"
       />
-      <input
-        aria-label="Min rent"
-        type="number"
-        placeholder="Min rent"
-        value={minRent || ""}
-        onChange={(e) => setMinRent(Number(e.target.value))}
-        className="w-28 rounded-md border px-3 py-3"
-      />
-      <input
-        aria-label="Max rent"
-        type="number"
-        placeholder="Max rent"
-        value={maxRent || ""}
-        onChange={(e) => setMaxRent(Number(e.target.value))}
-        className="w-28 rounded-md border px-3 py-3"
-      />
-      <button className="rounded-full bg-terracotta px-5 py-3 text-white font-semibold hover:opacity-95" type="submit">Browse</button>
+      <div className="flex gap-2 items-center">
+        <input
+          aria-label="Min rent"
+          type="number"
+          placeholder="Min rent"
+          value={minRent || ""}
+          onChange={(e) => setMinRent(Number(e.target.value))}
+          className="w-24 rounded-md border px-2 py-2"
+        />
+        <input
+          aria-label="Max rent"
+          type="number"
+          placeholder="Max rent"
+          value={maxRent || ""}
+          onChange={(e) => setMaxRent(Number(e.target.value))}
+          className="w-24 rounded-md border px-2 py-2"
+        />
+      </div>
+      <button className="rounded-full bg-terracotta px-5 py-2 text-white font-semibold hover:opacity-95" type="submit">Browse</button>
     </form>
   );
 }
