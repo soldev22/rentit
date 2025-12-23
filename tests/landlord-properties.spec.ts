@@ -11,7 +11,7 @@ test('landlord can create, edit, and delete property', async ({ page, context })
     try {
       const res = await fetch(url, { method: 'HEAD' });
       return res.ok || res.status === 200;
-    } catch (err) {
+    } catch {
       return false;
     }
   }
@@ -21,7 +21,7 @@ test('landlord can create, edit, and delete property', async ({ page, context })
     return;
   }
 
-  const { storagePath, email, password } = await ensureLandlordAuth(page);
+  const { email, password } = await ensureLandlordAuth(page);
 
   // Create a fresh context and sign in there to ensure session cookies are present for API calls
   const browser = context.browser();
@@ -54,7 +54,7 @@ test('landlord can create, edit, and delete property', async ({ page, context })
   // Ensure we are actually signed in as a landlord (guard against wrong/expired creds)
   try {
     await expect(authPage.getByRole('link', { name: 'Landlord Dashboard' })).toBeVisible({ timeout: 5000 });
-  } catch (e) {
+  } catch {
     const tmpPath = `playwright/.auth/landlord-debug-signin-${Date.now()}.json`;
     await authContext.storageState({ path: tmpPath });
     throw new Error(`Sign in in the new context did not yield landlord role; saved storage to ${tmpPath}`);
@@ -70,7 +70,7 @@ test('landlord can create, edit, and delete property', async ({ page, context })
     // Verify the auth state loaded correctly in the new context: expect landlord-specific UI
     try {
       await expect(authPage.getByRole('link', { name: 'Landlord Dashboard' })).toBeVisible({ timeout: 5000 });
-    } catch (e) {
+    } catch {
       // Capture storage state for debugging and fail fast with a helpful message
       const tmpPath = `playwright/.auth/landlord-debug-${Date.now()}.json`;
       await authContext.storageState({ path: tmpPath });
@@ -115,6 +115,12 @@ await authPage.getByLabel('Title', { exact: true }).fill(unique);
     await expect(modalTitleInput).toBeVisible();
     await modalTitleInput.fill(`${unique} Edited`);
 
+    // Set deposit, amenities, virtual tour and viewing instructions
+    await authPage.getByLabel('Deposit').fill('350');
+    await authPage.getByLabel('amenity-garden').check();
+    await authPage.getByLabel('virtual tour url').fill('https://example.com/tour');
+    await authPage.getByLabel('Viewing instructions').fill('Call ahead to arrange access');
+
     // Save changes and assert PUT response
     const [putResp] = await Promise.all([
       authPage.waitForResponse((r) => r.request().method() === 'PUT' && r.url().includes('/api/landlord/properties/')),
@@ -122,9 +128,14 @@ await authPage.getByLabel('Title', { exact: true }).fill(unique);
     ]);
     expect(putResp.status()).toBe(200);
 
-    // Wait for reload and verify edited title
+    // Wait for reload and verify edited title and details
     await authPage.waitForTimeout(1000);
     await expect(authPage.getByText(`${unique} Edited`)).toBeVisible();
+
+    // Open property detail and assert deposit and viewing instructions are visible
+    await authPage.getByText(`${unique} Edited`).first().click();
+    await expect(authPage.locator('[data-testid="prop-detail-deposit"]')).toBeVisible();
+    await expect(authPage.locator('[data-testid="prop-detail-viewing"]')).toBeVisible();
 
     // Open modal again and delete property
     await authPage.getByText(`${unique} Edited`).first().click();

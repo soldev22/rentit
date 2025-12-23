@@ -5,6 +5,7 @@ import InterestDialog from "@/components/landlord/InterestDialog";
 import ManageUserModal from "@/components/landlord/ManageUserModal";
 import PropertyImageUpload from "./PropertyImageUpload";
 import ImageDeleteModal from "./ImageDeleteModal";
+import Image from 'next/image';
 
 // ...existing code...
 
@@ -16,6 +17,10 @@ type Property = {
   status: string;
   rentPcm: number;
   description?: string;
+  deposit?: number;
+  amenities?: string[];
+  virtualTourUrl?: string;
+  viewingInstructions?: string;
   address: {
     line1?: string;
     city?: string;
@@ -53,6 +58,17 @@ export default function EditPropertyModal({
   const [editUserId, setEditUserId] = useState<string | null>(null);
   const [interestDialogIdx, setInterestDialogIdx] = useState<number | null>(null);
 
+  // New fields
+  const [deposit, setDeposit] = useState<number | undefined>(property.deposit ?? undefined);
+  const [amenities, setAmenities] = useState<string[]>(property.amenities || []);
+  const [virtualTourUrl, setVirtualTourUrl] = useState(property.virtualTourUrl || '');
+  const [viewingInstructions, setViewingInstructions] = useState(property.viewingInstructions || '');
+
+  function toggleArrayValue(arr: string[], set: (v: string[]) => void, value: string) {
+    if (arr.includes(value)) set(arr.filter((a) => a !== value));
+    else set([...arr, value]);
+  }
+
   async function handleSave() {
     setSaving(true);
     setError(null);
@@ -71,6 +87,10 @@ export default function EditPropertyModal({
             city,
             postcode,
           },
+          deposit,
+          amenities,
+          virtualTourUrl,
+          viewingInstructions,
         }),
       });
       const data = await res.json();
@@ -83,9 +103,10 @@ export default function EditPropertyModal({
         onClose();
         window.location.reload();
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('handleSave error:', err);
-      setError(err?.message || "Failed to save property");
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message || "Failed to save property");
     } finally {
       setSaving(false);
     }
@@ -107,6 +128,7 @@ export default function EditPropertyModal({
         window.location.reload();
       }
     } catch (err) {
+      console.error('delete property error:', err);
       setError("Failed to delete property");
     } finally {
       setSaving(false);
@@ -123,13 +145,8 @@ export default function EditPropertyModal({
           <label className="block text-sm font-medium mb-1">Property Images (max 20)</label>
           <div className="flex flex-row gap-2 mb-2">
             {photos.map((photo, idx) => (
-              <img
-                key={idx}
-                src={photo.url}
-                alt={`Property photo ${idx + 1}`}
-                style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid #ccc', cursor: 'pointer' }}
-                onClick={() => setDeleteIdx(idx)}
-              />
+              // Use Next.js Image for better optimization
+              <Image key={idx} src={photo.url} alt={`Property photo ${idx + 1}`} width={40} height={40} className="rounded-sm border border-gray-200 cursor-pointer" onClick={() => setDeleteIdx(idx)} />
             ))}
             {photos.length === 0 && <span className="text-xs text-gray-400">No images yet</span>}
           </div>
@@ -149,6 +166,7 @@ export default function EditPropertyModal({
                   setPhotos((prev) => prev.filter((_, i) => i !== deleteIdx));
                   setDeleteIdx(null);
                 } catch (err) {
+                  console.error('delete photo error:', err);
                   alert("Failed to delete image");
                 }
               }
@@ -196,8 +214,7 @@ export default function EditPropertyModal({
                   } else {
                     window.location.reload();
                   }
-                } catch (err) {
-                  setError('Failed to delete interests');
+                } catch (err) {                  console.error('delete interests error:', err);                  setError('Failed to delete interests');
                 } finally {
                   setSaving(false);
                 }
@@ -220,46 +237,29 @@ export default function EditPropertyModal({
 
         {/* ManageUserModal for editing applicant */}
         {/* Always render ManageUserModal at the top level for z-index/modal stacking */}
-        {editUserId && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <div style={{ background: 'white', padding: 32, borderRadius: 12, minWidth: 320, textAlign: 'center' }}>
-              <h2 style={{ marginBottom: 16 }}>Test Modal</h2>
-              <div>User ID: {editUserId}</div>
-              <button style={{ marginTop: 24 }} onClick={() => setEditUserId(null)}>Close</button>
-            </div>
-          </div>
-        )}
-
-        {/* ManageUserModal for editing applicant */}
+            {/* ManageUserModal for editing applicant (rendered when editUserId set) */}
         {editUserId && (
           <ManageUserModal userId={editUserId} onClose={() => setEditUserId(null)} />
         )}
 
         {/* Title */}
         <div className="mb-3">
-          <label className="block text-sm font-medium mb-1">Title</label>
+          <label htmlFor="title" className="block text-sm font-medium mb-1">Title</label>
           <input
+            id="title"
+            placeholder="Enter a short title for the property"
             className="w-full rounded-md border px-3 py-2"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            aria-required="true"
           />
         </div>
 
         {/* Description */}
         <div className="mb-3">
-          <label className="block text-sm font-medium mb-1">Description</label>
+          <label htmlFor="description" className="block text-sm font-medium mb-1">Description</label>
           <textarea
+            id="description"
             className="w-full rounded-md border px-3 py-2 min-h-[60px] resize-vertical"
             value={description}
             onChange={e => setDescription(e.target.value)}
@@ -269,8 +269,10 @@ export default function EditPropertyModal({
 
         {/* Address */}
         <div className="mb-3">
-          <label className="block text-sm font-medium mb-1">Address line</label>
+          <label htmlFor="address-line1" className="block text-sm font-medium mb-1">Address line</label>
           <input
+            id="address-line1"
+            placeholder="Street address or building name"
             className="w-full rounded-md border px-3 py-2"
             value={line1}
             onChange={(e) => setLine1(e.target.value)}
@@ -279,16 +281,20 @@ export default function EditPropertyModal({
 
         <div className="grid grid-cols-2 gap-3 mb-3">
           <div>
-            <label className="block text-sm font-medium mb-1">City</label>
+            <label htmlFor="city" className="block text-sm font-medium mb-1">City</label>
             <input
+              id="city"
+              placeholder="City"
               className="w-full rounded-md border px-3 py-2"
               value={city}
               onChange={(e) => setCity(e.target.value)}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Postcode</label>
+            <label htmlFor="postcode" className="block text-sm font-medium mb-1">Postcode</label>
             <input
+              id="postcode"
+              placeholder="Postcode"
               className="w-full rounded-md border px-3 py-2"
               value={postcode}
               onChange={(e) => setPostcode(e.target.value)}
@@ -298,19 +304,78 @@ export default function EditPropertyModal({
 
         {/* Rent */}
         <div className="mb-3">
-          <label className="block text-sm font-medium mb-1">Rent (pcm)</label>
+          <label htmlFor="rent-pcm" className="block text-sm font-medium mb-1">Rent (pcm)</label>
           <input
+            id="rent-pcm"
+            aria-label="Rent"
             type="number"
+            min={0}
+            placeholder="Monthly rent in GBP"
             className="w-full rounded-md border px-3 py-2"
             value={rentPcm}
             onChange={(e) => setRentPcm(Number(e.target.value))}
           />
         </div>
 
+        {/* Deposit */}
+        <div className="mb-3">
+          <label htmlFor="deposit" className="block text-sm font-medium mb-1">Deposit (GBP)</label>
+          <input
+            id="deposit"
+            aria-label="Deposit"
+            type="number"
+            min={0}
+            placeholder="Deposit amount"
+            className="w-full rounded-md border px-3 py-2"
+            value={deposit ?? ''}
+            onChange={(e) => setDeposit(e.target.value ? Number(e.target.value) : undefined)}
+          />
+        </div>
+
+        {/* Amenities (checkboxes) */}
+        <div className="mb-3">
+          <label className="block text-sm font-medium mb-1">Amenities</label>
+          <div className="flex flex-wrap gap-3">
+            {['garden','balcony','dishwasher','washing_machine','lift','communal','parking','concierge'].map((a) => (
+              <label key={a} className="flex items-center gap-2 text-sm">
+                <input aria-label={`amenity-${a}`} type="checkbox" checked={amenities.includes(a)} onChange={() => toggleArrayValue(amenities, setAmenities, a)} />
+                <span className="capitalize">{a.replace('_', ' ')}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Virtual tour */}
+        <div className="mb-3">
+          <label htmlFor="virtual-tour" className="block text-sm font-medium mb-1">Virtual tour URL</label>
+          <input
+            id="virtual-tour"
+            aria-label="Virtual tour URL"
+            placeholder="https://example.com/tour"
+            className="w-full rounded-md border px-3 py-2"
+            value={virtualTourUrl}
+            onChange={(e) => setVirtualTourUrl(e.target.value)}
+          />
+        </div>
+
+        {/* Viewing instructions */}
+        <div className="mb-3">
+          <label htmlFor="viewing-instructions" className="block text-sm font-medium mb-1">Viewing instructions</label>
+          <textarea
+            id="viewing-instructions"
+            aria-label="Viewing instructions"
+            className="w-full rounded-md border px-3 py-2 min-h-[60px] resize-vertical"
+            value={viewingInstructions}
+            onChange={e => setViewingInstructions(e.target.value)}
+            placeholder="Add any viewing instructions or notes for viewers"
+          />
+        </div>
+
         {/* Status */}
         <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Status</label>
+          <label htmlFor="status" className="block text-sm font-medium mb-1">Status</label>
           <select
+            id="status"
             className="w-full rounded-md border px-3 py-2"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
