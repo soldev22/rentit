@@ -67,8 +67,10 @@ test('user can sign in and sign out', async ({ page }) => {
   // After sign-in the app may redirect to a role specific page (dashboard, applicant, tenant, landlord, admin)
   await expect(page).toHaveURL(/(dashboard|applicant|tenant|landlord|admin)/);
 
-  // Sign out via the header button (desktop or mobile menu)
-  // Try a flexible "Sign out" locator (button or text) to accommodate header/mobile layouts
+  // Wait for an authenticated header item (My profile link) before attempting sign out
+  await expect(page.getByRole('link', { name: 'My profile' })).toBeVisible({ timeout: 10000 });
+
+  // Sign out via header or mobile menu
   const signOutLocator = page.locator('text=Sign out');
   try {
     await expect(signOutLocator).toBeVisible({ timeout: 5000 });
