@@ -1,0 +1,5 @@
+{
+  "url": "https://rentit-nine.vercel.app/api/landlord/properties",
+  "status": 201,
+  "text": "{\"property\":{\"_id\":\"6949a91e49a6dae5159d83f1\",\"landlordId\":\"69497e8870380dda2c61ba7f\",\"title\":\"QA E2E Test 1766435102233\",\"headline\":\"QA E2E headline\",\"description\":\"E2E created property\",\"address\":{\"line1\":\"123 Test St\",\"line2\":\"\",\"city\":\"TestCity\",\"postcode\":\"T3 0ST\"},\"rentPcm\":750,\"rentFrequency\":\"pcm\",\"propertyType\":\"flat\",\"bedrooms\":1,\"bathrooms\":1,\"furnished\":\"unknown\",\"tenancyLengthMonths\":12,\"billsIncluded\":[],\"petsAllowed\":false,\"smokingAllowed\":false,\"epcRating\":\"unknown\",\"councilTaxBand\":\"unknown\",\"parking\":\"none\",\"amenities\":[],\"floor\":\"\",\"hmoLicenseRequired\":false,\"viewingInstructions\":\"\",\"photos\":[{\"url\":\"https://rentit2.blob.core.windows.net/rentit2/properties/1766435102026-sample.png\",\"blobName\":\"properties/1766435102026-sample.png\"}],\"status\":\"draft\",\"rooms\":[],\"createdAt\":\"2025-12-22T20:25:02.509Z\",\"updatedAt\":\"2025-12-22T20:25:02.509Z\"}}"
+}

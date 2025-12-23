@@ -1,0 +1,86 @@
+name: Lighthouse on Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  find-preview:
+    runs-on: ubuntu-latest
+    outputs:
+      preview-url: ${{ steps.get_preview.outputs.preview-url }}
+    steps:
+      - name: Fetch Vercel preview URL (robust)
+        id: get_preview
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "::error::Missing Vercel secrets. Please add VERCEL_TOKEN and VERCEL_PROJECT_ID to repo secrets."
+            exit 1
+          fi
+
+          echo "Querying Vercel for recent deployments..."
+          resp=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&limit=50")
+          echo "$resp" > vercel-last-raw.json
+
+          # Try to find by commit SHA
+          url=$(echo "$resp" | jq -r --arg sha "$GITHUB_SHA" '.deployments[] | select(.meta.commitSha == $sha) | .url' | head -n1)
+
+          # Fallback: try branch name
+          if [ -z "$url" -o "$url" = "null" ]; then
+            branch=${GITHUB_REF##*/}
+            url=$(echo "$resp" | jq -r --arg branch "$branch" '.deployments[] | select((.meta.githubCommitRef == $branch) or (.meta.targetBranch == $branch)) | .url' | head -n1)
+          fi
+
+          if [ -z "$url" -o "$url" = "null" ]; then
+            echo "::error::Could not find a matching Vercel preview deployment for this commit/branch. Saved vercel-last-raw.json for inspection."
+            exit 1
+          fi
+
+          preview="https://$url"
+          echo "Found preview: $preview"
+          echo "::set-output name=preview-url::$preview"
+
+  lighthouse:
+    needs: find-preview
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Lighthouse CI against preview
+        uses: treosh/lighthouse-ci-action@v10
+        with:
+          urls: ${{ needs.find-preview.outputs.preview-url }}
+          uploadArtifacts: true
+          config: |-
+            { "ci": { "collect": { "staticDistDir": null } } }
+          flags: '--only-categories=performance,accessibility,best-practices,seo --chrome-flags="--no-sandbox --headless"'
+
+      - name: Upload Lighthouse reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports-${{ github.sha }}
+          path: .lighthouseci
+
+      - name: Post summary comment (optional)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const preview = '${{ needs.find-preview.outputs.preview-url }}'
+            const body = `Lighthouse reports for preview: ${preview} \n\nArtifacts attached to this workflow run (lighthouse-reports-${process.env.GITHUB_SHA}).`
+            github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body })
+
+# Notes:
+# - Requires repo secrets: VERCEL_TOKEN, VERCEL_PROJECT_ID (used to look up preview URL).
+# - Stores reports as artifacts for review.

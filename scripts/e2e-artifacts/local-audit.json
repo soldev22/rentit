@@ -1,0 +1,200 @@
+{
+  "url": "https://rentit-nine.vercel.app/public/properties/6949a91e49a6dae5159d83f1",
+  "acc": {
+    "error": "TypeError: Cannot read properties of undefined (reading 'snapshot')"
+  },
+  "perfTiming": {
+    "timing": {
+      "connectStart": 1766435639054,
+      "secureConnectionStart": 1766435639074,
+      "unloadEventEnd": 0,
+      "domainLookupStart": 1766435639050,
+      "domainLookupEnd": 1766435639054,
+      "responseStart": 1766435639123,
+      "connectEnd": 1766435639102,
+      "responseEnd": 1766435639313,
+      "requestStart": 1766435639102,
+      "domLoading": 1766435639312,
+      "redirectStart": 0,
+      "loadEventEnd": 1766435639575,
+      "domComplete": 1766435639575,
+      "navigationStart": 1766435639046,
+      "loadEventStart": 1766435639575,
+      "domContentLoadedEventEnd": 1766435639464,
+      "unloadEventStart": 0,
+      "redirectEnd": 0,
+      "domInteractive": 1766435639464,
+      "fetchStart": 1766435639046,
+      "domContentLoadedEventStart": 1766435639464
+    },
+    "entries": [
+      {
+        "name": "https://rentit-nine.vercel.app/public/properties/6949a91e49a6dae5159d83f1",
+        "entryType": "navigation",
+        "startTime": 0,
+        "duration": 529,
+        "transferSize": 4442,
+        "encodedBodySize": 4142,
+        "decodedBodySize": 17356
+      },
+      {
+        "name": "visible",
+        "entryType": "visibility-state",
+        "startTime": 0,
+        "duration": 0
+      },
+      {
+        "name": "long-animation-frame",
+        "entryType": "long-animation-frame",
+        "startTime": 264.69999999925494,
+        "duration": 141.5
+      },
+      {
+        "name": "https://rentit-nine.vercel.app/_next/static/chunks/2e460b01b0a890e0.css?dpl=dpl_27pMBc7yC91fFvaifkj6NJbRm8Wc",
+        "entryType": "resource",
+        "startTime": 266.19999999925494,
+        "duration": 32.19999999925494,
+        "transferSize": 8024,
+        "encodedBodySize": 7724,
+        "decodedBodySize": 37362
+      },
+      {
+        "name": "https://rentit-nine.vercel.app/_next/image?url=%2Fimage.png&w=48&q=75",
+        "entryType": "resource",
+        "startTime": 268,
+        "duration": 79.19999999925494,
+        "transferSize": 500,
+        "encodedBodySize": 200,
+        "decodedBodySize": 200
+      },
+      {
+        "name": "https://rentit-nine.vercel.app/_next/static/chunks/112f346e31f991df.js?dpl=dpl_27pMBc7yC91fFvaifkj6NJbRm8Wc",
+        "entryType": "resource",
+        "startTime": 268.0999999977648,
+        "duration": 30.600000001490116,
+        "transferSize": 9828,
+        "encodedBodySize": 9528,
+        "decodedBodySize": 39969
+      },
+      {
+        "name": "https://rentit-nine.vercel.app/_next/static/chunks/ad193f2263c89708.js?dpl=dpl_27pMBc7yC91fFvaifkj6NJbRm8Wc",
+        "entryType": "resource",
+        "startTime": 268.0999999977648,
+        "duration": 50.30000000074506,
+        "transferSize": 6428,
+        "encodedBodySize": 6128,
+        "decodedBodySize": 17074
+      },
+      {
+        "name": "https://rentit2.blob.core.windows.net/rentit2/properties/1766435102026-sample.png",
+        "entryType": "resource",
+        "startTime": 268.0999999977648,
+        "duration": 139,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      },
+      {
+        "name": "https://rentit-nine.vercel.app/_next/static/chunks/baac33f23ce5ec6c.js?dpl=dpl_27pMBc7yC91fFvaifkj6NJbRm8Wc",
+        "entryType": "resource",
+        "startTime": 268.19999999925494,
+        "duration": 44.80000000074506,
+        "transferSize": 23969,
+        "encodedBodySize": 23669,
+        "decodedBodySize": 85492
+      },
+      {
+        "name": "https://rentit-nine.vercel.app/_next/static/chunks/turbopack-7b8abf18f2846854.js?dpl=dpl_27pMBc7yC91fFvaifkj6NJbRm8Wc",
+        "entryType": "resource",
+        "startTime": 268.19999999925494,
+        "duration": 49.19999999925494,
+        "transferSize": 4581,
+        "encodedBodySize": 4281,
+        "decodedBodySize": 10421
+      },
+      {
+        "name": "https://rentit-nine.vercel.app/_next/static/chunks/ff1a16fafef87110.js?dpl=dpl_27pMBc7yC91fFvaifkj6NJbRm8Wc",
+        "entryType": "resource",
+        "startTime": 268.19999999925494,
+        "duration": 51.30000000074506,
+        "transferSize": 582,
+        "encodedBodySize": 282,
+        "decodedBodySize": 282
+      },
+      {
+        "name": "https://rentit-nine.vercel.app/_next/static/chunks/f174821b5243e48b.js?dpl=dpl_27pMBc7yC91fFvaifkj6NJbRm8Wc",
+        "entryType": "resource",
+        "startTime": 268.19999999925494,
+        "duration": 73.19999999925494,
+        "transferSize": 68964,
+        "encodedBodySize": 68664,
+        "decodedBodySize": 214812
+      },
+      {
+        "name": "https://rentit-nine.vercel.app/_next/static/chunks/abe6ae1db5941cc7.js?dpl=dpl_27pMBc7yC91fFvaifkj6NJbRm8Wc",
+        "entryType": "resource",
+        "startTime": 268.19999999925494,
+        "duration": 78.5,
+        "transferSize": 16768,
+        "encodedBodySize": 16468,
+        "decodedBodySize": 52840
+      },
+      {
+        "name": "https://rentit-nine.vercel.app/_next/static/chunks/c5962d19a3812596.js?dpl=dpl_27pMBc7yC91fFvaifkj6NJbRm8Wc",
+        "entryType": "resource",
+        "startTime": 268.19999999925494,
+        "duration": 85.19999999925494,
+        "transferSize": 14565,
+        "encodedBodySize": 14265,
+        "decodedBodySize": 47576
+      },
+      {
+        "name": "https://rentit-nine.vercel.app/_next/static/chunks/ae7b11b682e1d2d4.js?dpl=dpl_27pMBc7yC91fFvaifkj6NJbRm8Wc",
+        "entryType": "resource",
+        "startTime": 268.30000000074506,
+        "duration": 78.59999999776483,
+        "transferSize": 3211,
+        "encodedBodySize": 2911,
+        "decodedBodySize": 8115
+      },
+      {
+        "name": "https://rentit-nine.vercel.app/_next/static/chunks/247eb132b7f7b574.js?dpl=dpl_27pMBc7yC91fFvaifkj6NJbRm8Wc",
+        "entryType": "resource",
+        "startTime": 268.30000000074506,
+        "duration": 83.79999999701977,
+        "transferSize": 7511,
+        "encodedBodySize": 7211,
+        "decodedBodySize": 27854
+      },
+      {
+        "name": "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap",
+        "entryType": "resource",
+        "startTime": 299.30000000074506,
+        "duration": 88.89999999850988,
+        "transferSize": 1042,
+        "encodedBodySize": 742,
+        "decodedBodySize": 9884
+      },
+      {
+        "name": "first-paint",
+        "entryType": "paint",
+        "startTime": 416,
+        "duration": 0
+      },
+      {
+        "name": "first-contentful-paint",
+        "entryType": "paint",
+        "startTime": 416,
+        "duration": 0
+      }
+    ]
+  },
+  "lcp": [
+    {
+      "renderTime": 416,
+      "loadTime": 0,
+      "size": 15920,
+      "url": ""
+    }
+  ]
+}
