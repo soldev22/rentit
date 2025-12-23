@@ -51,6 +51,15 @@ test('landlord can create, edit, and delete property', async ({ page, context })
   await authPage.getByRole('button', { name: 'Sign in', exact: true }).click();
   await authPage.waitForURL(/(dashboard|applicant|tenant|landlord|admin)/, { timeout: 15000 });
 
+  // Ensure we are actually signed in as a landlord (guard against wrong/expired creds)
+  try {
+    await expect(authPage.getByRole('link', { name: 'Landlord Dashboard' })).toBeVisible({ timeout: 5000 });
+  } catch (e) {
+    const tmpPath = `playwright/.auth/landlord-debug-signin-${Date.now()}.json`;
+    await authContext.storageState({ path: tmpPath });
+    throw new Error(`Sign in in the new context did not yield landlord role; saved storage to ${tmpPath}`);
+  }
+
   // Close the original page provided by the fixture
   await page.close();
 

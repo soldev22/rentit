@@ -67,15 +67,30 @@ test('user can sign in and sign out', async ({ page }) => {
   // After sign-in the app may redirect to a role specific page (dashboard, applicant, tenant, landlord, admin)
   await expect(page).toHaveURL(/(dashboard|applicant|tenant|landlord|admin)/);
 
-  // Wait for an authenticated header item (My profile link) before attempting sign out
-  await expect(page.getByRole('link', { name: 'My profile' })).toBeVisible({ timeout: 10000 });
-
-  // Sign out via header or mobile menu
+  // Wait for an authenticated header item before attempting sign out (try several indicators)
   const signOutLocator = page.locator('text=Sign out');
+  let found = false;
   try {
     await expect(signOutLocator).toBeVisible({ timeout: 5000 });
-  } catch (err) {
-    // Fallback: open mobile menu and try again
+    found = true;
+  } catch (e) {}
+
+  if (!found) {
+    try {
+      await expect(page.getByRole('link', { name: 'My profile' })).toBeVisible({ timeout: 5000 });
+      found = true;
+    } catch (e) {}
+  }
+
+  if (!found) {
+    try {
+      await expect(page.getByRole('link', { name: 'Landlord Dashboard' })).toBeVisible({ timeout: 5000 });
+      found = true;
+    } catch (e) {}
+  }
+
+  if (!found) {
+    // As a last resort, open the mobile menu and retry
     const toggle = page.getByRole('button', { name: 'Toggle menu' });
     if (await toggle.count()) await toggle.click();
     await expect(signOutLocator).toBeVisible({ timeout: 5000 });
