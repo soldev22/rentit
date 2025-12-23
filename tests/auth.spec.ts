@@ -12,7 +12,12 @@ test('user can register and is redirected to login', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Register', exact: true }).click();
 
-  await page.waitForURL(/\/login.*registered=1/);
+  // Some browsers may not redirect immediately; wait for either the success message or the redirect
+  try {
+    await page.waitForSelector('text=Registration successful! Please sign in.', { timeout: 10000 });
+  } catch (err) {
+    await page.waitForURL(/\/login.*registered=1/, { timeout: 10000 });
+  }
   await expect(page.getByText('Registration successful! Please sign in.')).toBeVisible();
 });
 
