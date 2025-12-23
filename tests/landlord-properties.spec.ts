@@ -100,7 +100,13 @@ await authPage.getByLabel('Title', { exact: true }).fill(unique);
     // Should redirect back to landlord properties
     await authPage.waitForURL(/landlord\/properties/);
 
-    // Find the created property card
+    // Find the created property card using the new data-testid
+    const newId = createBody.property?._id;
+    const card = authPage.locator(`[data-testid="property-card-${newId}"]`);
+    await expect(card).toBeVisible();
+    await expect(card.locator('[data-testid="property-price"]')).toContainText(String(createBody.property?.rentPcm || ''));
+
+    // Also keep the previous text match as a fallback (title presence)
     const created = authPage.getByText(unique).first();
     await expect(created).toBeVisible();
 
