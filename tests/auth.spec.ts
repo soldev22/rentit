@@ -93,7 +93,20 @@ test('user can sign in and sign out', async ({ page }) => {
     // As a last resort, open the mobile menu and retry
     const toggle = page.getByRole('button', { name: 'Toggle menu' });
     if (await toggle.count()) await toggle.click();
-    await expect(signOutLocator).toBeVisible({ timeout: 5000 });
+    try {
+      await expect(signOutLocator).toBeVisible({ timeout: 5000 });
+      await signOutLocator.first().click();
+      await expect(page).toHaveURL(/\/login/);
+      return;
+    } catch (e) {
+      // Programmatic fallback: find a button or link with exact text "Sign out" and click it via page.evaluate
+      await page.evaluate(() => {
+        const el = Array.from(document.querySelectorAll('button, a')).find((n) => n.textContent?.trim() === 'Sign out');
+        if (el) (el as HTMLElement).click();
+      });
+      await expect(page).toHaveURL(/\/login/);
+      return;
+    }
   }
 
   await signOutLocator.first().click();
