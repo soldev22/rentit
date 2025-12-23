@@ -34,40 +34,8 @@ export async function POST(req: Request) {
     // 3. Parse request body and validate using Zod
     const body = await req.json();
 
-    const createPropertySchema = z.object({
-      title: z.string().min(1),
-      headline: z.string().max(120).optional(),
-      description: z.string().optional(),
-      address: z.object({
-        line1: z.string().min(1),
-        line2: z.string().optional(),
-        city: z.string().min(1),
-        postcode: z.string().min(1),
-        county: z.string().optional(),
-      }),
-      rentPcm: z.number().min(0),
-      rentFrequency: z.enum(['pcm', 'pw']).optional(),
-      propertyType: z.enum(['flat', 'house', 'maisonette', 'studio', 'room', 'other']).optional(),
-      bedrooms: z.number().int().min(0).optional(),
-      bathrooms: z.number().int().min(0).optional(),
-      furnished: z.enum(['furnished', 'part-furnished', 'unfurnished', 'unknown']).optional(),
-      deposit: z.number().min(0).optional(),
-      availabilityDate: z.union([z.string(), z.date()]).optional(),
-      tenancyLengthMonths: z.number().int().min(0).optional(),
-      billsIncluded: z.array(z.string()).optional(),
-      petsAllowed: z.boolean().optional(),
-      smokingAllowed: z.boolean().optional(),
-      epcRating: z.enum(['A','B','C','D','E','F','G','unknown']).optional(),
-      councilTaxBand: z.enum(['A','B','C','D','E','F','G','H','unknown']).optional(),
-      sizeSqm: z.number().min(0).optional(),
-      parking: z.enum(['none','on-street','off-street','garage','driveway','permit','other']).optional(),
-      amenities: z.array(z.string()).optional(),
-      virtualTourUrl: z.string().url().optional(),
-      floor: z.string().optional(),
-      hmoLicenseRequired: z.boolean().optional(),
-      viewingInstructions: z.string().optional(),
-      photos: z.array(z.object({ url: z.string().url(), blobName: z.string() })).optional(),
-    });
+    // Use shared Zod schema for property inputs
+    const { createPropertySchema } = await import('@/lib/schemas/property');
 
     const parsed = createPropertySchema.safeParse(body);
     if (!parsed.success) {
@@ -79,58 +47,53 @@ export async function POST(req: Request) {
 
     const data = parsed.data;
 
-    // normalize availabilityDate
+    // normalize availabilityDate (accept ISO string)
     let availabilityDate: Date | undefined = undefined;
     if (data.availabilityDate) {
-      availabilityDate = typeof data.availabilityDate === 'string'
-        ? new Date(data.availabilityDate)
-        : data.availabilityDate;
-
+      availabilityDate = new Date(data.availabilityDate);
       if (Number.isNaN(availabilityDate.getTime())) {
-        return NextResponse.json(
-          { error: 'Invalid availabilityDate' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: 'Invalid availabilityDate' }, { status: 400 });
       }
     }
 
-    // 5. Connect to DB (handled by getDb/getCollection)
+    // 5. Connect to DB
+    const propertiesCollection = await getCollection("properties");
 
     // 6. Create property (ALWAYS draft)
-    const propertiesCollection = await getCollection("properties");
     const propertyDoc = {
       landlordId: new ObjectId(session.user.id),
       title: data.title,
       headline: data.headline,
       description: data.description,
       address: data.address,
-      rentPcm: data.rentPcm,
+      rentPcm: Number(data.rentPcm),
       rentFrequency: data.rentFrequency,
       propertyType: data.propertyType,
-      bedrooms: data.bedrooms,
-      bathrooms: data.bathrooms,
-      furnished: data.furnished,
-      deposit: data.deposit,
+      bedrooms: data.bedrooms ?? undefined,
+      bathrooms: data.bathrooms ?? undefined,
+      furnished: data.furnished ?? 'unknown',
+      deposit: data.deposit ?? undefined,
       availabilityDate: availabilityDate,
-      tenancyLengthMonths: data.tenancyLengthMonths,
+      tenancyLengthMonths: data.tenancyLengthMonths ?? undefined,
       billsIncluded: data.billsIncluded || [],
       petsAllowed: data.petsAllowed ?? false,
       smokingAllowed: data.smokingAllowed ?? false,
-      epcRating: data.epcRating,
-      councilTaxBand: data.councilTaxBand,
-      sizeSqm: data.sizeSqm,
-      parking: data.parking,
+      epcRating: data.epcRating ?? undefined,
+      councilTaxBand: data.councilTaxBand ?? undefined,
+      sizeSqm: data.sizeSqm ?? undefined,
+      parking: data.parking ?? 'none',
       amenities: data.amenities || [],
-      virtualTourUrl: data.virtualTourUrl,
-      floor: data.floor,
+      virtualTourUrl: data.virtualTourUrl ?? undefined,
+      floor: data.floor ?? undefined,
       hmoLicenseRequired: data.hmoLicenseRequired ?? false,
-      viewingInstructions: data.viewingInstructions,
+      viewingInstructions: data.viewingInstructions ?? undefined,
       photos: data.photos || [],
       status: "draft",
       rooms: [],
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+
     const result = await propertiesCollection.insertOne(propertyDoc);
     const property = { _id: result.insertedId, ...propertyDoc };
 
