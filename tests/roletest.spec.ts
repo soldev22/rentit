@@ -17,7 +17,8 @@ for (const role of roles) {
 
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
 
-    await expect(page).toHaveURL(/dashboard/);
+    // The app may redirect to a role-specific page (dashboard, applicant, tenant, landlord, admin)
+    await expect(page).toHaveURL(/(dashboard|applicant|tenant|landlord|admin)/);
 
     await page.context().storageState({
       path: `playwright/.auth/${role}.json`,

@@ -65,8 +65,15 @@ test('user can sign in and sign out', async ({ page }) => {
   // Sign out via the header button (desktop or mobile menu)
   // Try a flexible "Sign out" locator (button or text) to accommodate header/mobile layouts
   const signOutLocator = page.locator('text=Sign out');
-  await expect(signOutLocator).toBeVisible({ timeout: 20000 });
-  await signOutLocator.first().click();
+  try {
+    await expect(signOutLocator).toBeVisible({ timeout: 5000 });
+  } catch (err) {
+    // Fallback: open mobile menu and try again
+    const toggle = page.getByRole('button', { name: 'Toggle menu' });
+    if (await toggle.count()) await toggle.click();
+    await expect(signOutLocator).toBeVisible({ timeout: 5000 });
+  }
 
+  await signOutLocator.first().click();
   await expect(page).toHaveURL(/\/login/);
 });
