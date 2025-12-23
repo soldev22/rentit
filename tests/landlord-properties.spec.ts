@@ -21,18 +21,35 @@ test('landlord can create, edit, and delete property', async ({ page, context })
     return;
   }
 
-  const { storagePath } = await ensureLandlordAuth(page);
+  const { storagePath, email, password } = await ensureLandlordAuth(page);
 
-  // Create a new context with the saved storage state and replace page/context for the test
-  if (!storagePath) {
-    throw new Error('ensureLandlordAuth did not provide a storagePath');
-  }
+  // Create a fresh context and sign in there to ensure session cookies are present for API calls
   const browser = context.browser();
   if (!browser) {
     throw new Error('Browser instance not available from context');
   }
-  const authContext = await browser.newContext({ storageState: storagePath });
+  const authContext = await browser.newContext();
   const authPage = await authContext.newPage();
+
+  // If we don't have credentials from the helper, read the script output
+  let creds = { email, password } as { email?: string; password?: string };
+  if (!creds.email || !creds.password) {
+    const infoPath = 'scripts/test-qa.json';
+    if (fs.existsSync(infoPath)) {
+      creds = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
+    }
+  }
+
+  if (!creds.email || !creds.password) {
+    throw new Error('No landlord credentials available to sign in in the new context');
+  }
+
+  // Sign in in the new auth context
+  await authPage.goto('http://localhost:3000/login');
+  await authPage.getByLabel('Email').fill(creds.email);
+  await authPage.getByLabel('Password').fill(creds.password);
+  await authPage.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await authPage.waitForURL(/(dashboard|applicant|tenant|landlord|admin)/, { timeout: 15000 });
 
   // Close the original page provided by the fixture
   await page.close();
