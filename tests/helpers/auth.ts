@@ -5,6 +5,7 @@ import type { Page } from '@playwright/test';
 
 export async function ensureLandlordAuth(page: Page) {
   const storagePath = path.resolve('playwright/.auth/landlord.json');
+  const infoPath = path.resolve('scripts/test-qa.json');
 
   // If storage state already exists, skip sign in
   if (fs.existsSync(storagePath)) {
@@ -14,7 +15,6 @@ export async function ensureLandlordAuth(page: Page) {
   }
 
   // Ensure test landlord exists
-  const infoPath = path.resolve('scripts/test-qa.json');
   if (!fs.existsSync(infoPath)) {
     try {
       execSync('node scripts/create-test-landlord.js', { stdio: 'inherit' });
