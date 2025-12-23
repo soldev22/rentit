@@ -41,6 +41,16 @@ test('landlord can create, edit, and delete property', async ({ page, context })
     // Navigate to new property page
     await authPage.goto('http://localhost:3000/landlord/properties/new');
 
+    // Verify the auth state loaded correctly in the new context: expect landlord-specific UI
+    try {
+      await expect(authPage.getByRole('link', { name: 'Landlord Dashboard' })).toBeVisible({ timeout: 5000 });
+    } catch (e) {
+      // Capture storage state for debugging and fail fast with a helpful message
+      const tmpPath = `playwright/.auth/landlord-debug-${Date.now()}.json`;
+      await authContext.storageState({ path: tmpPath });
+      throw new Error(`Landlord auth not applied in new context; saved storage to ${tmpPath} for inspection`);
+    }
+
     const unique = `E2E Property ${Date.now()}`;
 await authPage.getByLabel('Title', { exact: true }).fill(unique);
   await authPage.getByLabel('Address line 1', { exact: true }).fill('10 Test Street');
