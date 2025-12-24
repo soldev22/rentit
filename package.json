@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest"
+    "test": "vitest",
+    "test:e2e:local": "set FORCE_E2E=1&& npx playwright test --project=chrome --trace=on --workers=1 --timeout=60000"
   },
   "dependencies": {
     "@azure/storage-blob": "^12.29.1",
@@ -38,6 +39,6 @@
     "playwright": "^1.57.0",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^1.0.0"
+    "vitest": "^4.0.16"
   }
 }

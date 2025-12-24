@@ -4,8 +4,8 @@ import fs from 'fs';
 
 // Create -> edit -> delete flow
 test('landlord can create, edit, and delete property', async ({ page, context }) => {
-  // Extend timeout for this flow which relies on network/API responses
-  test.setTimeout(120000);
+  // Extend timeout for this flow which relies on network/API responses (reduced for local runs)
+  test.setTimeout(60000);
   // Skip if local dev server isn't running to avoid noisy failures
   async function serverIsUp(url = 'http://localhost:3000') {
     try {
