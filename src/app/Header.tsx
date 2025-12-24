@@ -6,6 +6,7 @@ export function Header() {
       <div className="text-white font-semibold text-lg">
         RentIT
       </div>
+Commit: {process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7)}
 
       {/* Client-side auth / user controls */}
       <HeaderClient />
