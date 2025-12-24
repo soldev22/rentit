@@ -34,7 +34,13 @@ type User = {
 
 
 import { useEffect } from "react";
-import { formatDateTime } from "@/lib/formatDate";
+
+function formatDateTime(date?: string) {
+  if (!date) return "";
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return date;
+  return d.toLocaleString();
+}
 
 export default function EditUserModal({
   user,

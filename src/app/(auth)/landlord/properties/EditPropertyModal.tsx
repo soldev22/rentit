@@ -6,7 +6,7 @@ import ManageUserModal from "@/components/landlord/ManageUserModal";
 import PropertyImageUpload from "./PropertyImageUpload";
 import ImageDeleteModal from "./ImageDeleteModal";
 import Image from 'next/image';
-import { formatDateTime } from '../../../../lib/formatDate';
+import { formatDateTime } from "@/lib/formatDate";
 
 // ...existing code...
 
