@@ -7,7 +7,7 @@ import { getCollection } from "@/lib/db";
 import { ObjectId } from "mongodb";
 
 // IMPORTANT: normal import once things are stable
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const PropertyGrid = require("./PropertyGrid").default;
 
 type Property = {

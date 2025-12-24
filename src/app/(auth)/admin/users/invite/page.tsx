@@ -34,8 +34,12 @@ export default function InviteUserPage() {
     }
 
     router.push("/admin/users");
-  } catch (err: any) {
-    setError(err.message);
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      setError(err.message);
+    } else {
+      setError(String(err));
+    }
   } finally {
     setLoading(false);
   }
@@ -43,50 +47,43 @@ export default function InviteUserPage() {
 
 
   return (
-    <div style={{ padding: 24, fontFamily: "Arial, Helvetica, sans-serif" }}>
+    <div className="p-6 font-sans">
       <h2>Invite user</h2>
 
-      <form onSubmit={handleSubmit} style={{ maxWidth: 420 }}>
-        <div style={{ marginBottom: 12 }}>
-          <label>Email</label>
+      <form onSubmit={handleSubmit} className="max-w-[420px]">
+        <div className="mb-3">
+          <label htmlFor="email">Email</label>
           <input
+            id="email"
+            name="email"
             required
+            placeholder="user@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            style={{
-              width: "100%",
-              padding: 8,
-              border: "1px solid #d1d5db",
-              borderRadius: 6,
-            }}
+            className="w-full p-2 border border-gray-300 rounded-md"
           />
         </div>
 
-        <div style={{ marginBottom: 12 }}>
-          <label>Name</label>
+        <div className="mb-3">
+          <label htmlFor="name">Name</label>
           <input
+            id="name"
+            name="name"
+            placeholder="Full name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            style={{
-              width: "100%",
-              padding: 8,
-              border: "1px solid #d1d5db",
-              borderRadius: 6,
-            }}
+            className="w-full p-2 border border-gray-300 rounded-md"
           />
         </div>
 
-        <div style={{ marginBottom: 16 }}>
-          <label>Role</label>
+        <div className="mb-4">
+          <label htmlFor="role">Role</label>
           <select
+            id="role"
+            name="role"
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            style={{
-              width: "100%",
-              padding: 8,
-              border: "1px solid #d1d5db",
-              borderRadius: 6,
-            }}
+            className="w-full p-2 border border-gray-300 rounded-md"
           >
             <option value="APPLICANT">Applicant</option>
             <option value="TENANT">Tenant</option>
@@ -97,7 +94,7 @@ export default function InviteUserPage() {
         </div>
 
         {error && (
-          <p style={{ color: "red", marginBottom: 12 }}>
+          <p className="text-red-500 mb-3">
             {error}
           </p>
         )}
@@ -105,14 +102,7 @@ export default function InviteUserPage() {
         <button
           type="submit"
           disabled={loading}
-          style={{
-            backgroundColor: "rgba(71, 113, 251, 1)",
-            color: "#ffffff",
-            padding: "8px 14px",
-            borderRadius: 6,
-            border: "none",
-            cursor: "pointer",
-          }}
+          className="bg-blue-600 text-white px-3.5 py-2 rounded-md border-none cursor-pointer"
         >
           {loading ? "Inviting…" : "Send invite"}
         </button>

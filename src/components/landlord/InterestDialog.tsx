@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Modal from "@/components/admin/AdminModal";
+import { formatDateTime } from "@/lib/formatDate";
 
 interface InterestDialogProps {
   open: boolean;
@@ -30,7 +31,7 @@ interface InterestDialogProps {
           } catch {}
         }
         if (open) fetchUser();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
       }, [interest.applicantId, open]);
 
       if (!open) return null;
@@ -105,7 +106,7 @@ interface InterestDialogProps {
               {userDetails?.profileCompleteness !== undefined && (
                 <div><span className="font-semibold">Profile Completeness:</span> {userDetails.profileCompleteness}%</div>
               )}
-              {interest.date && <div><span className="font-semibold">Registered Interest:</span> {new Date(interest.date).toLocaleString()}</div>}
+              {interest.date && <div><span className="font-semibold">Registered Interest:</span> {formatDateTime(interest.date)}</div>}
               {/* Show all other user fields except password/hash and createdAt */}
               {userDetails && Object.entries(userDetails).map(([key, value]) => (
                 ["_id", "name", "email", "phone", "role", "address", "profileCompleteness", "createdAt", "hashedPassword", "password", "profile"].includes(key)

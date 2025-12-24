@@ -155,9 +155,16 @@ function LoginForm() {
         </button>
       ) : (
         <form onSubmit={handleMagic} className="mt-2">
-          <label className="block mb-2 text-sm">Email address</label>
+          <label htmlFor="magic-email" className="block mb-2 text-sm">
+            Email address
+          </label>
           <input
+            id="magic-email"
+            name="magic-email"
             type="email"
+            placeholder="you@example.com"
+            title="Email address"
+            aria-label="Email address"
             className="w-full p-2 border rounded mb-2"
             value={magicEmail}
             onChange={(e) => setMagicEmail(e.target.value)}

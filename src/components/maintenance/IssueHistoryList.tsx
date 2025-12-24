@@ -1,4 +1,5 @@
 import React from "react";
+import { formatDateTime } from "@/lib/formatDate"; 
 
 export type IssueHistoryItem = {
   text: string;
@@ -32,14 +33,7 @@ export default function IssueHistoryList({ history, variant = "manager" }: Issue
           <div className={variant === "tenant" ? "text-sm text-gray-800 mb-1" : "text-xs text-slate-400 mb-0.5"}>
             <strong className="uppercase">{item.role}</strong>
             {" · "}
-            {item.createdAtLabel || new Date(item.createdAt).toLocaleString("en-GB", {
-              day: "2-digit",
-              month: "2-digit",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false,
-            })}
+            {item.createdAtLabel || formatDateTime(item.createdAt)}
           </div>
           <div className={variant === "tenant" ? "whitespace-pre-wrap text-gray-900" : "whitespace-pre-wrap text-sm text-slate-200"}>
             {item.text}

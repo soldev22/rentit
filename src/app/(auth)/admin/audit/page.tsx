@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import clientPromise from "@/lib/mongodb";
+import { formatDateTime } from "@/lib/formatDate";
 import { ObjectId } from "mongodb";
 
 type AuditEvent = {
@@ -76,32 +77,28 @@ if (objectIdActors.length > 0) {
 
   // 3️⃣ Render
   return (
-    <div style={{ padding: 24, fontFamily: "Arial, Helvetica, sans-serif" }}>
-      <h2 style={{ marginBottom: 16 }}>Audit log</h2>
+    <div className="p-6 font-sans">
+      <h2 className="mb-4">Audit log</h2>
 
-      <table
-        width="100%"
-        cellPadding={8}
-        style={{ borderCollapse: "collapse" }}
-      >
+      <table className="w-full border-collapse">
         <thead>
-          <tr style={{ borderBottom: "1px solid #ddd" }}>
-            <th align="left">Time</th>
-            <th align="left">Action</th>
-            <th align="left">Actor</th>
-            <th align="left">Target</th>
-            <th align="left">Result</th>
+          <tr className="border-b border-gray-300">
+            <th className="text-left">Time</th>
+            <th className="text-left">Action</th>
+            <th className="text-left">Actor</th>
+            <th className="text-left">Target</th>
+            <th className="text-left">Result</th>
           </tr>
         </thead>
         <tbody>
           {events.map((e) => (
             <tr
               key={e._id.toString()}
-              style={{ borderBottom: "1px solid #eee" }}
+              className="border-b border-gray-200"
             >
               <td>
                 {e.createdAt
-                  ? new Date(e.createdAt).toLocaleString()
+                  ? formatDateTime(e.createdAt)
                   : "-"}
               </td>
 
@@ -128,7 +125,7 @@ if (objectIdActors.length > 0) {
       </table>
 
       {events.length === 0 && (
-        <p style={{ marginTop: 16 }}>No audit events yet.</p>
+        <p className="mt-4">No audit events yet.</p>
       )}
     </div>
   );

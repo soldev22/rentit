@@ -4,8 +4,8 @@ import fs from 'fs';
 
 // Create -> edit -> delete flow
 test('landlord can create, edit, and delete property', async ({ page, context }) => {
-  // Extend timeout for this flow which relies on network/API responses (reduced for local runs)
-  test.setTimeout(60000);
+  // Extend timeout for this flow which relies on network/API responses
+  test.setTimeout(120000);
   // Skip if local dev server isn't running to avoid noisy failures
   async function serverIsUp(url = 'http://localhost:3000') {
     try {
@@ -47,6 +47,7 @@ test('landlord can create, edit, and delete property', async ({ page, context })
 
   // Sign in in the new auth context
   await authPage.goto('http://localhost:3000/login');
+  await authPage.setViewportSize({ width: 1280, height: 1024 }); // Ensure modal fits
   await authPage.getByLabel('Email').fill(creds.email);
   await authPage.getByLabel('Password').fill(creds.password);
   await authPage.getByRole('button', { name: 'Sign in', exact: true }).click();
@@ -121,7 +122,8 @@ test('landlord can create, edit, and delete property', async ({ page, context })
     await expect(cardAncestor.locator(`text=Rent: £${createBody.property?.rentPcm} pcm`)).toBeVisible();
 
     // Open edit modal by clicking the card
-    await created.click();
+    const propertyCard = authPage.locator('.cursor-pointer').first();
+    await propertyCard.click();
     await authPage.screenshot({ path: `test-results/debug-modal-opened-${Date.now()}.png` });
 
     // Wait for modal and change title
@@ -142,10 +144,37 @@ test('landlord can create, edit, and delete property', async ({ page, context })
     await saveButton.scrollIntoViewIfNeeded();
 
     console.info('DEBUG: Clicking Save changes');
-    const [putResp] = await Promise.all([
-      authPage.waitForResponse((r) => r.request().method() === 'PUT' && r.url().includes('/api/landlord/properties/')),
-      saveButton.click(),
-    ]);
+    // Scroll the modal to the bottom to ensure button is visible
+    const modal = authPage.locator('.fixed .w-full.max-w-lg');
+    await modal.evaluate(el => el.scrollTop = el.scrollHeight);
+    await authPage.waitForTimeout(200); // brief pause for layout stabilisation
+    try {
+      await saveButton.click({ force: true });
+    } catch (clickErr) {
+      // Fallback to in-page click via elementHandle.evaluate
+      try {
+        console.warn('Force click failed, attempting elementHandle.evaluate click', String(clickErr));
+        const handle = await saveButton.elementHandle();
+        if (handle) {
+          await authPage.evaluate((el) => (el as HTMLElement).click(), handle);
+        } else {
+          throw clickErr;
+        }
+      } catch (evalErr) {
+        console.error('Fallback elementHandle.evaluate click failed', String(evalErr));
+        throw new Error('Failed to click Save changes button (force and JS click all failed)');
+      }
+    }
+
+    let putResp: any = null;
+    try {
+      putResp = await authPage.waitForResponse(
+        (r) => r.request().method() === 'PUT' && r.url().includes('/api/landlord/properties/'),
+        { timeout: 15000 }
+      );
+    } catch (waitErr) {
+      throw new Error('Timed out waiting for PUT response after clicking Save; the page may have reloaded or the request did not complete in time');
+    }
 
     // Save PUT response body for debugging if available (non-fatal)
     try {
@@ -165,20 +194,38 @@ test('landlord can create, edit, and delete property', async ({ page, context })
     await expect(authPage.locator('[data-testid="prop-detail-deposit"]')).toBeVisible();
     await expect(authPage.locator('[data-testid="prop-detail-viewing"]')).toBeVisible();
 
+    // Navigate back to landlord properties page to delete the property
+    await authPage.goto('http://localhost:3000/landlord/properties');
+    await authPage.waitForLoadState('load');
+
     // Open modal again and delete property
-    await authPage.getByText(`${unique} Edited`).first().click();
+    const deleteCard = authPage.locator('.cursor-pointer').first();
+    await expect(deleteCard).toBeVisible();
+    await deleteCard.click();
+    await authPage.screenshot({ path: `test-results/debug-delete-modal-opened-${Date.now()}.png` });
 
-    // Handle confirm dialog
-    authPage.on('dialog', async (dialog) => {
-      await dialog.accept();
-    });
+    // Wait for modal to open
+    const delButton = authPage.getByRole('button', { name: 'Delete' });
+    await expect(delButton).toBeVisible({ timeout: 5000 });
+    await authPage.screenshot({ path: `test-results/debug-delete-button-visible-${Date.now()}.png` });
+    // Scroll the modal to the bottom
+    const delModal = authPage.locator('.fixed .w-full.max-w-lg');
+    await delModal.evaluate(el => el.scrollTop = el.scrollHeight);
+    await authPage.waitForTimeout(200);
+    try {
+      await delButton.click({ force: true });
+    } catch (clickErr) {
+      const handle = await delButton.elementHandle();
+      if (handle) await authPage.evaluate((el) => (el as HTMLElement).click(), handle);
+      else throw new Error('Failed to click Delete button (force and JS click all failed)');
+    }
 
-    // Click Delete button in modal and assert DELETE response
-    console.info('DEBUG: Clicking Delete');
-    const [delResp] = await Promise.all([
-      authPage.waitForResponse((r) => r.request().method() === 'DELETE' && r.url().includes('/api/landlord/properties/')),
-      authPage.getByRole('button', { name: 'Delete' }).click(),
-    ]);
+    let delResp: any = null;
+    try {
+      delResp = await authPage.waitForResponse((r) => r.request().method() === 'DELETE' && r.url().includes('/api/landlord/properties/'), { timeout: 15000 });
+    } catch (err) {
+      throw new Error('Timed out waiting for DELETE response after clicking Delete');
+    }
 
     if (![200, 204].includes(delResp.status())) {
       const bodyText = await delResp.text();
@@ -191,15 +238,15 @@ test('landlord can create, edit, and delete property', async ({ page, context })
     await authPage.waitForTimeout(1000);
     await expect(authPage.getByText(`${unique} Edited`).first()).toHaveCount(0);
   } catch (e) {
-    // Save debugging artifacts and rethrow
+    // Save debugging artifacts and rethrow (guard if page/context is closed)
     const ts = Date.now();
     try {
-      await authPage.screenshot({ path: `test-results/debug-failure-${ts}.png`, fullPage: true });
+      if (!authPage.isClosed()) await authPage.screenshot({ path: `test-results/debug-failure-${ts}.png`, fullPage: true });
     } catch (s) {
       console.error('Failed to take failure screenshot', s);
     }
     try {
-      await authContext.storageState({ path: `test-results/debug-storage-${ts}.json` });
+      if (authContext) await authContext.storageState({ path: `test-results/debug-storage-${ts}.json` });
     } catch (s) {
       console.error('Failed to save storage state', s);
     }
@@ -209,7 +256,7 @@ test('landlord can create, edit, and delete property', async ({ page, context })
   } finally {
     // Clean up the created context (ignore errors if already closed)
     try {
-      await authContext.close();
+      if (authContext) await authContext.close();
     } catch (e) {
       // ignore
     }

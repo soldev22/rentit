@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getIssueDetailForManager } from "@/lib/maintenance/issues";
 import IssueEditor from "../../../../../components/maintenance/IssueEditor";
+import { formatDateTime } from "@/lib/formatDate"; 
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -56,14 +57,7 @@ export default async function ManagerIssueDetailPage({ params }: PageProps) {
                     <div className="text-xs text-slate-400 mb-0.5">
                       <strong className="uppercase">{item.role}</strong>{" "}
                       ·{" "}
-                      {new Date(item.createdAt).toLocaleString("en-GB", {
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: false,
-                      })}
+{formatDateTime(item.createdAt)}
                     </div>
 
                     <div className="whitespace-pre-wrap text-sm text-slate-200">

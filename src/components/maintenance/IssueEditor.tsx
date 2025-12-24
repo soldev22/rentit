@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatDateTime } from "@/lib/formatDate";
 import { useRouter } from "next/navigation";
 
 type IssueHistoryItem = {
@@ -48,8 +49,12 @@ export default function TenantIssueEditor({ issue }: { issue: Issue }) {
 
       setUpdateText("");
       router.refresh();
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        setError(e.message);
+      } else {
+        setError(String(e));
+      }
     } finally {
       setSaving(false);
     }
@@ -65,22 +70,27 @@ export default function TenantIssueEditor({ issue }: { issue: Issue }) {
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs text-slate-400">Title</label>
+        <label htmlFor="issue-title" className="text-xs text-slate-400">Title</label>
         <input
+          id="issue-title"
           className="w-full rounded-lg bg-slate-950 border border-slate-800 p-2 text-sm"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           maxLength={80}
+          placeholder="Issue title"
+          title="Issue title"
         />
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs text-slate-400">Original description</label>
+        <label htmlFor="issue-original-description" className="text-xs text-slate-400">Original description</label>
         <textarea
+          id="issue-original-description"
           className="w-full rounded-lg bg-slate-950 border border-slate-800 p-2 text-sm"
           rows={4}
           value={issue.description}
           readOnly
+          title="Original description"
         />
       </div>
 {issue.descriptionHistory && issue.descriptionHistory.length > 0 && (
@@ -97,7 +107,7 @@ export default function TenantIssueEditor({ issue }: { issue: Issue }) {
         >
           <div className="mb-1 text-xs text-slate-400">
             {item.role} ·{" "}
-            {new Date(item.createdAt).toLocaleString()}
+            {formatDateTime(item.createdAt)}
           </div>
 
           <div className="whitespace-pre-wrap text-sm text-slate-200">
@@ -110,8 +120,9 @@ export default function TenantIssueEditor({ issue }: { issue: Issue }) {
 )}
 
       <div className="space-y-2">
-        <label className="text-xs text-slate-400">Add update</label>
+        <label htmlFor="issue-update-text" className="text-xs text-slate-400">Add update</label>
         <textarea
+          id="issue-update-text"
           className="w-full rounded-lg bg-slate-950 border border-slate-800 p-2 text-sm resize-y"
           rows={4}
           value={updateText}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { formatDateShort } from "@/lib/formatDate";
 import EditUserModal from "./edit-user-modal";
 
 type User = {
@@ -50,41 +51,25 @@ const filteredUsers = useMemo(() => {
     <>
       {/* Filters */}
 {/* Filters */}
-<div
-  style={{
-    display: "flex",
-    alignItems: "center",
-    gap: 14,
-    fontFamily: "Arial, Helvetica, sans-serif",
-    marginBottom: 14,
-    flexWrap: "wrap",
-  }}
->
+<div className="flex items-center gap-3.5 font-sans mb-3.5 flex-wrap">
   {/* Search */}
   <input
     placeholder="Search email or name"
     value={search}
     onChange={(e) => setSearch(e.target.value)}
-    style={{
-      padding: "8px 12px",
-      border: "1px solid #cbd5f5",
-      borderRadius: "6px",
-      minWidth: "260px",
-      fontSize: "14px",
-      outline: "none",
-    }}
+    className="px-3 py-2 border border-blue-200 rounded-md min-w-[260px] text-sm focus:outline-none"
   />
 
   {/* Role filter */}
+  <label htmlFor="roleFilter" className="sr-only">
+    Filter by role
+  </label>
   <select
+    id="roleFilter"
+    aria-label="Filter by role"
     value={roleFilter}
     onChange={(e) => setRoleFilter(e.target.value)}
-    style={{
-      padding: "8px 10px",
-      borderRadius: 6,
-      border: "1px solid #cbd5f5",
-      fontSize: 14,
-    }}
+    className="px-2.5 py-2 rounded-md border border-blue-200 text-sm"
   >
     <option value="ALL">All roles</option>
     <option value="ADMIN">Admin</option>
@@ -95,25 +80,11 @@ const filteredUsers = useMemo(() => {
   </select>
 
   {/* Status checkboxes (horizontal) */}
-  <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      gap: 12,
-      paddingLeft: 8,
-      fontSize: 13,
-    }}
-  >
+  <div className="flex items-center gap-3 pl-2 text-xs">
     {(["ACTIVE", "INVITED", "PAUSED"] as const).map((status) => (
       <label
         key={status}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 4,
-          cursor: "pointer",
-          userSelect: "none",
-        }}
+        className="flex items-center gap-1 cursor-pointer select-none"
       >
         <input
           type="checkbox"
@@ -136,36 +107,17 @@ const filteredUsers = useMemo(() => {
 
 
       {/* Table */}
-      <table
-        width="100%"
-        cellPadding={10}
-        style={{
-          borderCollapse: "collapse",
-          backgroundColor: "#ffffff",
-          marginTop: "20px",
-        }}
-      >
-        <thead
-          style={{
-            backgroundColor: "rgba(52, 96, 238, 1)",
-            color: "#ffffff",
-            paddingLeft:"10px"
-          }}
-        >
+      <table className="w-full border-collapse bg-white mt-5">
+        <thead className="bg-blue-700 text-white pl-2.5">
           <tr>
-            <th
-  align="left"
-  style={{
-    paddingLeft: "10px",
-  }}
->
+            <th className="text-left pl-2.5">
   Name
 </th>
-            <th align="left">Email</th>
-            <th align="left">Role</th>
-            <th align="left">Status</th>
-            <th align="left">Created</th>
-            <th align="left">Actions</th>
+            <th className="text-left">Email</th>
+            <th className="text-left">Role</th>
+            <th className="text-left">Status</th>
+            <th className="text-left">Created</th>
+            <th className="text-left">Actions</th>
           </tr>
         </thead>
 
@@ -173,18 +125,9 @@ const filteredUsers = useMemo(() => {
           {filteredUsers.map((u, index) => (
             <tr
               key={u._id}
-              style={{
-                backgroundColor:
-                  index % 2 === 0
-                    ? "rgba(214, 214, 249, 1)"
-                    : "#f0e8e8ff",
-              }}
+              className={index % 2 === 0 ? "bg-blue-100" : "bg-red-50"}
             >
-              <td
-  style={{
-    paddingLeft: "10px",
-  }}
->
+              <td className="pl-2.5">
   {u.name || "—"}
 </td>
               <td>{u.email}</td>
@@ -192,21 +135,13 @@ const filteredUsers = useMemo(() => {
               <td>{u.status ?? "ACTIVE"}</td>
               <td>
                 {u.createdAt
-                  ? new Date(u.createdAt).toLocaleDateString()
+                  ? formatDateShort(u.createdAt)
                   : "-"}
               </td>
               <td>
                 <button
                   onClick={() => setSelectedUser(u)}
-                  style={{
-                    backgroundColor: "#2563eb",
-                    color: "#ffffff",
-                    border: "none",
-                    padding: "6px 12px",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    fontSize: "13px",
-                  }}
+                  className="bg-blue-600 text-white border-none px-3 py-1.5 rounded cursor-pointer text-xs"
                 >
                   Edit
                 </button>

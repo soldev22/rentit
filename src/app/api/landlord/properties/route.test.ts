@@ -1,4 +1,5 @@
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import type { Collection, Document } from 'mongodb';
 
 // Prevent mongodb module from throwing during import
 vi.mock('@/lib/mongodb', async () => ({
@@ -27,12 +28,12 @@ import { POST } from './route';
 
 describe('POST /api/landlord/properties', () => {
   beforeEach(() => {
-    (getServerSession as any).mockReset();
-    (getCollection as any).mockReset();
+    vi.mocked(getServerSession).mockReset();
+    vi.mocked(getCollection).mockReset();
   });
 
   it('returns 401 when unauthenticated', async () => {
-    (getServerSession as any).mockResolvedValue(null);
+    vi.mocked(getServerSession).mockResolvedValue(null);
 
     const req = new Request('http://localhost', {
       method: 'POST',
@@ -40,7 +41,7 @@ describe('POST /api/landlord/properties', () => {
       headers: { 'content-type': 'application/json' },
     });
 
-    const res = await POST(req as any);
+    const res = await POST(req as Request);
     const body = await res.json();
 
     expect(res.status).toBe(401);
@@ -48,7 +49,7 @@ describe('POST /api/landlord/properties', () => {
   });
 
   it('returns 403 when not landlord role', async () => {
-    (getServerSession as any).mockResolvedValue({ user: { id: 'abc', role: 'TENANT' } });
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'abc', role: 'TENANT' } });
 
     const req = new Request('http://localhost', {
       method: 'POST',
@@ -56,7 +57,7 @@ describe('POST /api/landlord/properties', () => {
       headers: { 'content-type': 'application/json' },
     });
 
-    const res = await POST(req as any);
+    const res = await POST(req as Request);
     const body = await res.json();
 
     expect(res.status).toBe(403);
@@ -64,16 +65,21 @@ describe('POST /api/landlord/properties', () => {
   });
 
   it('creates property with valid payload', async () => {
-    (getServerSession as any).mockResolvedValue({ user: { id: '507f1f77bcf86cd799439011', role: 'LANDLORD' } });
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: '507f1f77bcf86cd799439011', role: 'LANDLORD' } });
 
     const inserted = { insertedId: 'mockedId' };
-    (getCollection as any).mockResolvedValue({ insertOne: vi.fn().mockResolvedValue(inserted) });
+    vi.mocked(getCollection).mockResolvedValue(
+      { insertOne: vi.fn().mockResolvedValue(inserted) } as unknown as Collection<Document>
+    );
 
     const payload = {
       title: 'Test prop',
       address: { line1: '1 Main St', city: 'Town', postcode: 'T1 1AA' },
       rentPcm: 1000,
       bedrooms: 2,
+      furnished: 'furnished',
+      deposit: 500,
+      amenities: ['garden','parking'],
     };
 
     const req = new Request('http://localhost', {
@@ -82,23 +88,26 @@ describe('POST /api/landlord/properties', () => {
       headers: { 'content-type': 'application/json' },
     });
 
-    const res = await POST(req as any);
+    const res = await POST(req as Request);
     const body = await res.json();
 
     expect(res.status).toBe(201);
     expect(body.property.title).toBe('Test prop');
     expect(body.property._id).toBe(inserted.insertedId);
+    expect(body.property.furnished).toBe('furnished');
+    expect(body.property.deposit).toBe(500);
+    expect(body.property.amenities).toEqual(['garden','parking']);
   });
 
   it('returns 400 for invalid payload', async () => {
-    (getServerSession as any).mockResolvedValue({ user: { id: '507f1', role: 'LANDLORD' } });
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: '507f1', role: 'LANDLORD' } });
     const req = new Request('http://localhost', {
       method: 'POST',
       body: JSON.stringify({ title: '', address: {}, rentPcm: -10 }),
       headers: { 'content-type': 'application/json' },
     });
 
-    const res = await POST(req as any);
+    const res = await POST(req as Request);
     const body = await res.json();
 
     expect(res.status).toBe(400);

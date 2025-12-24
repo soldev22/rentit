@@ -32,51 +32,20 @@ export default async function AdminUsersPage() {
 
 
   return (
-    <div style={{ padding: 24 }}>
-    <div
-  style={{
-    backgroundColor: "#f8fafc",
-    padding: "16px 24px",
-    marginBottom: 16,
-    borderBottom: "1px solid #e5e7eb",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-  }}
->
+    <div className="p-6">
+    <div className="bg-slate-50 p-4 px-6 mb-4 border-b border-gray-200 flex items-center justify-between">
   {/* Left: badge */}
-  <span
-    style={{
-      display: "inline-block",
-      backgroundColor: "rgba(71, 113, 251, 1)", // keep your chosen colour
-      color: "#ffffff",
-      padding: "6px 12px",
-      borderRadius: "999px",
-      fontSize: "14px",
-      fontWeight: 600,
-      letterSpacing: "0.3px",
-      fontFamily: "Arial, Helvetica, sans-serif",
-    }}
-  >
+  <span className="inline-block bg-blue-600 text-white px-3 py-1.5 rounded-full text-sm font-semibold tracking-wide font-sans">
     User Management
   </span>
 
   {/* Right: invite link */}
- <div style={{ display: "flex", gap: 12 }}>
+ <div className="flex gap-3">
 
 
   <Link
     href="/admin/users/invite"
-    style={{
-      backgroundColor: "rgba(71, 113, 251, 1)",
-      color: "#ffffff",
-      padding: "8px 14px",
-      borderRadius: "6px",
-      textDecoration: "none",
-      fontSize: "14px",
-      fontWeight: 500,
-      fontFamily: "Arial, Helvetica, sans-serif",
-    }}
+    className="bg-blue-600 text-white px-3.5 py-2 rounded-md no-underline text-sm font-medium font-sans"
   >
     Invite user
   </Link>

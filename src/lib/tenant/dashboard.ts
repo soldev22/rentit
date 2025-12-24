@@ -1,18 +1,7 @@
 // src/lib/tenant/dashboard.ts
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
-
-function formatDate(d: Date) {
-  return d.toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false
-  });
-}
+import { formatDateTime } from "@/lib/formatDate";
 // lib/tenant/dashboard.ts
 
 export async function getTenantIssueById(
@@ -72,7 +61,7 @@ export async function getTenantDashboardData(tenantId: string) {
     id: i._id.toString(),
     title: i.title,
     status: i.status,
-    createdAtLabel: i.createdAt ? formatDate(new Date(i.createdAt)) : "",
+    createdAtLabel: i.createdAt ? formatDateTime(i.createdAt) : "",
   }));
 
   return {
@@ -81,7 +70,7 @@ export async function getTenantDashboardData(tenantId: string) {
       propertyId: tenancy.propertyId.toString(),
     },
     propertyLabel,
-    startDateLabel: tenancy.createdAt ? formatDate(new Date(tenancy.createdAt)) : "",
+    startDateLabel: tenancy.createdAt ? formatDateTime(tenancy.createdAt) : "",
     issues,
   };
 }
@@ -108,12 +97,12 @@ export async function getTenantIssueDetailById(
     description: issue.description,
     descriptionHistory: (issue.descriptionHistory ?? []).map((entry: any) => ({
       ...entry,
-      createdAtLabel: entry.createdAt ? formatDate(new Date(entry.createdAt)) : ""
+      createdAtLabel: entry.createdAt ? formatDateTime(entry.createdAt) : ""
     })),
     status: issue.status,
     priority: issue.priority,
     createdAtLabel: issue.createdAt
-      ? formatDate(new Date(issue.createdAt))
+      ? formatDateTime(issue.createdAt)
       : "",
   };
-}
+} 

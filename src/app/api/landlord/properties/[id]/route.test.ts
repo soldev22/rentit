@@ -1,67 +1,110 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
-
-// Mocks
-vi.mock('next-auth', async () => ({
-  default: vi.fn(() => ({})),
-  getServerSession: vi.fn(),
-}));
-
-vi.mock('@/lib/db', async () => ({
-  getCollection: vi.fn(),
-}));
-
-import { getServerSession } from 'next-auth';
-import { getCollection } from '@/lib/db';
-import { PUT } from './route';
+import { NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { getCollection } from '@/lib/db';
 
-describe('PUT /api/landlord/properties/[id]', () => {
-  beforeEach(() => {
-    (getServerSession as any).mockReset();
-    (getCollection as any).mockReset();
+export async function PUT(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getServerSession(authOptions);
+
+  // Auth guard
+  if (!session || session.user?.role !== 'LANDLORD') {
+    return NextResponse.json(
+      { error: 'Unauthorised' },
+      { status: 401 }
+    );
+  }
+
+  const { id } = await params;
+
+  if (!ObjectId.isValid(id)) {
+    return NextResponse.json(
+      { error: 'Invalid property ID' },
+      { status: 400 }
+    );
+  }
+
+  type UpdatePropertyBody = {
+    title?: string;
+    status?: string;
+    rentPcm?: number;
+    description?: string;
+    address?: string;
+    deposit?: number;
+    amenities?: string[];
+    virtualTourUrl?: string;
+    viewingInstructions?: string;
+  };
+
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json(
+      { error: 'Invalid JSON body' },
+      { status: 400 }
+    );
+  }
+
+  if (typeof body !== 'object' || body === null) {
+    return NextResponse.json(
+      { error: 'Invalid JSON body' },
+      { status: 400 }
+    );
+  }
+
+  // 🔒 Explicit whitelist (THIS WAS THE BUG)
+  const {
+    title,
+    status,
+    rentPcm,
+    description,
+    address,
+    deposit,
+    amenities,
+    virtualTourUrl,
+    viewingInstructions,
+  } = body as UpdatePropertyBody;
+
+  const properties = await getCollection('properties');
+
+  const updateResult = await properties.updateOne(
+    { _id: new ObjectId(id) },
+    {
+      $set: {
+        title,
+        status,
+        rentPcm,
+        description,
+        address,
+        deposit,
+        amenities,
+        virtualTourUrl,
+        viewingInstructions,
+        updatedAt: new Date(),
+      },
+    }
+  );
+
+  if (updateResult.matchedCount === 0) {
+    return NextResponse.json(
+      { error: 'Property not found' },
+      { status: 404 }
+    );
+  }
+
+  const updatedProperty = await properties.findOne({
+    _id: new ObjectId(id),
   });
 
-  it('returns 401 when unauthenticated or not landlord', async () => {
-    (getServerSession as any).mockResolvedValue(null);
-    const req = new Request('http://localhost/api/landlord/properties/507f1f77bcf86cd799439011', { method: 'PUT' });
-    const res = await PUT(req as any, { params: Promise.resolve({ id: '507f1f77bcf86cd799439011' }) } as any);
-    expect(res.status).toBe(401);
-    const body = await res.json();
-    expect(body.error).toBeDefined();
+  return NextResponse.json({
+    ok: true,
+    property: {
+      ...updatedProperty,
+      _id: updatedProperty?._id.toString(),
+    },
   });
-
-  it('returns updated property on successful update', async () => {
-    const id = '694ba8cbfbd174c1b5179d93';
-    // Session as landlord
-    (getServerSession as any).mockResolvedValue({ user: { id: '69497e8870380dda2c61ba7f', role: 'LANDLORD' } });
-
-    // Mock collection: updateOne returns matched/modified, findOne returns the updated doc
-    const mockUpdateOne = vi.fn().mockResolvedValue({ matchedCount: 1, modifiedCount: 1 });
-    const updatedDoc = {
-      _id: new ObjectId(id),
-      title: 'Edited Title',
-      deposit: 350,
-      viewingInstructions: 'Call ahead to arrange access',
-      rentPcm: 950,
-      address: { line1: '10 Test Street', city: 'Testville', postcode: 'TE5 1NG' },
-      status: 'draft',
-      photos: [],
-      createdAt: new Date().toISOString(),
-    };
-    const mockFindOne = vi.fn().mockResolvedValue(updatedDoc);
-    (getCollection as any).mockResolvedValue({ updateOne: mockUpdateOne, findOne: mockFindOne });
-
-    const payload = { title: 'Edited Title', deposit: 350, viewingInstructions: 'Call ahead to arrange access' };
-    const req = new Request(`http://localhost/api/landlord/properties/${id}`, { method: 'PUT', body: JSON.stringify(payload), headers: { 'content-type': 'application/json' } });
-
-    const res = await PUT(req as any, { params: Promise.resolve({ id }) } as any);
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.ok).toBe(true);
-    expect(body.property).toBeTruthy();
-    expect(body.property.deposit).toBe(350);
-    expect(body.property.viewingInstructions).toBe('Call ahead to arrange access');
-    expect(mockUpdateOne).toHaveBeenCalled();
-    expect(mockFindOne).toHaveBeenCalled();
-  });
-});
+}

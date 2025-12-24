@@ -1,10 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatDateShort } from "@/lib/formatDate";
 import Link from "next/link";
 
+type Interest = {
+  propertyId: string;
+  propertyTitle?: string;
+  date?: string | null;
+};
+
 export default function ProfilePage() {
-  const [interests, setInterests] = useState<any[]>([]);
+  const [interests, setInterests] = useState<Interest[]>([]);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
 
@@ -49,7 +56,9 @@ export default function ProfilePage() {
           const interestsData = await interestsRes.json();
           setInterests(interestsData.interests || []);
         }
-      } catch (e) {}
+      } catch {
+        // ignore errors fetching interests
+      }
 
       setLoading(false);
     }
@@ -92,35 +101,29 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div style={{ padding: 24, fontFamily: "Arial, Helvetica, sans-serif" }}>
+      <div className="p-6 font-sans">
         Loading profile…
       </div>
     );
   }
 
   return (
-    <div
-      style={{
-        padding: 24,
-        fontFamily: "Arial, Helvetica, sans-serif",
-        maxWidth: 520,
-      }}
-    >
+    <div className="p-6 font-sans max-w-[520px] mx-auto">
       <h2>My profile</h2>
 
       {/* Interests Section */}
-      <div style={{ marginBottom: 24 }}>
-        <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Registered Interests</h3>
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold mb-2">Registered Interests</h3>
         {interests.length === 0 ? (
-          <div style={{ color: "#64748b", fontSize: 14 }}>No interests registered yet.</div>
+          <div className="text-gray-500 text-sm">No interests registered yet.</div>
         ) : (
-          <ul style={{ paddingLeft: 0, listStyle: "none" }}>
+          <ul className="p-0 list-none">
             {interests.map((interest) => (
-              <li key={interest.propertyId} style={{ marginBottom: 10, borderBottom: "1px solid #e5e7eb", paddingBottom: 8 }}>
-                <Link href={`/applicant/properties/${interest.propertyId}`} style={{ color: "#1e40af", fontWeight: 500, textDecoration: "underline" }}>
+              <li key={interest.propertyId} className="mb-2.5 pb-2 border-b border-gray-200 last:border-b-0 last:mb-0 last:pb-0">
+                <Link href={`/applicant/properties/${interest.propertyId}`} className="text-blue-700 font-medium underline">
                   {interest.propertyTitle || "Property"}
                 </Link>
-                <div style={{ fontSize: 13, color: "#475569" }}>{interest.date ? new Date(interest.date).toLocaleDateString() : ""}</div>
+                <div className="text-sm text-slate-600">{interest.date ? formatDateShort(interest.date) : ""}</div>
               </li>
             ))}
           </ul>
@@ -129,14 +132,7 @@ export default function ProfilePage() {
 
       {isIncomplete && (
         <div
-          style={{
-            background: "#fff7ed",
-            border: "1px solid #fed7aa",
-            padding: 12,
-            borderRadius: 6,
-            marginBottom: 16,
-            fontSize: 14,
-          }}
+          className="bg-amber-50 border border-amber-200 p-3 rounded-md mb-4 text-sm"
         >
           Please complete your profile. Missing details may delay bookings or
           communication.
@@ -145,121 +141,133 @@ export default function ProfilePage() {
 
       <form onSubmit={saveProfile}>
         {/* EMAIL (READ ONLY) */}
-        <div style={{ marginBottom: 12 }}>
-          <label>Email</label>
+        <div className="mb-3">
+          <label htmlFor="email">Email</label>
           <input
+            id="email"
+            type="email"
             value={email}
             disabled
-            style={{
-              width: "100%",
-              padding: 8,
-              border: "1px solid #d1d5db",
-              borderRadius: 6,
-              backgroundColor: "#f8fafc",
-              color: "#475569",
-              cursor: "not-allowed",
-            }}
+            title="Email address"
+            placeholder="name@example.com"
+            className="w-full p-2 border border-gray-300 rounded-md bg-slate-50 text-slate-600 cursor-not-allowed"
           />
-          <small style={{ fontSize: 12, color: "#64748b" }}>
+          <small className="text-xs text-gray-500">
             Email address can only be changed by an administrator.
           </small>
         </div>
 
         {/* NAME */}
-        <div style={{ marginBottom: 12 }}>
-          <label>Name</label>
+        <div className="mb-3">
+          <label htmlFor="name">Name</label>
           <input
+            id="name"
+            type="text"
             value={name}
+            required
+            title="Full name"
+            placeholder="Your full name"
             onChange={(e) => setName(e.target.value)}
-            style={inputStyle}
+            className="w-full p-2 border border-gray-300 rounded-md"
           />
         </div>
 
         {/* PHONE */}
-        <div style={{ marginBottom: 12 }}>
-          <label>Phone</label>
+        <div className="mb-3">
+          <label htmlFor="phone">Phone</label>
           <input
+            id="phone"
+            type="tel"
             value={profile.phone}
+            required
+            title="Phone number"
+            placeholder="+44 7700 900000"
             onChange={(e) =>
               setProfile({ ...profile, phone: e.target.value })
             }
-            style={inputStyle}
+            className="w-full p-2 border border-gray-300 rounded-md"
           />
         </div>
 
         {/* ADDRESS LINE 1 */}
-        <div style={{ marginBottom: 12 }}>
-          <label>Address line 1</label>
+        <div className="mb-3">
+          <label htmlFor="addressLine1">Address line 1</label>
           <input
+            id="addressLine1"
+            type="text"
             value={profile.addressLine1}
+            required
+            title="Address line 1"
+            placeholder="Street address"
             onChange={(e) =>
               setProfile({ ...profile, addressLine1: e.target.value })
             }
-            style={inputStyle}
+            className="w-full p-2 border border-gray-300 rounded-md"
           />
         </div>
 
         {/* ADDRESS LINE 2 */}
-        <div style={{ marginBottom: 12 }}>
-          <label>Address line 2</label>
+        <div className="mb-3">
+          <label htmlFor="addressLine2">Address line 2</label>
           <input
+            id="addressLine2"
+            type="text"
             value={profile.addressLine2}
+            title="Address line 2"
+            placeholder="Apartment, suite, unit (optional)"
             onChange={(e) =>
               setProfile({ ...profile, addressLine2: e.target.value })
             }
-            style={inputStyle}
+            className="w-full p-2 border border-gray-300 rounded-md"
           />
         </div>
 
         {/* CITY */}
-        <div style={{ marginBottom: 12 }}>
-          <label>City</label>
+        <div className="mb-3">
+          <label htmlFor="city">City</label>
           <input
+            id="city"
+            type="text"
             value={profile.city}
+            required
+            title="City"
+            placeholder="City"
             onChange={(e) =>
               setProfile({ ...profile, city: e.target.value })
             }
-            style={inputStyle}
+            className="w-full p-2 border border-gray-300 rounded-md"
           />
         </div>
 
         {/* POSTCODE */}
-        <div style={{ marginBottom: 12 }}>
-          <label>Postcode</label>
+        <div className="mb-3">
+          <label htmlFor="postcode">Postcode</label>
           <input
+            id="postcode"
+            type="text"
             value={profile.postcode}
+            required
+            title="Postcode"
+            placeholder="Postal code"
             onChange={(e) =>
               setProfile({ ...profile, postcode: e.target.value })
             }
-            style={inputStyle}
+            className="w-full p-2 border border-gray-300 rounded-md"
           />
         </div>
 
         <button
           type="submit"
           disabled={saving}
-          style={{
-            backgroundColor: "#1e40af",
-            color: "#fff",
-            padding: "8px 14px",
-            borderRadius: 6,
-            border: "none",
-            cursor: "pointer",
-            marginTop: 8,
-          }}
+          className="bg-blue-700 text-white px-3.5 py-2 rounded-md border-none cursor-pointer mt-2 disabled:opacity-50"
         >
           {saving ? "Saving…" : "Save profile"}
         </button>
 
-        {message && <p style={{ marginTop: 12 }}>{message}</p>}
+        {message && <p className="mt-3">{message}</p>}
       </form>
     </div>
   );
 }
 
-const inputStyle = {
-  width: "100%",
-  padding: 8,
-  border: "1px solid #d1d5db",
-  borderRadius: 6,
-};
+

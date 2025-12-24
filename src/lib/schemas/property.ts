@@ -18,6 +18,8 @@ export const createPropertySchema = z.object({
   address: addressSchema,
   rentPcm: z.coerce.number().min(0),
   rentFrequency: z.enum(['pcm', 'pw']).optional().default('pcm'),
+  // Allow updating status on properties (e.g., draft, listed, paused)
+  status: z.enum(['draft','listed','paused','let','breached']).optional(),
   propertyType: z.enum(['flat', 'house', 'maisonette', 'studio', 'room', 'other']).optional().default('flat'),
   bedrooms: z.coerce.number().int().min(0).optional(),
   bathrooms: z.coerce.number().int().min(0).optional(),

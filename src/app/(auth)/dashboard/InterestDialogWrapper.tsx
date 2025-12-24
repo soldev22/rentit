@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import  InterestDialog  from "@/components/landlord/InterestDialog";
 import ManageUserModal from "@/components/landlord/ManageUserModal";
 import { useRouter } from "next/navigation";
+import { formatDateShort, formatDateTime } from "@/lib/formatDate"; 
 
 
 export default function InterestDialogWrapper({ property }: { property: any }) {
@@ -76,8 +77,8 @@ export default function InterestDialogWrapper({ property }: { property: any }) {
           </div>
 
           <div className="mb-3 text-xs text-gray-500">
-            Created {new Date(property.createdAt).toLocaleDateString("en-GB")}
-          </div>
+            Created {formatDateShort(property.createdAt)}
+          </div> 
         </div>
 
         <div className="mt-auto">
@@ -106,9 +107,9 @@ export default function InterestDialogWrapper({ property }: { property: any }) {
                     )}
                     {interest.date && (
                       <div className="text-xs text-gray-500">
-                        {new Date(interest.date).toLocaleString("en-GB")}
+                        {formatDateTime(interest.date)}
                       </div>
-                    )}
+                    )} 
                   </div>
                 ))}
               </div>

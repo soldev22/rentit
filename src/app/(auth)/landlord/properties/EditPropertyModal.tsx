@@ -6,6 +6,7 @@ import ManageUserModal from "@/components/landlord/ManageUserModal";
 import PropertyImageUpload from "./PropertyImageUpload";
 import ImageDeleteModal from "./ImageDeleteModal";
 import Image from 'next/image';
+import { formatDateTime } from '../../../../lib/formatDate';
 
 // ...existing code...
 
@@ -34,6 +35,22 @@ type Property = {
     applicantTel?: string;
     date?: string;
   }[];
+};
+
+type PropertyUpdatePayload = {
+  title: string;
+  status: string;
+  rentPcm: number;
+  description?: string;
+  address: {
+    line1?: string;
+    city?: string;
+    postcode?: string;
+  };
+  deposit?: number;
+  amenities?: string[];
+  viewingInstructions?: string;
+  virtualTourUrl?: string;
 };
 
 export default function EditPropertyModal({
@@ -73,31 +90,80 @@ export default function EditPropertyModal({
     setSaving(true);
     setError(null);
 
-    try {
-      const res = await fetch(`/api/landlord/properties/${property._id}`, {
+    // Helper that performs the PUT and returns the Response
+    async function doPut() {
+      // Trim optional fields to avoid sending empty strings
+            const payload: PropertyUpdatePayload = {
+              title,
+              status,
+              rentPcm,
+              description,
+              address: {
+                line1,
+                city,
+                postcode,
+              },
+              deposit,
+              amenities,
+              viewingInstructions,
+            };
+            if (virtualTourUrl && String(virtualTourUrl).trim() !== '') payload.virtualTourUrl = String(virtualTourUrl).trim();
+
+      return await fetch(`/api/landlord/properties/${property._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title,
-          status,
-          rentPcm,
-          description,
-          address: {
-            line1,
-            city,
-            postcode,
-          },
-          deposit,
-          amenities,
-          virtualTourUrl,
-          viewingInstructions,
-        }),
+        body: JSON.stringify(payload),
       });
-      const data = await res.json();
+    }
+
+    try {
+      const maxAttempts = 3;
+      let attempt = 0;
+      let res: Response | null = null;
+      while (attempt < maxAttempts) {
+        attempt += 1;
+        try {
+          res = await doPut();
+          // If server error (5xx), treat as retryable
+          if (res.status >= 500 && attempt < maxAttempts) {
+            console.warn(`handleSave attempt ${attempt} received ${res.status}, retrying...`);
+            await new Promise((r) => setTimeout(r, 500 * attempt));
+            continue;
+          }
+          break; // success (got a response) or client/validation error
+        } catch (err) {
+          console.warn(`handleSave attempt ${attempt} failed:`, err);
+          if (attempt < maxAttempts) {
+            // small exponential backoff before retrying
+            await new Promise((r) => setTimeout(r, 400 * attempt));
+            continue;
+          }
+          throw err; // rethrow after final attempt
+        }
+      }
+
+      if (!res) throw new Error('No response from server');
+
+      // Try to parse body safely
+      let data: Record<string, unknown> | null = null;
+      try {
+        data = await res.json();
+      } catch (e) {
+        console.warn('Could not parse JSON response from save', e);
+      }
+
       console.log('Save response status:', res.status, 'body:', data);
       if (!res.ok || data?.error) {
-        // show explicit status to help debugging
-        setError(data?.error || `Failed to save property (status ${res.status})`);
+        // prefer server error message when available
+        const serverMsgRaw = data?.error ?? data?.message ?? null;
+        const serverMsg = typeof serverMsgRaw === 'string' ? serverMsgRaw : (serverMsgRaw ? JSON.stringify(serverMsgRaw) : null);
+        // If schema validation details are present, show them
+        if (data?.details) {
+          // details is typically { field: ['msg'] } or flattened; stringify for now
+          setError(`${serverMsg || 'Validation error'}: ${JSON.stringify(data.details)}`);
+        } else {
+          setError(serverMsg || `Failed to save property (status ${res.status})`);
+        }
       } else {
         setError(null);
         onClose();
@@ -194,7 +260,7 @@ export default function EditPropertyModal({
                   <div className="font-semibold text-indigo-700">{interest.applicantName}</div>
                   <div className="text-xs text-gray-700">Email: {interest.applicantEmail}</div>
                   {interest.applicantTel && <div className="text-xs text-gray-700">Tel: {interest.applicantTel}</div>}
-                  {interest.date && <div className="text-xs text-gray-500">{new Date(interest.date).toLocaleString()}</div>}
+                  {interest.date && <div className="text-xs text-gray-500">{formatDateTime(interest.date)}</div>}
                 </div>
               ))}
             </div>

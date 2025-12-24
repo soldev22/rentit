@@ -8,9 +8,24 @@ type User = {
   role: string;
   status: "ACTIVE" | "INVITED" | "PAUSED";
   description?: string;
-  profile?: any;
+  profile?: {
+    phone?: string;
+    address?: {
+      line1?: string;
+      line2?: string;
+      city?: string;
+      postcode?: string;
+      country?: string;
+    };
+  };
   phone?: string;
-  address?: any;
+  address?: {
+    line1?: string;
+    line2?: string;
+    city?: string;
+    postcode?: string;
+    country?: string;
+  };
   addressVerified?: boolean;
   profileCompleteness?: number;
   createdAt?: string;
@@ -19,6 +34,7 @@ type User = {
 
 
 import { useEffect } from "react";
+import { formatDateTime } from "@/lib/formatDate";
 
 export default function EditUserModal({
   user,
@@ -83,81 +99,40 @@ export default function EditUserModal({
   return (
     <>
       {/* Backdrop */}
-      <div
-        onClick={onClose}
-        style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(0,0,0,0.45)",
-          zIndex: 50,
-        }}
-      />
+      <div onClick={onClose} className="fixed inset-0 bg-black/45 z-50" />
 
       {/* Modal */}
-      <div
-        style={{
-          position: "fixed",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: 420,
-          background: "#ffffff",
-          borderRadius: 10,
-          boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
-          zIndex: 51,
-          fontFamily: "Arial, Helvetica, sans-serif",
-        }}
-      >
+      <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[420px] bg-white rounded-xl shadow-2xl z-[51] font-sans">
         {/* Header */}
-        <div
-          style={{
-            padding: "16px 20px",
-            borderBottom: "1px solid #e5e7eb",
-          }}
-        >
-          <h3 style={{ margin: 0 }}>Edit user</h3>
-          <p style={{ margin: "4px 0 0", fontSize: 13, color: "#6b7280" }}>
+        <div className="p-4 border-b border-gray-200">
+          <h3 className="m-0">Edit user</h3>
+          <p className="m-0 mt-1 text-sm text-gray-500">
             {user.email}
           </p>
         </div>
 
         {/* Body */}
-        <div style={{ padding: 20 }}>
+        <div className="p-5">
           {/* Show all available user details */}
-          <div style={{ marginBottom: 16 }}>
-            <label
-              style={{
-                display: "block",
-                fontSize: 13,
-                marginBottom: 6,
-                fontWeight: 600,
-              }}
-            >
+          <div className="mb-4">
+            <label className="block text-sm mb-1.5 font-semibold" htmlFor="description">
               Description
             </label>
             <textarea
+              id="description"
               value={description}
               onChange={e => setDescription(e.target.value)}
-              style={{
-                width: "100%",
-                minHeight: 60,
-                padding: "8px 10px",
-                borderRadius: 6,
-                border: "1px solid #d1d5db",
-                fontSize: 14,
-                marginBottom: 10,
-                resize: "vertical"
-              }}
+              className="w-full min-h-[60px] p-2 border border-gray-300 rounded-md text-sm mb-2.5 resize-vertical"
               placeholder="Enter a description for this user..."
             />
-            <div style={{ fontSize: 14, marginBottom: 4 }}><b>Name:</b> {latestUser.name || <span style={{ color: '#aaa' }}>(none)</span>}</div>
-            <div style={{ fontSize: 14, marginBottom: 4 }}><b>Email:</b> {user.email}</div>
+            <div className="text-sm mb-1"><b>Name:</b> {latestUser.name || <span className="text-gray-400">(none)</span>}</div>
+            <div className="text-sm mb-1"><b>Email:</b> {user.email}</div>
             {/* Support both user.phone/address and user.profile.phone/address */}
             {(user.phone || user.profile?.phone) && (
-              <div style={{ fontSize: 14, marginBottom: 4 }}><b>Phone:</b> {user.phone || user.profile?.phone}</div>
+              <div className="text-sm mb-1"><b>Phone:</b> {user.phone || user.profile?.phone}</div>
             )}
             {(user.address || user.profile?.address) && (
-              <div style={{ fontSize: 14, marginBottom: 4 }}>
+              <div className="text-sm mb-1">
                 <b>Address:</b> {user.address?.line1 || user.profile?.address?.line1 || ''}
                 {user.address?.line2 || user.profile?.address?.line2 ? ', ' + (user.address?.line2 || user.profile?.address?.line2) : ''}
                 {user.address?.city || user.profile?.address?.city ? ', ' + (user.address?.city || user.profile?.address?.city) : ''}
@@ -166,63 +141,41 @@ export default function EditUserModal({
               </div>
             )}
             {typeof user.addressVerified !== 'undefined' && (
-              <div style={{ fontSize: 14, marginBottom: 4 }}><b>Address Verified:</b> {user.addressVerified ? 'Yes' : 'No'}</div>
+              <div className="text-sm mb-1"><b>Address Verified:</b> {user.addressVerified ? 'Yes' : 'No'}</div>
             )}
             {typeof user.profileCompleteness !== 'undefined' && (
-              <div style={{ fontSize: 14, marginBottom: 4 }}><b>Profile Completeness:</b> {user.profileCompleteness}%</div>
+              <div className="text-sm mb-1"><b>Profile Completeness:</b> {user.profileCompleteness}%</div>
             )}
-            {user.createdAt && <div style={{ fontSize: 14, marginBottom: 4 }}><b>Created:</b> {new Date(user.createdAt).toLocaleString()}</div>}
-            {user.updatedAt && <div style={{ fontSize: 14, marginBottom: 4 }}><b>Updated:</b> {new Date(user.updatedAt).toLocaleString()}</div>}
+            {user.createdAt && <div className="text-sm mb-1"><b>Created:</b> {formatDateTime(user.createdAt)}</div>}
+            {user.updatedAt && <div className="text-sm mb-1"><b>Updated:</b> {formatDateTime(user.updatedAt)}</div>}
           </div>
-          <div style={{ marginBottom: 16 }}>
-            <label
-              style={{
-                display: "block",
-                fontSize: 13,
-                marginBottom: 6,
-                fontWeight: 600,
-              }}
-            >
+          <div className="mb-4">
+            <label className="block text-sm mb-1.5 font-semibold" htmlFor="role-select">
               Role
             </label>
             <select
+              id="role-select"
               value={role ?? ""}
               onChange={(e) => setRole(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "8px 10px",
-                borderRadius: 6,
-                border: "1px solid #d1d5db",
-                fontSize: 14,
-              }}
+              className="w-full p-2 border border-gray-300 rounded-md text-sm"
+              aria-label="Role"
             >
               <option value="APPLICANT">Applicant</option>
               <option value="TENANT">Tenant</option>
             </select>
           </div>
-          <div style={{ marginBottom: 16 }}>
-            <label
-              style={{
-                display: "block",
-                fontSize: 13,
-                marginBottom: 6,
-                fontWeight: 600,
-              }}
-            >
+          <div className="mb-4">
+            <label className="block text-sm mb-1.5 font-semibold" htmlFor="status-select">
               Status
             </label>
             <select
+              id="status-select"
               value={status ?? ""}
               onChange={(e) =>
                 setStatus((e.target.value || "ACTIVE") as "ACTIVE" | "INVITED" | "PAUSED")
               }
-              style={{
-                width: "100%",
-                padding: "8px 10px",
-                borderRadius: 6,
-                border: "1px solid #d1d5db",
-                fontSize: 14,
-              }}
+              className="w-full p-2 border border-gray-300 rounded-md text-sm"
+              aria-label="Status"
             >
               <option value="ACTIVE">Active</option>
               <option value="INVITED">Invited</option>
@@ -230,41 +183,17 @@ export default function EditUserModal({
             </select>
           </div>
           {error && (
-            <div
-              style={{
-                background: "#fef2f2",
-                border: "1px solid #fecaca",
-                color: "#991b1b",
-                padding: 10,
-                borderRadius: 6,
-                fontSize: 13,
-                marginBottom: 12,
-              }}
-            >
+            <div className="bg-red-50 border border-red-200 text-red-700 p-2.5 rounded-md text-sm mb-3">
               {error}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div
-          style={{
-            padding: "14px 20px",
-            borderTop: "1px solid #e5e7eb",
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 10,
-          }}
-        >
+        <div className="p-3.5 border-t border-gray-200 flex justify-end gap-2.5">
           <button
             onClick={onClose}
-            style={{
-              padding: "8px 14px",
-              borderRadius: 6,
-              border: "1px solid #d1d5db",
-              background: "#ffffff",
-              cursor: "pointer",
-            }}
+            className="px-3.5 py-2 border border-gray-300 rounded-md bg-white cursor-pointer"
           >
             Cancel
           </button>
@@ -272,19 +201,12 @@ export default function EditUserModal({
           <button
             onClick={save}
             disabled={saving}
-            style={{
-              padding: "8px 14px",
-              borderRadius: 6,
-              border: "none",
-              background: "rgba(71, 113, 251, 1)",
-              color: "#ffffff",
-              cursor: "pointer",
-            }}
+            className="px-3.5 py-2 rounded-md border-none bg-blue-600 text-white cursor-pointer disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save changes"}
           </button>
+          </div>
         </div>
-      </div>
-    </>
-  );
-}
+      </>
+    );
+  }

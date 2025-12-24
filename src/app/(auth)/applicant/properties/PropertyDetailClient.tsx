@@ -40,7 +40,6 @@ export default function PropertyDetailClient({ property, propertyId, hasRegister
             src={mainPhoto}
             alt={property.title}
             className="w-full h-64 object-cover cursor-pointer"
-            style={{ objectPosition: 'center' }}
             onClick={() => openModal(mainPhoto)}
           />
         )}
@@ -50,7 +49,7 @@ export default function PropertyDetailClient({ property, propertyId, hasRegister
           <div className="text-slate-800 font-semibold mb-2 text-lg">£{property.rentPcm} pcm</div>
           <div className="text-slate-500 text-base mb-4">{property.description}</div>
           {allPhotos.length > 1 && (
-            <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
               {allPhotos.slice(1).map((photo: any, idx: number) => (
                 <img
                   key={idx}

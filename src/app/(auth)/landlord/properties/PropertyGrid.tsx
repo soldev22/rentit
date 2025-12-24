@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatDateShort } from '../../../../lib/formatDate';
 import EditPropertyModal from "../../landlord/properties/EditPropertyModal";
 function getPageNumbers(current: number, total: number) {
   const pages: (number | "…")[] = [];
@@ -83,14 +84,13 @@ export default function PropertyGrid({
           <div
             key={property._id}
             onClick={() => setSelected(property)}
-            className="cursor-pointer rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md"
-            style={{width: 600}}
+            className="cursor-pointer rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md w-[600px]"
           >
             {property.photos && property.photos.length > 0 && (
               <img
                 src={property.photos[0].url}
                 alt="Property thumbnail"
-                style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 6, marginBottom: 8, border: '1px solid #eee' }}
+                className="w-20 h-20 object-cover rounded-md mb-2 border border-gray-300"
               />
             )}
             <h3 className="text-base font-semibold leading-tight truncate" title={property.title}>
@@ -109,7 +109,7 @@ export default function PropertyGrid({
               <StatusBadge status={property.status} />
             </div>
             <p className="mt-2 text-xs text-gray-500">
-              Created {new Date(property.createdAt).toLocaleDateString()}
+              Created {formatDateShort(property.createdAt)}
             </p>
           </div>
         ))}

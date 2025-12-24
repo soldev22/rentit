@@ -1,13 +1,6 @@
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
-
-function formatDate(d: Date) {
-  return d.toLocaleDateString("en-GB", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-  });
-}
+import { formatDateShort } from "@/lib/formatDate";
 
 export async function getIssueDetailForManager(issueId: string) {
   const client = await clientPromise;
@@ -31,7 +24,7 @@ export async function getIssueDetailForManager(issueId: string) {
     tenantId: issue.tenantId?.toString(),
     propertyId: issue.propertyId?.toString(),
     createdAtLabel: issue.createdAt
-      ? formatDate(new Date(issue.createdAt))
+      ? formatDateShort(issue.createdAt)
       : "",
   };
-}
+} 

@@ -39,15 +39,19 @@ export default function LandlordPropertyActions({
       }
 
       onStatusChange?.(newStatus);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError(String(err));
+      }
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+    <div className="flex gap-2 flex-wrap">
       {canTransition(status, "listed") && (
         <button onClick={() => updateStatus("listed")} disabled={loading}>
           List property
@@ -67,7 +71,7 @@ export default function LandlordPropertyActions({
       )}
 
       {error && (
-        <span style={{ color: "red", fontSize: "0.85rem" }}>
+        <span className="text-red-500 text-sm">
           {error}
         </span>
       )}

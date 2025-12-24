@@ -3,12 +3,47 @@ import { ObjectId } from 'mongodb';
 import PropertyGallery from '@/components/PropertyGallery';
 import ShareButtons from '@/components/ShareButtons';
 import ApplyButton from '@/components/ApplyButton';
+import { formatDateShort } from '@/lib/formatDate';
 
 export const dynamic = 'force-dynamic';
 
+interface RawProperty {
+  _id: ObjectId;
+  title?: string;
+  description?: string;
+  address?: {
+    line1?: string;
+    line2?: string;
+    city?: string;
+    postcode?: string;
+  };
+  rentPcm?: number;
+  rooms?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  furnished?: string;
+  deposit?: number;
+  tenancyLengthMonths?: number;
+  billsIncluded?: string[];
+  petsAllowed?: boolean;
+  smokingAllowed?: boolean;
+  epcRating?: string;
+  councilTaxBand?: string;
+  sizeSqm?: number;
+  parking?: string;
+  amenities?: string[];
+  virtualTourUrl?: string;
+  floor?: string | number;
+  hmoLicenseRequired?: boolean;
+  viewingInstructions?: string;
+  status?: string;
+  photos?: Array<{ url: string }>;
+  createdAt?: Date | string;
+}
+
 async function getPropertyById(id: string) {
   const col = await getCollection('properties');
-  let p: any | null = null;
+  let p: RawProperty | null = null;
   try {
     p = await col.findOne({ _id: new ObjectId(id) });
   } catch (err) {
@@ -42,13 +77,13 @@ async function getPropertyById(id: string) {
     hmoLicenseRequired: p.hmoLicenseRequired,
     viewingInstructions: p.viewingInstructions,
     status: p.status,
-    photos: p.photos || [],
+    photos: (p.photos || []).map(photo => ({ url: photo.url })),
     createdAt: p.createdAt,
   };
 }
 
-export default async function PropertyDetailPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
-  const { id } = (typeof (params as any)?.then === 'function') ? await (params as any) : (params as any);
+export default async function PropertyDetailPage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const property = await getPropertyById(id);
   if (!property) return <div className="p-6">Property not found</div>;
 
@@ -69,7 +104,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
             <div className="mt-6 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="text-sm text-gray-500">Listed:</div>
-                <div className="text-sm font-medium">{property.createdAt ? new Date(property.createdAt).toLocaleDateString('en-GB') : ''}</div>
+                <div className="text-sm font-medium">{property.createdAt ? formatDateShort(property.createdAt) : ''}</div>
               </div>
 
               <ShareButtons title={property.title} />
@@ -85,7 +120,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
             </div>
             <div>
               <span className={`inline-block rounded px-3 py-1 text-xs font-semibold ${property.status === 'listed' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`} data-testid="prop-status-badge">
-                {property.status.toUpperCase()}
+                {property.status?.toUpperCase() || 'UNKNOWN'}
               </span>
             </div>
           </div>

@@ -6,13 +6,8 @@ export default function AdminTableShell({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ padding: 24 }}>
-      <h2
-        style={{
-          fontFamily: "Arial, Helvetica, sans-serif",
-          marginBottom: 16,
-        }}
-      >
+    <div className="p-6">
+      <h2 className="font-sans mb-4">
         {title}
       </h2>
       {children}
