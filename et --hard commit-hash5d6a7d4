@@ -1,0 +1,107 @@
+[33m5d6a7d4[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m VstablePropertyAdd
+[33m43bf7a3[m V20001
+[33m3e962fd[m V2002
+[33m969ebc6[m[33m ([m[1;31morigin/feature/your-task[m[33m, [m[1;32mfeature/your-task[m[33m)[m V2000
+[33mf80556c[m test: reduce E2E timeout to 60s for local runs and add chrome-only local script
+[33m6e9a634[m test: add unit test for per-id PUT route; make PUT return updated property and add E2E guard to avoid depending on PUT body
+[33meb63c67[m api(landlord): allow partial updates for extra property fields in [id] PUT route using shared schema
+[33m00da51a[m ui(landlord): add deposit, amenities, virtual tour, viewing instructions to EditPropertyModal and e2e assertions
+[33m23ff721[m tests(auth): add programmatic fallback to click Sign out when locator fails (WebKit flakiness)
+[33mbf28caf[m tests(authsetup): accept role-specific redirects after sign-in
+[33me161a51[m tests(api): add tests for landlord property update route using shared Zod schema
+[33m1dad96e[m schema: add shared Zod property schema and use it in landlord POST route
+[33ma951683[m tests(landlord): assert rent near created title using landlord grid markup (avoid public data-testid)
+[33m64d3f59[m tests: assert new property data-testids in listing, detail and landlord flows
+[33m811d5b3[m tests(auth/landlord): more robust signout detection; verify landlord role after signin in new context
+[33m371f999[m tests(auth): increase timeout for registration success check to accommodate WebKit
+[33m91c3a6d[m tests(auth): wait for authenticated header item before signing out
+[33m07039b3[m tests(auth): make registration wait more tolerant across browsers
+[33m97f7af2[m tests(auth helper): fix ordering of infoPath variable
+[33m12c2a44[m tests(auth helper): return creds; tests(landlord): sign in within new context to ensure session cookies are present
+[33m37f2fdf[m tests(landlord-properties): verify landlord auth in new context and save debug storage on failure
+[33m3169932[m tests: make auth/role/landlord property flows more robust (timeouts, selectors, sign-out fallback)
+[33m2cf65f6[m ui: upgrade PropertyCard and property detail layout, add data-testids
+[33m49e225d[m tests: add Playwright e2e specs (auth, protected, property)
+[33m686a8ef[m V1009
+[33mfcaa462[m chore: merge staging/e2e into master
+[33md494630[m[33m ([m[1;31morigin/staging/e2e[m[33m, [m[1;32mstaging/e2e[m[33m)[m v1008
+[33m6b79c09[m v1002
+[33m6caadfb[m v1000
+[33m91b5c38[m V900
+[33med60de4[m fix(property): omit empty virtualTourUrl to avoid validation 400
+[33m15f3595[m e2e: respect existing env vars when loading .env.local (allow APP_BASE_URL override)
+[33m657b8bb[m ci(e2e): install dev deps so Playwright is available and add verification step
+[33mff46b06[m ci(e2e): trigger run after token rotation
+[33me187fe5[m ci(e2e): retrigger after token fix
+[33mdacf380[m ci(e2e): trigger run after token update
+[33me2795ca[m ci(e2e): trigger run after secrets added
+[33m01a732c[m ci(e2e): retrigger preview E2E run
+[33m07ec922[m ci(e2e): robust Vercel preview lookup + improved logging and retries
+[33m73d245b[m ci(e2e): trigger preview E2E run
+[33m1fc9b09[m ci(e2e): use Vercel preview URL via API; require VERCEL_TOKEN & VERCEL_PROJECT_ID
+[33mc67e8b5[m ci(e2e): add preview E2E workflow and screenshot artifacts
+[33m6553588[m feat(landlord): OpenRent-style listing fields, validation, upload endpoint, and UI
+[33m1253b2f[m style: switch headings to Inter (sans-serif)
+[33m745dbda[m fix(ui): show filters inline on desktop (md+) with compact inputs and right-aligned actions
+[33m041b62f[m feat(ui): responsive layout  postcode on same row as min/max/search on md+; slider below
+[33mca777db[m fix(ui): place postcode/min/max on one non-wrapping row; compact widths
+[33m7b47a00[m fix(ui): compact hero search to single-line inputs with smaller widths and wrapping
+[33md425448[m fix(ui): ensure hero search CTA visible on mobile; stack min/max inputs and make CTA full-width
+[33m64a8687[m fix(ui): compact hero search spacing on mobile; tighter inputs and button
+[33m3dbc46e[m fix(ui): tighten hero search on mobile and hide header auth on small screens; improve mobile layout
+[33mfbf989f[m fix(ui): import useState in HeaderClient for mobile menu
+[33m39fa339[m fix(ui): mobile menu for header and collapsible filters on small screens
+[33m6aad71b[m feat(public): require registration (no guest apply); simplify modal to registration only
+[33mcd4af8f[m fix(properties): do not auto-create user for guest interest; record applicant info and notify landlord
+[33m5ab6d5a[m feat(public): show in-modal success screen after guest apply / register with CTAs
+[33m644e651[m style(theme): apply boho palette, fonts, and component tweaks (cards, hero, carousel)
+[33ma4a4557[m fix(public): robust session fetch handling and fallback to guest modal on network errors
+[33m73b5d18[m feat(public): registration modal in Apply flow  register & auto-apply for anonymous users
+[33ma2e36ed[m feat(public): guest apply modal UI and submission (sign-in or guest)
+[33m3be4ac0[m feat(public): guest apply modal to collect name/email/tel and register interest
+[33m1688668[m feat(properties): create applicant user for guest interest and notify landlord
+[33mef18371[m fix(build): import client ApplyButton directly (remove next/dynamic ssr:false)
+[33m1df4fb1[m feat(public): add client ApplyButton and wire into property detail to register interest and handle auth
+[33m9ea45fc[m fix(public): use PropertyCard on public properties page for consistent layout and image placement
+[33m73c7575[m fix(public): await searchParams in PublicPropertiesPage to avoid Promise error
+[33m2e4fe94[m feat(public): improve property detail layout with gallery and share buttons
+[33mb70fb3f[m V700
+[33m71e432e[m fix(public): wrap client-side PropertyFilters in Suspense for prerender
+[33m8b4c313[m fix(types): cast profile.address to any to avoid TS error when rendering profile address
+[33m7da1f20[m fix(api): await params in DELETE /api/properties/[id]/delete-photo
+[33mb1f1d7b[m fix(api): await params in PATCH /api/landlord/properties/[id]/status
+[33mc90f226[m fix(types): use phone/profile.phone for applicantTel instead of non-existent tel
+[33ma2d357d[m fix(public): await params in PropertyDetailPage to handle Promise params
+[33m54144e2[m fix(public): handle invalid property id in getPropertyById and avoid throwing
+[33m2d26e20[m fix(build): remove date-fns dependency; use native date formatting
+[33m87ee4b0[m feat: property detail page, filters UI, hero & carousel
+[33m85f4059[m feat(properties): add server-side filters and filters UI for public listings
+[33m0925ce8[m debug: log property update body/result and expose matched/modified counts; client: log save response and show status in error
+[33m1ca90ed[m V600
+[33md8e3437[m V550
+[33m06e9238[m V500
+[33mb8b154c[m V450
+[33m8fb05bf[m V420
+[33m3bf9866[m v410
+[33m88a5400[m V400
+[33ma4a4003[m V300
+[33ma365892[m V100
+[33ma16f390[m pre-route-groups snapshot
+[33m9477556[m v80
+[33m4b8a45c[m V70
+[33m77c9ad4[m V60
+[33mb5b0cf1[m V40
+[33m792e67d[m V30
+[33m722634a[m V22
+[33mdc5e6d3[m V20
+[33mba0ab3f[m v18
+[33m6436d58[m V17
+[33m1ea8c5b[m v16
+[33ma387f5c[m v15
+[33m76d81aa[m v14
+[33m65eedd9[m v13
+[33m2ae9c71[m V12
+[33m19b55ea[m V2
+[33m91acec6[m V1
+[33mbca4626[m Initial production-ready commit for deployment
+[33m0576b9d[m Initial commit from Create Next App
