@@ -11,6 +11,8 @@ export const addressSchema = z.object({
   country: z.string().optional(),
 });
 
+// ... existing code ...
+
 export const createPropertySchema = z.object({
   title: z.string().min(1),
   headline: z.string().max(120).optional(),
@@ -18,12 +20,13 @@ export const createPropertySchema = z.object({
   address: addressSchema,
   rentPcm: z.coerce.number().min(0),
   rentFrequency: z.enum(['pcm', 'pw']).optional().default('pcm'),
+  rentPeriod: z.enum(["PCM", "4 weeks"]).optional(),
   // Allow updating status on properties (e.g., draft, listed, paused)
   status: z.enum(['draft','listed','paused','let','breached']).optional(),
   propertyType: z.enum(['flat', 'house', 'maisonette', 'studio', 'room', 'other']).optional().default('flat'),
   bedrooms: z.coerce.number().int().min(0).optional(),
   bathrooms: z.coerce.number().int().min(0).optional(),
-  furnished: z.enum(['furnished', 'part-furnished', 'unfurnished', 'unknown']).optional().default('unknown'),
+  furnished: z.boolean().optional().default(false),
   deposit: z.coerce.number().min(0).optional(),
   availabilityDate: z.string().optional(),
   tenancyLengthMonths: z.coerce.number().int().min(0).optional(),
@@ -33,14 +36,17 @@ export const createPropertySchema = z.object({
   epcRating: z.enum(['A','B','C','D','E','F','G','unknown']).optional(),
   councilTaxBand: z.enum(['A','B','C','D','E','F','G','H','unknown']).optional(),
   sizeSqm: z.coerce.number().min(0).optional(),
-  parking: z.enum(['none','on-street','off-street','garage','driveway','permit','other']).optional().default('none'),
+  parking: z.enum(['None','On-street','Off-street','Garage','Driveway','Permit','Other']).optional().default('None'),
   amenities: z.array(z.string()).optional().default([]),
   virtualTourUrl: z.string().url().optional(),
   floor: z.string().optional(),
   hmoLicenseRequired: z.boolean().optional().default(false),
   viewingInstructions: z.string().optional(),
-  photos: z.array(photoSchema).optional().default([]),
+  photos: z.array(photoSchema).optional(),  // Remove .default([]) to avoid setting empty array when not provided
 });
+
+// ... existing code ...
+
 
 export const updatePropertySchema = createPropertySchema.partial();
 

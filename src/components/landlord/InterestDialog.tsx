@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Modal from "@/components/admin/AdminModal";
-import { formatDateTime } from "@/lib/formatDate";
+import { formatDateTime } from "@/lib/formatDate" ;
 
 interface InterestDialogProps {
   open: boolean;

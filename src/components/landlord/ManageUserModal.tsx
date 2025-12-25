@@ -3,8 +3,19 @@
 import React, { useState } from "react";
 import EditUserModal from "@/app/(auth)/admin/users/edit-user-modal";
 
+type User = {
+  _id: string;
+  name: string;
+  email: string;
+  tel: string;
+  role: string;
+  createdAt: string;
+  status: "ACTIVE" | "INVITED" | "PAUSED";
+  // Add other fields as needed
+};
+
 export default function ManageUserModal({ userId, onClose }: { userId: string; onClose: () => void }) {
-  const [user, setUser] = useState<any | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,9 +28,19 @@ export default function ManageUserModal({ userId, onClose }: { userId: string; o
         const res = await fetch(`/api/admin/users/${userId}`);
         if (!res.ok) throw new Error("Failed to fetch user");
         const data = await res.json();
-        setUser(data.user);
-      } catch (e: any) {
-        setError(e.message);
+        // Ensure status is present and normalized, fallback to 'ACTIVE' if missing or invalid
+        const validStatuses = ["ACTIVE", "INVITED", "PAUSED"] as const;
+        const status =
+          validStatuses.includes((data.user.status ?? "ACTIVE").toUpperCase())
+            ? (data.user.status ?? "ACTIVE").toUpperCase()
+            : "ACTIVE";
+        setUser({ ...data.user, status: status as User["status"] });
+      } catch (e) {
+        if (e instanceof Error) {
+          setError(e.message);
+        } else {
+          setError("An unknown error occurred");
+        }
       }
       setLoading(false);
     }

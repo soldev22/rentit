@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Image from 'next/image';
 import { formatDateShort } from '../../../../lib/formatDate';
-import EditPropertyModal from "../../landlord/properties/EditPropertyModal";
+import EditPropertyModal from "@/components/landlord/EditPropertyModal";
 function getPageNumbers(current: number, total: number) {
   const pages: (number | "…")[] = [];
 
@@ -28,6 +29,12 @@ function getPageNumbers(current: number, total: number) {
   return pages;
 }
 
+type PropertyPhoto = {
+  url: string;
+  blobName: string;
+  isHero?: boolean;
+};
+
 type Property = {
   _id: string;
   title: string;
@@ -39,7 +46,7 @@ type Property = {
     postcode?: string;
   };
   createdAt: string;
-  photos?: { url: string; blobName: string }[];
+  photos?: PropertyPhoto[];
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -62,6 +69,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+            
 export default function PropertyGrid({
   properties,
   page = 1,
@@ -72,7 +80,6 @@ export default function PropertyGrid({
   totalPages?: number;
 }) {
   const [selected, setSelected] = useState<Property | null>(null);
-  const [editUserId, setEditUserId] = useState<string | null>(null);
 
   return (
     <>
@@ -80,22 +87,26 @@ export default function PropertyGrid({
       <div
         className="w-full grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
       >
-        {properties.map((property) => (
-          <div
-            key={property._id}
-            onClick={() => setSelected(property)}
-            className="cursor-pointer rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md w-[600px]"
-          >
-            {property.photos && property.photos.length > 0 && (
-              <img
-                src={property.photos[0].url}
-                alt="Property thumbnail"
-                className="w-20 h-20 object-cover rounded-md mb-2 border border-gray-300"
-              />
-            )}
-            <h3 className="text-base font-semibold leading-tight truncate" title={property.title}>
-              {property.title}
-            </h3>
+        {properties.map((property) => {
+          const heroPhoto = property.photos?.find((p) => p.isHero) || property.photos?.[0];
+          return (
+            <div
+              key={property._id}
+              onClick={() => setSelected(property)}
+              className="cursor-pointer rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md w-[600px]"
+            >
+              {property.photos && property.photos.length > 0 && heroPhoto && (
+                <Image
+                  src={heroPhoto.url}
+                  alt="Property thumbnail"
+                  width={80}
+                  height={80}
+                  className="w-20 h-20 object-cover rounded-md mb-2 border border-gray-300"
+                />
+              )}
+              <h3 className="text-base font-semibold leading-tight truncate" title={property.title}>
+                {property.title}
+              </h3>
             <p className="mt-1 text-sm font-medium text-gray-800 truncate" title={property.address?.line1}>
               {property.address?.line1}
             </p>
@@ -112,7 +123,8 @@ export default function PropertyGrid({
               Created {formatDateShort(property.createdAt)}
             </p>
           </div>
-        ))}
+        );
+        })}
       </div>
 
       {/* Pagination controls */}
@@ -131,9 +143,9 @@ export default function PropertyGrid({
     </a>
 
     {/* Page numbers */}
-    {getPageNumbers(page, totalPages).map((p) =>
+    {getPageNumbers(page, totalPages).map((p, index) =>
       p === "…" ? (
-        <span key={Math.random()} className="px-2 text-gray-400">
+        <span key={`ellipsis-${index}`} className="px-2 text-gray-400">
           …
         </span>
       ) : (

@@ -1,3 +1,72 @@
+import { z } from "zod";
+
+// Define the Photo schema with isHero
+const PhotoSchema = z.object({
+  url: z.string(),
+  blobName: z.string(),
+  isHero: z.boolean().optional(),
+});
+
+// Define the address schema
+const AddressSchema = z.object({
+  line1: z.string().optional(),
+  city: z.string().optional(),
+  postcode: z.string().optional(),
+});
+
+// Define the updatePropertySchema with all fields
+export const updatePropertySchema = z.object({
+  title: z.string().optional(),
+  description: z.string().optional(),
+  rentPcm: z.number().optional(),
+  deposit: z.number().optional(),
+  status: z.enum(["draft", "listed", "paused", "let", "breached"]).optional(),
+  amenities: z.array(z.string()).optional(),
+  virtualTourUrl: z.string().optional(),
+  viewingInstructions: z.string().optional(),
+  address: AddressSchema.optional(),
+  photos: z.array(PhotoSchema).optional(),
+  furnished: z.boolean().optional(),
+  bedrooms: z.number().optional(),
+  bathrooms: z.number().optional(),
+  sizeSqm: z.number().optional(),
+  tenancyLengthMonths: z.number().optional(),
+  billsIncluded: z.array(z.string()).optional(),
+  petsAllowed: z.boolean().optional(),
+  smokingAllowed: z.boolean().optional(),
+  epcRating: z.string().optional(),
+  councilTaxBand: z.string().optional(),
+  parking: z.string().optional(),
+  floor: z.string().optional(),
+  hmoLicenseRequired: z.boolean().optional(),
+});
+
+// Define the createPropertySchema (similar but may require more mandatory fields)
+export const createPropertySchema = z.object({
+  title: z.string(),
+  description: z.string().optional(),
+  rentPcm: z.number(),
+  deposit: z.number().optional(),
+  status: z.enum(["draft", "listed", "paused", "let", "breached"]).default("draft"),
+  amenities: z.array(z.string()).optional(),
+  virtualTourUrl: z.string().optional(),
+  viewingInstructions: z.string().optional(),
+  address: AddressSchema,
+  photos: z.array(PhotoSchema).optional(),
+  furnished: z.boolean().optional(),
+  bedrooms: z.number().optional(),
+  bathrooms: z.number().optional(),
+  sizeSqm: z.number().optional(),
+  tenancyLengthMonths: z.number().optional(),
+  billsIncluded: z.array(z.string()).optional(),
+  petsAllowed: z.boolean().optional(),
+  smokingAllowed: z.boolean().optional(),
+  epcRating: z.string().optional(),
+  councilTaxBand: z.string().optional(),
+  parking: z.string().optional(),
+  floor: z.string().optional(),
+  hmoLicenseRequired: z.boolean().optional(),
+});
 
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
@@ -30,7 +99,7 @@ export async function DELETE(
   if (!property) {
     return NextResponse.json({ error: "Property not found or not owned by user" }, { status: 404 });
   }
-  const blobNames = (property.photos || []).map((p: any) => p.blobName).filter(Boolean);
+  const blobNames = (property.photos || []).map((p: { blobName: string }) => p.blobName).filter(Boolean);
   if (blobNames.length > 0) {
     try {
       await deleteBlobs(blobNames);
@@ -60,7 +129,12 @@ export async function PUT(
   const { id: propertyId } = await context.params;
 
   // 2. Parse body
-  const body = await req.json();
+  let body;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON in request body" }, { status: 400 });
+  }
 
   // Normalize some incoming fields to avoid validation false-positives
   if (body?.virtualTourUrl !== undefined) {
@@ -89,7 +163,35 @@ export async function PUT(
     ],
   };
 
-  const setFields: any = { updatedAt: new Date() };
+  interface PropertyUpdateFields {
+    updatedAt: Date;
+    title?: string;
+    status?: "draft" | "listed" | "paused" | "let" | "breached";
+    rentPcm?: number;
+    description?: string;
+    "address.line1"?: string;
+    "address.city"?: string;
+    "address.postcode"?: string;
+    deposit?: number;
+    amenities?: string[];
+    virtualTourUrl?: string;
+    viewingInstructions?: string;
+    furnished?: boolean;
+    bedrooms?: number;
+    bathrooms?: number;
+    sizeSqm?: number;
+    tenancyLengthMonths?: number;
+    billsIncluded?: string[];
+    petsAllowed?: boolean;
+    smokingAllowed?: boolean;
+    epcRating?: string;
+    councilTaxBand?: string;
+    parking?: string;
+    floor?: string;
+    hmoLicenseRequired?: boolean;
+    photos?: Array<{ url: string; blobName: string; isHero?: boolean }>;
+  }
+  const setFields: PropertyUpdateFields = { updatedAt: new Date() };
   if (data.title !== undefined) setFields.title = data.title;
   if (data.status !== undefined) setFields.status = data.status;
   if (data.rentPcm !== undefined) setFields.rentPcm = Number(data.rentPcm);
@@ -103,7 +205,21 @@ export async function PUT(
   if (data.amenities !== undefined) setFields.amenities = Array.isArray(data.amenities) ? data.amenities : [data.amenities];
   if (data.virtualTourUrl !== undefined && String(data.virtualTourUrl).trim() !== '') setFields.virtualTourUrl = String(data.virtualTourUrl);
   if (data.viewingInstructions !== undefined) setFields.viewingInstructions = String(data.viewingInstructions);
-  if (data.furnished !== undefined) setFields.furnished = data.furnished;
+  if (data.furnished !== undefined) {
+    // Accept both boolean and string values for furnished
+    if (typeof data.furnished === "boolean") {
+      setFields.furnished = data.furnished;
+    } else if (typeof data.furnished === "string") {
+      // Map string values to boolean: "furnished" or "part-furnished" => true, "unfurnished" => false, "unknown" => undefined
+      if (data.furnished === "furnished" || data.furnished === "part-furnished") {
+        setFields.furnished = true;
+      } else if (data.furnished === "unfurnished") {
+        setFields.furnished = false;
+      } else {
+        setFields.furnished = undefined;
+      }
+    }
+  }
   if (data.bedrooms !== undefined) setFields.bedrooms = Number(data.bedrooms);
   if (data.bathrooms !== undefined) setFields.bathrooms = Number(data.bathrooms);
   if (data.sizeSqm !== undefined) setFields.sizeSqm = Number(data.sizeSqm);
@@ -121,9 +237,8 @@ export async function PUT(
   try {
     // write debug snapshot to disk to help E2E debugging
     try {
-      const debugPath = `test-results/debug-server-update-${Date.now()}.json`;
-      // Import fs promises dynamically to avoid any top-level env issues
       const { promises: fs } = await import('fs');
+      const debugPath = `test-results/debug-server-update-${Date.now()}.json`;
       await fs.writeFile(debugPath, JSON.stringify({ body, data, setFields, filter }, null, 2));
       console.log('Wrote server debug file', debugPath);
     } catch (e) {
@@ -194,5 +309,73 @@ export async function PUT(
   } catch (err) {
     console.error("Failed to update property:", err);
     return NextResponse.json({ error: "Failed to update property.", details: String(err) }, { status: 500 });
+  }
+}
+// Insert this after the PUT function's closing brace
+
+// ... existing code ...
+
+export async function PATCH(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await context.params;
+    const propertyId = id;
+
+    console.log('PATCH called for propertyId:', propertyId);  // Add this to debug
+
+    // Auth check
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== "LANDLORD") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Parse body
+    const body = await req.json();
+    const { heroBlobName } = body;
+
+    console.log('PATCH heroBlobName:', heroBlobName);  // Add this to debug
+
+    if (!heroBlobName || typeof heroBlobName !== "string") {
+      return NextResponse.json({ error: "Invalid heroBlobName" }, { status: 400 });
+    }
+
+    // Update DB: set isHero true for the heroBlobName, false for others
+    const collection = await getCollection("properties");
+
+    const filter = {
+      _id: new ObjectId(propertyId),
+      $or: [
+        { landlordId: new ObjectId(session.user.id) },
+        { landlordId: session.user.id }, // legacy
+      ],
+    };
+
+    const updateOp = {
+      $set: {
+        "photos.$[].isHero": false,  // Set all to false first
+        "photos.$[elem].isHero": true,  // Then set the matching one to true
+        updatedAt: new Date(),
+      },
+    };
+
+    const arrayFilters = [{ "elem.blobName": heroBlobName }];
+
+    const result = await collection.updateOne(filter, updateOp, { arrayFilters });
+
+    console.log('PATCH update result:', result);  // Add this to debug
+
+    if (result.matchedCount === 0) {
+      return NextResponse.json({ error: "Property not found or unauthorized" }, { status: 404 });
+    }
+
+    return NextResponse.json({ message: "Hero updated" }, { status: 200 });
+  } catch (error) {
+    console.error("Error updating hero:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
