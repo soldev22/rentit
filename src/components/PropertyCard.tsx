@@ -6,8 +6,14 @@ export default function PropertyCard({ property }: { property: any }) {
       <Link href={`/public/properties/${property._id}`} className="block" aria-label={`View property ${property.title}`}>
         <div className="w-full aspect-[4/3] rounded-md overflow-hidden mb-3 bg-gray-100 relative">
           {property.photos && property.photos.length > 0 ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={property.photos[0].url} alt={property.title} className="w-full h-full object-cover" />
+            (() => {
+              const heroPhoto = property.photos.find((photo: any) => photo.isHero);
+              const displayPhoto = heroPhoto || property.photos[0];
+              return (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={displayPhoto.url} alt={property.title} className="w-full h-full object-cover" />
+              );
+            })()
           ) : (
             <div className="text-sm text-gray-400 h-full flex items-center justify-center">No image</div>
           )}

@@ -353,24 +353,25 @@ export default function NewPropertyPage() {
         </section>
 
         {/* Media */}
-        <section>
-          <legend id="photos-legend" className="text-sm font-semibold">Photos (max 20)</legend>
-          <input id="photos" aria-label="Upload photos" aria-describedby="photos-legend" type='file' multiple accept='image/*' onChange={(e) => handleFiles(e.target.files)} className="mt-2" />
+        <section className="border-t pt-6">
+          <h3 className="text-lg font-semibold mb-4">Property Images</h3>
+          <p className="text-sm text-gray-600 mb-4">Upload high-quality photos of your property (max 20). Select one as the hero image to feature prominently in listings.</p>
+          <input id="photos" aria-label="Upload photos" type='file' multiple accept='image/*' onChange={(e) => handleFiles(e.target.files)} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
 
-          <div className="mt-3 flex gap-2 flex-wrap">
+          <div className="mt-4 flex gap-2 flex-wrap">
             {photos.map((p, i) => (
-              <div key={i} className="relative w-28 h-20">
+              <div key={i} className="relative w-28 h-20 border rounded-lg overflow-hidden">
                 <Image
                   src={p.url}
                   alt={`photo-${i}`}
-                  className="w-full h-full object-cover rounded"
+                  className="w-full h-full object-cover"
                   fill
                   sizes="112px"
-                  style={{ objectFit: "cover", borderRadius: "0.5rem" }}
+                  style={{ objectFit: "cover" }}
                   priority={i === 0}
                 />
-                <button type='button' onClick={() => removePhoto(i)} className="absolute top-1 right-1 bg-white rounded-full p-1 text-sm">✕</button>
-                <label className="absolute bottom-1 left-1 text-xs">
+                <button type='button' onClick={() => removePhoto(i)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 text-xs hover:bg-red-600">✕</button>
+                <label className="absolute bottom-1 left-1 text-xs bg-white bg-opacity-75 px-1 rounded">
                   <input type="radio" name="hero" checked={p.isHero || false} onChange={() => setHero(i)} />
                   Hero
                 </label>

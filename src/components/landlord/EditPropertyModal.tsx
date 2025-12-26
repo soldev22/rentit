@@ -395,14 +395,6 @@ async function handleSave() {
                 onChange={(v) => update("viewingInstructions", v)}
               />
 
-              <Select
-                id="status"
-                label="Status"
-                value={form.status}
-                onChange={(v) => update("status", v)}
-                options={["draft", "listed", "paused", "let", "breached"]}
-              />
-
               
               <div>
                 <Select
@@ -524,6 +516,14 @@ async function handleSave() {
                 label="Floor"
                 value={form.floor}
                 onChange={(v) => update("floor", v)}
+              />
+
+              <Select
+                id="status"
+                label="Status"
+                value={form.status}
+                onChange={(v) => update("status", v)}
+                options={["draft", "listed", "paused", "let", "breached"]}
               />
 
               <div className="flex items-center gap-2">

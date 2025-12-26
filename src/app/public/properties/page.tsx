@@ -9,7 +9,7 @@ export const metadata = {
   description: 'Browse all available rental properties. Share this page with anyone!'
 };
 
-export default async function PublicPropertiesPage({ searchParams }: { searchParams?: { city?: string; minRent?: string; maxRent?: string; rooms?: string } | Promise<{ city?: string; minRent?: string; maxRent?: string; rooms?: string }> }) {
+export default async function PublicPropertiesPage({ searchParams }: { searchParams?: { city?: string; minRent?: string; maxRent?: string; rooms?: string; hasHero?: string } | Promise<{ city?: string; minRent?: string; maxRent?: string; rooms?: string; hasHero?: string }> }) {
   // `searchParams` may be a Promise in some Next.js runtimes; unwrap it safely before use
   const resolvedSearchParams = typeof (searchParams as any)?.then === 'function' ? await (searchParams as any) : searchParams;
 
@@ -18,6 +18,7 @@ export default async function PublicPropertiesPage({ searchParams }: { searchPar
     minRent: resolvedSearchParams?.minRent ? Number(resolvedSearchParams.minRent) : undefined,
     maxRent: resolvedSearchParams?.maxRent ? Number(resolvedSearchParams.maxRent) : undefined,
     rooms: resolvedSearchParams?.rooms ? Number(resolvedSearchParams.rooms) : undefined,
+    hasHero: resolvedSearchParams?.hasHero === "true",
   };
 
   const properties = await getAllPublicProperties(filters);

@@ -21,7 +21,7 @@ export default function PropertyImageUpload({ propertyId, onUploaded }: { proper
       const data = await res.json();
       onUploaded(data);
       fileInputRef.current.value = "";
-    } catch (err) {
+    } catch {
       setError("Failed to upload image");
     } finally {
       setUploading(false);
@@ -30,7 +30,17 @@ export default function PropertyImageUpload({ propertyId, onUploaded }: { proper
 
   return (
     <form onSubmit={handleUpload} className="flex items-center gap-2 mt-2">
-      <input type="file" accept="image/*" ref={fileInputRef} className="block" />
+      <label htmlFor="property-image-upload" className="sr-only">
+        Upload property image
+      </label>
+      <input
+        id="property-image-upload"
+        type="file"
+        accept="image/*"
+        ref={fileInputRef}
+        className="block"
+        title="Upload property image"
+      />
       <button type="submit" disabled={uploading} className="bg-indigo-600 text-white px-3 py-1 rounded disabled:opacity-50">
         {uploading ? "Uploading..." : "Upload"}
       </button>

@@ -2,7 +2,6 @@ import { getAllPublicProperties } from '@/lib/property';
 import HeroSearch from '@/components/HeroSearch';
 import PropertyCard from '@/components/PropertyCard';
 import FeaturedCarousel from '@/components/FeaturedCarousel';
-import Link from 'next/link';
 
 export const metadata = {
   title: 'RentIT | Find Your Next Home',
@@ -11,6 +10,7 @@ export const metadata = {
 
 export default async function HomePage() {
   const properties = await getAllPublicProperties();
+  type Property = Awaited<ReturnType<typeof getAllPublicProperties>>[number];
 
   return (
     <main className="mx-auto max-w-6xl p-4 sm:p-8 space-y-8">
@@ -28,7 +28,7 @@ export default async function HomePage() {
         <h2 className="text-xl font-semibold mb-4">Featured properties</h2>
         <FeaturedCarousel items={properties.slice(0, 8)} />
         <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          {properties.map((property: any) => (
+          {properties.map((property: Property) => (
             <PropertyCard key={property._id} property={property} />
           ))}
         </div>

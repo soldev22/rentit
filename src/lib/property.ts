@@ -1,5 +1,5 @@
 // Fetch all listed properties for public property listings
-export async function getAllPublicProperties(filters?: { city?: string; minRent?: number; maxRent?: number; rooms?: number }) {
+export async function getAllPublicProperties(filters?: { city?: string; minRent?: number; maxRent?: number; rooms?: number; hasHero?: boolean }) {
   const propertiesCollection = await getCollection("properties");
   const query: any = { status: "listed" };
   if (filters?.city) {
@@ -16,6 +16,9 @@ export async function getAllPublicProperties(filters?: { city?: string; minRent?
   }
   if (filters?.rooms !== undefined) {
     query.rooms = Number(filters.rooms);
+  }
+  if (filters?.hasHero) {
+    query.photos = { $elemMatch: { isHero: true } };
   }
 
   const properties = await propertiesCollection

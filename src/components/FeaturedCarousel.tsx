@@ -3,7 +3,18 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 
-export default function FeaturedCarousel({ items = [] }: { items: any[] }) {
+interface FeaturedCarouselItem {
+  _id: string;
+  title: string;
+  address?: {
+    line1?: string;
+    city?: string;
+    postcode?: string;
+  };
+ photos: { url: string; isHero?: boolean }[];
+}
+
+export default function FeaturedCarousel({ items = [] }: { items: FeaturedCarouselItem[] }) {
   const [index, setIndex] = useState(0);
   const timer = useRef<number | null>(null);
 
@@ -41,7 +52,10 @@ export default function FeaturedCarousel({ items = [] }: { items: any[] }) {
         onMouseLeave={start}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={slide.photos[0].url} alt={slide.title} className="w-full h-full object-cover" />
+        <img src={(() => {
+          const heroPhoto = slide.photos.find(photo => photo.isHero);
+          return (heroPhoto || slide.photos[0]).url;
+        })()} alt={slide.title} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
         <div className="absolute left-6 bottom-6 text-white max-w-xl">
           <h3 className="text-2xl md:text-3xl font-semibold">{slide.title}</h3>
