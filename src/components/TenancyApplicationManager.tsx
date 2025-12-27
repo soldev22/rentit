@@ -42,7 +42,7 @@ export default function TenancyApplicationManager({
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Helper to get stage status (no dynamic access)
-  // (Removed unused getStageStatus function)
+  // (Removed  getStageStatus function)
 
   // Helper to get stage card color
   // (Removed unused getStageColor function)
