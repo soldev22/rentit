@@ -58,8 +58,10 @@ export default function TenancyApplicationManager({
 
   // Populate form with existing values when opening modal
   const handleOpenViewingModal = () => {
-    // Use preferredDate for date, no time field in model, so leave blank
-    if (currentApplication.stage1?.preferredDate) {
+    // Prefer stage1.viewingDetails if present, fallback to preferredDate
+    if (currentApplication.stage1?.viewingDetails?.date) {
+      setViewingDate(currentApplication.stage1.viewingDetails.date);
+    } else if (currentApplication.stage1?.preferredDate) {
       const d = new Date(currentApplication.stage1.preferredDate);
       if (!isNaN(d.getTime())) {
         setViewingDate(d.toISOString().split('T')[0]);
@@ -69,7 +71,11 @@ export default function TenancyApplicationManager({
     } else {
       setViewingDate('');
     }
-    setViewingTime(''); // No time in model
+    if (currentApplication.stage1?.viewingDetails?.time) {
+      setViewingTime(currentApplication.stage1.viewingDetails.time);
+    } else {
+      setViewingTime('');
+    }
     setViewingModalOpen(true);
   };
   const [viewingLoading, setViewingLoading] = useState(false);
@@ -106,6 +112,17 @@ export default function TenancyApplicationManager({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
           <div className="bg-white rounded shadow-lg p-6 w-full max-w-sm">
             <h2 className="text-lg font-bold mb-2">{viewingStatus === 'agreed' ? 'Reschedule Viewing' : 'Schedule Viewing'}</h2>
+            {currentApplication.stage1.agreedAt && (
+              <div className="mb-3 text-xs text-gray-700">
+                Last saved:{' '}
+                {(() => {
+                  const d = new Date(currentApplication.stage1.agreedAt);
+                  return !isNaN(d.getTime())
+                    ? `${d.toLocaleDateString('en-GB')} ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
+                    : currentApplication.stage1.agreedAt;
+                })()}
+              </div>
+            )}
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
@@ -204,7 +221,27 @@ export default function TenancyApplicationManager({
                   <p className="text-sm text-gray-600 mb-2">{stage.description}</p>
                   {currentApplication.stage1.status === 'agreed' ? (
                     <div className="text-xs text-green-800 mb-1">
-                      Viewing Agreed: {currentApplication.stage1.preferredDate ? new Date(currentApplication.stage1.preferredDate).toLocaleDateString('en-GB') : ''} ({currentApplication.stage1.viewingType})
+                      Viewing Agreed: {
+                        currentApplication.stage1.viewingDetails?.date
+                          ? new Date(currentApplication.stage1.viewingDetails.date).toLocaleDateString('en-GB')
+                          : (currentApplication.stage1.preferredDate
+                              ? new Date(currentApplication.stage1.preferredDate).toLocaleDateString('en-GB')
+                              : '')
+                      } ({currentApplication.stage1.viewingType})
+                      {currentApplication.stage1.agreedAt && (
+                        <>
+                          <br />
+                          <span className="text-xs text-gray-700">
+                            Last Notified:{' '}
+                            {(() => {
+                              const d = new Date(currentApplication.stage1.agreedAt);
+                              return !isNaN(d.getTime())
+                                ? `${d.toLocaleDateString('en-GB')} ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
+                                : currentApplication.stage1.agreedAt;
+                            })()}
+                          </span>
+                        </>
+                      )}
                     </div>
                   ) : (
                     <div className="text-xs text-yellow-800 mb-1">No viewing scheduled yet.</div>
@@ -246,6 +283,22 @@ export default function TenancyApplicationManager({
                   }>
                     {enabled ? 'ENABLED' : 'DISABLED'}
                   </span>
+                  {enabled && (
+                    <div className="mt-2 space-y-1 text-sm">
+                      <div>
+                        {currentApplication.stage2.creditCheckConsent ? '✔️' : '❌'} Credit Check Consent
+                      </div>
+                      <div>
+                        {currentApplication.stage2.socialMediaConsent ? '✔️' : '❌'} Social Media Consent
+                      </div>
+                      <div>
+                        {currentApplication.stage2.landlordReferenceConsent ? '✔️' : '❌'} Landlord Reference Consent
+                      </div>
+                      <div>
+                        {currentApplication.stage2.employerReferenceConsent ? '✔️' : '❌'} Employer Reference Consent
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <button
                   className={

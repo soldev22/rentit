@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCollection } from '@/lib/db';
 import { ObjectId } from 'mongodb';
 import { sendViewingNotification } from '@/lib/notifications';
+import type { Property, Landlord } from '@/lib/notifications';
 
 export async function POST(req: NextRequest, context: { params: Promise<{ appId: string }> }) {
   const { appId } = await context.params;
@@ -25,6 +26,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
         $set: {
           'stage1.viewingDetails': { date, time },
           'stage1.status': 'agreed',
+          'stage1.agreedAt': new Date().toISOString(),
           currentStage: 1,
           // If stage2 doesn't exist, create it with enabled true and default values
           stage2: {
@@ -39,19 +41,34 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
     ]
   );
   // Fetch property details for address
-  let property = null;
-  let landlord = null;
+  let property: Property | undefined = undefined;
+  let landlord: Landlord | undefined = undefined;
   if (app.propertyId) {
     const properties = await getCollection('properties');
-    property = await properties.findOne({ _id: new ObjectId(app.propertyId) });
-    if (property && property.landlordId) {
-      const users = await getCollection('users');
-      landlord = await users.findOne({ _id: property.landlordId });
+    const foundProperty = await properties.findOne({ _id: new ObjectId(app.propertyId) });
+    if (foundProperty) {
+      property = foundProperty as Property;
+      if ((property as any).landlordId) {
+        const users = await getCollection('users');
+        const foundLandlord = await users.findOne({ _id: (property as any).landlordId });
+        if (foundLandlord) landlord = foundLandlord as Landlord;
+      }
     }
   }
   // Send notification (email/SMS)
   try {
-    await sendViewingNotification(app, { date, time, property, landlord });
+    // Convert app (WithId<Document>) to ViewingApplication shape for notification
+    const notificationApp = {
+      applicantEmail: app.applicantEmail,
+      email: app.email,
+      userEmail: app.userEmail,
+      applicant: app.applicant,
+      applicantName: app.applicantName,
+      applicantTel: app.applicantTel,
+      phone: app.phone,
+      userPhone: app.userPhone,
+    };
+    await sendViewingNotification(notificationApp, { date, time, property, landlord });
   } catch (e) {
     // Log but don't fail the request
     console.error('Notification error', e);

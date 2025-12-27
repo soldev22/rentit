@@ -82,7 +82,6 @@ export async function POST(req: NextRequest) {
 
       stage2: {
         status: backgroundCheckConsents ? 'agreed' : 'pending',
-        enabled: false,
         creditCheckConsent: backgroundCheckConsents?.creditCheck || false,
         socialMediaConsent: backgroundCheckConsents?.socialMedia || false,
         landlordReferenceConsent: backgroundCheckConsents?.landlordReference || false,

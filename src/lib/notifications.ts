@@ -21,20 +21,24 @@ interface ViewingApplication {
   userPhone?: string;
 }
 
-interface PropertyAddress {
+export interface PropertyAddress {
   line1: string;
   city: string;
   postcode: string;
 }
 
-interface Property {
+export interface Property {
   address?: PropertyAddress;
   // Add other property fields as needed
 }
 
-interface Landlord {
+export interface Landlord {
   phone?: string;
   tel?: string;
+  profile?: {
+    phone?: string;
+    [key: string]: any;
+  };
   // Add other landlord fields as needed
 }
 

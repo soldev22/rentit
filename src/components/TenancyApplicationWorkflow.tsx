@@ -48,6 +48,11 @@ export default function TenancyApplicationWorkflow({
       setError('Please fill in your name and email');
       return;
     }
+    // Require all Stage 2 consents
+    if (!creditCheckConsent || !socialMediaConsent || !landlordReferenceConsent || !employerReferenceConsent) {
+      setError('You must grant permission for all background checks in Stage 2 to continue.');
+      return;
+    }
 
     setLoading(true);
     setError(null);

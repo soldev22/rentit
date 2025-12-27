@@ -1,17 +1,35 @@
 "use client";
-
 import { useEffect, useState } from "react";
-import { formatDateShort } from "@/lib/formatDate";
-import Link from "next/link";
+import Image from "next/image";
 
-type Interest = {
-  propertyId: string;
+type PropertyPhoto = {
+  url: string;
+  isHero?: boolean;
+};
+
+type Application = {
+  _id: string;
   propertyTitle?: string;
-  date?: string | null;
+  propertyPhoto?: string | PropertyPhoto[];
+  propertyAddress?: string;
+  createdAt?: string;
+  status: string;
 };
 
 export default function ProfilePage() {
-  const [interests, setInterests] = useState<Interest[]>([]);
+  // Applications state
+  const [applications, setApplications] = useState<Application[]>([]);
+
+  // Load tenancy applications for this user
+  useEffect(() => {
+    async function loadApplications() {
+      const res = await fetch("/api/tenancy-applications/me");
+      if (!res.ok) return;
+      const data = await res.json();
+      setApplications(data.applications || []);
+    }
+    loadApplications();
+  }, []);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
 
@@ -61,17 +79,6 @@ export default function ProfilePage() {
         whatsapp: data.profile?.contactPreferences?.whatsapp ?? false,
       });
 
-      // Fetch interests for this user
-      try {
-        const interestsRes = await fetch("/api/applicant/interests");
-        if (interestsRes.ok) {
-          const interestsData = await interestsRes.json();
-          setInterests(interestsData.interests || []);
-        }
-      } catch {
-        // ignore errors fetching interests
-      }
-
       setLoading(false);
     }
 
@@ -112,6 +119,7 @@ export default function ProfilePage() {
     !profile.city ||
     !profile.postcode;
 
+
   if (loading) {
     return (
       <div className="p-6 font-sans">
@@ -124,19 +132,44 @@ export default function ProfilePage() {
     <div className="p-6 font-sans max-w-[520px] mx-auto">
       <h2>My profile</h2>
 
-      {/* Interests Section */}
+      {/* Applications Section */}
       <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-2">Registered Interests</h3>
-        {interests.length === 0 ? (
-          <div className="text-gray-500 text-sm">No interests registered yet.</div>
+        <h3 className="text-lg font-semibold mb-2">My Applications</h3>
+        {applications.length === 0 ? (
+          <div className="text-gray-500 text-sm">No applications found.</div>
         ) : (
           <ul className="p-0 list-none">
-            {interests.map((interest) => (
-              <li key={interest.propertyId} className="mb-2.5 pb-2 border-b border-gray-200 last:border-b-0 last:mb-0 last:pb-0">
-                <Link href={`/applicant/properties/${interest.propertyId}`} className="text-blue-700 font-medium underline">
-                  {interest.propertyTitle || "Property"}
-                </Link>
-                <div className="text-sm text-slate-600">{interest.date ? formatDateShort(interest.date) : ""}</div>
+            {applications.map((app) => (
+              <li key={app._id} className="mb-2.5 pb-2 border-b border-gray-200 last:border-b-0 last:mb-0 last:pb-0 flex items-center gap-4">
+                {/* Support propertyPhoto as string or array of images */}
+                {(() => {
+                  let photoUrl: string | undefined = undefined;
+                  if (Array.isArray(app.propertyPhoto) && app.propertyPhoto.length > 0) {
+                    const hero = (app.propertyPhoto as PropertyPhoto[]).find(
+                      (img: PropertyPhoto) => img.isHero && typeof img.url === 'string'
+                    );
+                    photoUrl = hero?.url || (typeof (app.propertyPhoto[0] as PropertyPhoto).url === 'string' ? (app.propertyPhoto[0] as PropertyPhoto).url : undefined);
+                  } else if (typeof app.propertyPhoto === 'string' && app.propertyPhoto.trim() !== '') {
+                    photoUrl = app.propertyPhoto;
+                  }
+                  return photoUrl ? (
+                    <Image
+                      src={photoUrl}
+                      alt="Property thumbnail"
+                      width={64}
+                      height={64}
+                      className="w-16 h-16 object-cover rounded"
+                    />
+                  ) : null;
+                })()}
+                <div className="flex-1">
+                  <span className="font-medium block">{app.propertyTitle || 'Property'}</span>
+                  {app.propertyAddress && (
+                    <div className="text-xs text-gray-500 mb-1">{app.propertyAddress}</div>
+                  )}
+                  <div className="text-sm text-slate-600">Applied: {app.createdAt ? new Date(app.createdAt).toLocaleDateString('en-GB') : ''}</div>
+                  <div className="text-sm text-slate-600">Status: {app.status}</div>
+                </div>
               </li>
             ))}
           </ul>
