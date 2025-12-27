@@ -22,6 +22,10 @@ export interface TenancyApplication {
     viewingType: 'onsite' | 'virtual' | null;
     preferredDate?: string;
     agreedAt?: string;
+    viewingDetails?: {
+      date?: string;
+      time?: string;
+    };
   };
 
   // Stage 2: Background Checks Agreement
