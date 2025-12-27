@@ -12,19 +12,23 @@ function MagicLinkCallbackInner() {
   const [status, setStatus] = useState("Verifying magic link...");
 
   useEffect(() => {
-    const token = params.get("token");
-    if (!token) {
-      setStatus("Missing magic link token.");
-      return;
-    }
-    fetch("/api/auth/magic-link/consume", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token })
-    })
-      .then(async (res) => {
+    const verifyToken = async () => {
+      const token = params.get("token");
+      if (!token) {
+        setStatus("Missing magic link token.");
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/auth/magic-link/consume", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token })
+        });
+
         if (!res.ok) throw new Error("Invalid or expired link");
         const data = await res.json();
+
         // Now sign in with NextAuth credentials provider, magic mode
         await signIn("credentials", {
           email: data.email,
@@ -32,10 +36,12 @@ function MagicLinkCallbackInner() {
           redirect: false
         });
         router.replace("/dashboard");
-      })
-      .catch(() => {
+      } catch {
         setStatus("Invalid or expired magic link.");
-      });
+      }
+    };
+
+    verifyToken();
   }, [params, router]);
 
   return (

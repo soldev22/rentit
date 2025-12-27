@@ -39,6 +39,13 @@ interface RawProperty {
   status?: string;
   photos?: Array<{ url: string }>;
   createdAt?: Date | string;
+  interests?: Array<{
+    applicantId?: string;
+    applicantName: string;
+    applicantEmail: string;
+    applicantTel?: string;
+    date?: string;
+  }>;
 }
 
 async function getPropertyById(id: string) {
@@ -79,6 +86,7 @@ async function getPropertyById(id: string) {
     status: p.status,
     photos: (p.photos || []).map(photo => ({ url: photo.url })),
     createdAt: p.createdAt,
+    interests: p.interests || [],
   };
 }
 
@@ -127,7 +135,11 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
 
           <div className="mt-6">
             {/* Client-side apply button handles auth and registers interest via API */}
-            <ApplyButton propertyId={property._id} propertyTitle={property.title} />
+            <ApplyButton 
+              propertyId={property._id} 
+              propertyTitle={property.title}
+              interests={property.interests || []}
+            />
           </div>
 
           <div className="mt-6 text-sm text-gray-700 space-y-2" id="property-sidebar">

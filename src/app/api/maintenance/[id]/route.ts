@@ -25,9 +25,9 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Invalid tenant id" }, { status: 400 });
   }
 
-  const { title, updateText } = await req.json();
+  const { title, status, updateText } = await req.json();
 
-  if (!title && !updateText) {
+  if (!title && !status && !updateText) {
     return NextResponse.json(
       { error: "Nothing to update" },
       { status: 400 }
@@ -38,7 +38,10 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   const db = client.db();
 
   // Build update object explicitly (TS-safe)
-  const update: any = {
+  const update: {
+    $set: { [key: string]: any };
+    $push?: { descriptionHistory: any };
+  } = {
     $set: {
       updatedAt: new Date(),
     },
@@ -46,6 +49,10 @@ export async function PATCH(req: Request, { params }: RouteContext) {
 
   if (title) {
     update.$set.title = title;
+  }
+
+  if (status) {
+    update.$set.status = status;
   }
 
   if (updateText) {
@@ -59,11 +66,27 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     };
   }
 
+  // Build query based on user role
+  const query: any = { _id: new ObjectId(id) };
+
+  if (session.user.role === "TENANT") {
+    // Tenants can only update their own issues
+    query.tenantId = new ObjectId(session.user.id);
+  } else if (["LANDLORD", "AGENT", "ADMIN"].includes(session.user.role)) {
+    // Landlords/agents/admins can update issues for properties they own/manage
+    const properties = await db
+      .collection("properties")
+      .find({ landlordId: new ObjectId(session.user.id) })
+      .toArray();
+
+    const propertyIds = properties.map((p) => p._id);
+    query.propertyId = { $in: propertyIds };
+  } else {
+    return NextResponse.json({ error: "Unauthorized role" }, { status: 403 });
+  }
+
   const result = await db.collection("maintenance_projects").findOneAndUpdate(
-    {
-      _id: new ObjectId(id),
-      tenantId: new ObjectId(session.user.id),
-    },
+    query,
     update,
     { returnDocument: "after" }
   );

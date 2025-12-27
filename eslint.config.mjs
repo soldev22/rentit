@@ -12,6 +12,18 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Additional ignores for generated files:
+    "playwright-report/**",
+    "playwright/**",
+    "test-results/**",
+    "e2e-artifacts/**",
+    "*.min.js",
+    "*.bundle.js",
+    // Ignore markdown files:
+    "*.md",
+    // Ignore utility scripts:
+    "scripts/**",
+    "tailwind.config.js",
   ]),
 ]);
 

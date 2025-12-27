@@ -26,6 +26,13 @@ export default function ReportIssueForm({ properties }: { properties: PropertyOp
     e.preventDefault();
     setError(null);
 
+    // For development/testing: allow submission even without properties
+    // In production, this check should be enabled
+    // if (properties.length === 0) {
+    //   setError("You must have an active tenancy to report issues.");
+    //   return;
+    // }
+
     if (!propertyId || !title.trim() || !description.trim() || !priority) {
       setError("Please complete all fields.");
       return;
@@ -50,8 +57,12 @@ export default function ReportIssueForm({ properties }: { properties: PropertyOp
       setTitle("");
       setDescription("");
       // keep propertyId so they can raise another quickly if needed
-    } catch (err: any) {
-      setError(err?.message || "Network error.");
+    } catch (err: unknown) {
+      if (err && typeof err === "object" && "message" in err && typeof (err as { message?: unknown }).message === "string") {
+        setError((err as { message: string }).message);
+      } else {
+        setError("Network error.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -64,11 +75,18 @@ export default function ReportIssueForm({ properties }: { properties: PropertyOp
         <p className="mt-1 text-white/70">Tell us what’s wrong and we’ll log it properly.</p>
       </header>
 
+      {properties.length === 0 && (
+        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-[14px] p-4 mb-4">
+          <p className="text-yellow-200">You don&#39;t have any active tenancies to report issues for.</p>
+        </div>
+      )}
+
       <form className="bg-white/5 border border-white/10 rounded-[14px] p-4 flex flex-col gap-3.5" onSubmit={onSubmit}>
         {properties.length > 1 && (
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-white/65">Property</label>
+            <label htmlFor="property-select" className="text-xs text-white/65">Property</label>
             <select
+              id="property-select"
               className="bg-black/25 border border-white/15 rounded-[12px] p-2 text-white outline-none"
               value={propertyId}
               onChange={(e) => setPropertyId(e.target.value)}

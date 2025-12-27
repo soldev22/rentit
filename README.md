@@ -103,4 +103,57 @@ Role protection is enforced **server-side**, primarily via layout guards.
 
 ---
 
+## 🔔 Notification System
+
+RentIT includes a comprehensive multi-channel notification system supporting **Email** and **SMS**. **WhatsApp** notifications are currently commented out except for the permissions page.
+
+### Features
+- **User Preferences**: Users can choose their preferred contact methods in their profile
+- **Automatic Triggers**: Notifications sent for key application events
+- **Multi-Channel**: Simultaneous delivery via enabled methods
+- **Graceful Fallback**: System continues working even if some channels fail
+
+### Supported Notification Events
+- ✅ Application submitted
+- ✅ Viewing request approved/declined
+- ✅ Background checks approved/declined
+- ✅ Credit check completed
+- ✅ Documents sent
+- ✅ Documents signed
+- ✅ Tenancy confirmed
+- ✅ Tenancy completed
+
+### Setup SMS & WhatsApp
+
+**Note:** WhatsApp notifications are currently commented out in the codebase except for the permissions page. To enable WhatsApp:
+
+1. **Create Twilio Account**: Sign up at [twilio.com](https://twilio.com)
+2. **Get API Credentials**: Copy your Account SID and Auth Token
+3. **Purchase Phone Numbers**: Get SMS and WhatsApp-enabled numbers
+4. **Configure Environment**:
+   ```env
+   TWILIO_ACCOUNT_SID=your_account_sid
+   TWILIO_AUTH_TOKEN=your_auth_token
+   TWILIO_PHONE_NUMBER=+1234567890
+   TWILIO_WHATSAPP_NUMBER=+1234567890
+   ```
+5. **Enable WhatsApp**: Follow Twilio's WhatsApp setup guide
+6. **Uncomment WhatsApp code**: Remove comment blocks in `src/lib/notification.ts` and `scripts/test-notifications.ts`
+
+### Usage
+```typescript
+import { notificationService } from '@/lib/notification';
+
+// Send to user based on preferences
+await notificationService.sendToUser(
+  userEmail,
+  userPhone,
+  contactPreferences,
+  'Subject',
+  'Message'
+);
+```
+
+---
+
 © 2025 RentIT. All rights reserved.

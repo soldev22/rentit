@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { getDb, getCollection } from "@/lib/db";
+import { getCollection } from "@/lib/db";
 import { ObjectId } from "mongodb";
 
 // import Property from "@/models/Property";
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
       { property },
       { status: 201 }
     );
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

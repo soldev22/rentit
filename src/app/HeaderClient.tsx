@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from "next/image";
+import Link from "next/link";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 
@@ -14,7 +15,7 @@ export default function HeaderClient() {
     <header className="w-full border-b border-blue-600 bg-blue-600 px-4 py-3 text-white">
       <div className="flex items-center justify-between">
         {/* Logo on the left */}
-        <a href="/" className="flex items-center hover:opacity-80 transition-opacity">
+        <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
           <Image
             src="/image.png"
             alt="RentIT Logo"
@@ -26,7 +27,7 @@ export default function HeaderClient() {
           <span className="text-lg font-semibold tracking-tight">
             RentIT
           </span>
-        </a>
+        </Link>
 
         {/* Mobile menu button */}
         <button
@@ -41,10 +42,10 @@ export default function HeaderClient() {
 
         {/* Navigation links */}
         <nav className="hidden md:flex gap-6 ml-8">
-          <a href="/" className="hover:underline font-medium">Home</a>
-          <a href="/public/properties" className="hover:underline font-medium">Properties</a>
-          <a href="/who-we-are" className="hover:underline font-medium">Who We Are</a>
-          <a href="/contact" className="hover:underline font-medium">Contact</a>
+          <Link href="/" className="hover:underline font-medium">Home</Link>
+          <Link href="/public/properties" className="hover:underline font-medium">Properties</Link>
+          <Link href="/who-we-are" className="hover:underline font-medium">Who We Are</Link>
+          <Link href="/contact" className="hover:underline font-medium">Contact</Link>
         </nav>
         {/* Right side (hidden on small, use mobile menu) */}
         <div className="hidden sm:flex items-center gap-3">
@@ -86,13 +87,22 @@ export default function HeaderClient() {
       </span>
     )}
 
-    {/* Landlord dashboard link */}
-    {session.user.role === 'LANDLORD' && (
+    {/* Dashboard link based on role */}
+    {session.user.role && (
       <a
-        href="/landlord/dashboard"
+        href={
+          session.user.role === 'LANDLORD' ? '/landlord/dashboard' :
+          session.user.role === 'TENANT' ? '/tenant' :
+          session.user.role === 'AGENT' ? '/agent/dashboard' :
+          session.user.role === 'ADMIN' ? '/admin' :
+          session.user.role === 'APPLICANT' ? '/applicant' :
+          session.user.role === 'TRADESPERSON' ? '/tradesperson' :
+          session.user.role === 'ACCOUNTANT' ? '/accountant' :
+          '/dashboard'
+        }
         className="rounded-md bg-white/10 px-3 py-1.5 text-sm font-semibold hover:bg-white/20"
       >
-        Landlord Dashboard
+        Dashboard
       </a>
     )}
 
@@ -124,10 +134,10 @@ export default function HeaderClient() {
       {showMobileMenu && (
         <div className="md:hidden bg-blue-600 border-t border-blue-700">
           <div className="px-4 py-3 flex flex-col gap-3">
-            <a href="/" className="hover:underline font-medium">Home</a>
-            <a href="/public/properties" className="hover:underline font-medium">Properties</a>
-            <a href="/who-we-are" className="hover:underline font-medium">Who We Are</a>
-            <a href="/contact" className="hover:underline font-medium">Contact</a>
+            <Link href="/" className="hover:underline font-medium">Home</Link>
+            <Link href="/public/properties" className="hover:underline font-medium">Properties</Link>
+            <Link href="/who-we-are" className="hover:underline font-medium">Who We Are</Link>
+            <Link href="/contact" className="hover:underline font-medium">Contact</Link>
             <div className="pt-2 border-t border-blue-700"></div>
             {status === 'unauthenticated' && pathname !== '/login' && (
               <button
@@ -139,6 +149,23 @@ export default function HeaderClient() {
             )}
             {status === 'authenticated' && (
               <>
+                {session?.user?.role && (
+                  <a 
+                    href={
+                      session.user.role === 'LANDLORD' ? '/landlord/dashboard' :
+                      session.user.role === 'TENANT' ? '/tenant' :
+                      session.user.role === 'AGENT' ? '/agent/dashboard' :
+                      session.user.role === 'ADMIN' ? '/admin' :
+                      session.user.role === 'APPLICANT' ? '/applicant' :
+                      session.user.role === 'TRADESPERSON' ? '/tradesperson' :
+                      session.user.role === 'ACCOUNTANT' ? '/accountant' :
+                      '/dashboard'
+                    }
+                    className="hover:underline font-medium"
+                  >
+                    Dashboard
+                  </a>
+                )}
                 <a href="/profile" className="hover:underline font-medium">My profile</a>
                 <button onClick={() => signOut({ callbackUrl: '/login' })} className="rounded-md bg-white/10 px-3 py-1.5 text-sm font-semibold hover:bg-white/20">Sign out</button>
               </>

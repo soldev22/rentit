@@ -1,6 +1,5 @@
 import { ObjectId } from "mongodb";
 import { NextResponse } from "next/server";
-import bcrypt from 'bcrypt';
 import { getCollection } from "@/lib/db";
 import { sendInterestEmail } from '@/lib/email-interest';
 
@@ -73,7 +72,7 @@ export async function POST(
         const users = await getCollection('users');
         const landlord = await users.findOne({ _id: new ObjectId(property.landlordId) });
         landlordEmail = landlord?.email || null;
-      } catch (e) {
+      } catch (_e) {
         landlordEmail = null;
       }
     }

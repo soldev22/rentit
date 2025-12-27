@@ -88,6 +88,9 @@ export default function RegisterPage() {
             className="mt-1 w-full p-2 border rounded"
             value={tel}
             onChange={(e) => setTel(e.target.value)}
+            required
+            pattern="^0[0-9]{10}$|^\+44[0-9]{10}$"
+            title="Enter a valid UK mobile number (07... or +447...)"
           />
         </label>
 

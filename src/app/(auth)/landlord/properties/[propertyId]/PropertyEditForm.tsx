@@ -250,6 +250,7 @@ amenities: property.amenities ? [...property.amenities] : [],
         <InterestDialog
           open
           interest={property.interests[interestIdx]}
+          propertyId={property._id}
           onClose={() => setInterestIdx(null)}
         />
       )}

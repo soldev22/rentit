@@ -7,18 +7,23 @@ export default function PropertyFilters() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [city, setCity] = useState(searchParams.get("city") || "");
-  const [minRent, setMinRent] = useState(searchParams.get("minRent") || "");
-  const [maxRent, setMaxRent] = useState(searchParams.get("maxRent") || "");
-  const [rooms, setRooms] = useState(searchParams.get("rooms") || "");
+  const [city, setCity] = useState(() => searchParams.get("city") || "");
+  const [minRent, setMinRent] = useState(() => searchParams.get("minRent") || "");
+  const [maxRent, setMaxRent] = useState(() => searchParams.get("maxRent") || "");
+  const [rooms, setRooms] = useState(() => searchParams.get("rooms") || "");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   useEffect(() => {
     // keep local state in sync when navigation happens
-    setCity(searchParams.get("city") || "");
-    setMinRent(searchParams.get("minRent") || "");
-    setMaxRent(searchParams.get("maxRent") || "");
-    setRooms(searchParams.get("rooms") || "");
+    const newCity = searchParams.get("city") || "";
+    const newMinRent = searchParams.get("minRent") || "";
+    const newMaxRent = searchParams.get("maxRent") || "";
+    const newRooms = searchParams.get("rooms") || "";
+
+    setCity(newCity);
+    setMinRent(newMinRent);
+    setMaxRent(newMaxRent);
+    setRooms(newRooms);
   }, [searchParams]);
 
   function applyFilters(e?: React.FormEvent) {

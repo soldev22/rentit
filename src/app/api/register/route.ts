@@ -16,9 +16,9 @@ export async function POST(req: Request) {
     postcode,
   } = body;
 
-  if (!email || !password || !name) {
+  if (!email || !password || !name || !phone) {
     return NextResponse.json(
-      { error: "Missing required fields" },
+      { error: "Missing required fields (name, email, password, phone)" },
       { status: 400 }
     );
   }
@@ -51,6 +51,11 @@ export async function POST(req: Request) {
         line2: addressLine2 || null,
         city: city || null,
         postcode: postcode || null,
+      },
+      contactPreferences: {
+        email: true, // Default to email enabled
+        sms: false,
+        whatsapp: false,
       },
     },
     createdAt: new Date(),

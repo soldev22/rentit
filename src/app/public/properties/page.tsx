@@ -1,5 +1,4 @@
 import { getAllPublicProperties } from '@/lib/property';
-import Link from 'next/link';
 import PropertyFilters from '@/components/PropertyFilters';
 import PropertyCard from '@/components/PropertyCard';
 import React, { Suspense } from 'react';

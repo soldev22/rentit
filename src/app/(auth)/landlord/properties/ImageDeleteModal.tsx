@@ -1,5 +1,3 @@
-import { useState } from "react";
-
 export default function ImageDeleteModal({ open, onClose, onDelete }: { open: boolean, onClose: () => void, onDelete: () => void }) {
   if (!open) return null;
   return (

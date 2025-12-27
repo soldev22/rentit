@@ -2,7 +2,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import { getCollection } from "@/lib/db";
-import { ObjectId } from "mongodb";
 import AgentPropertyGrid from "../properties/AgentPropertyGrid";
 
 const PAGE_SIZE = 12;

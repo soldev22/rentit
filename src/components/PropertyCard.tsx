@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ApplyButton from "./ApplyButton";
 
 export default function PropertyCard({ property }: { property: any }) {
   return (
@@ -44,6 +45,17 @@ export default function PropertyCard({ property }: { property: any }) {
           </div>
         </div>
       </Link>
+
+      {/* Apply button - only show for listed properties */}
+      {property.status === 'listed' && (
+        <div className="mt-4">
+          <ApplyButton 
+            propertyId={property._id} 
+            propertyTitle={property.title}
+            interests={property.interests || []}
+          />
+        </div>
+      )}
     </article>
   );
 }

@@ -98,9 +98,9 @@ export default function AgentPropertyGrid({
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="mt-6 flex justify-center gap-1 text-sm">
-          {getPageNumbers(page, totalPages).map((p) =>
+          {getPageNumbers(page, totalPages).map((p, index) =>
             p === "…" ? (
-              <span key={Math.random()} className="px-2 text-gray-400">
+              <span key={`ellipsis-${index}`} className="px-2 text-gray-400">
                 …
               </span>
             ) : (

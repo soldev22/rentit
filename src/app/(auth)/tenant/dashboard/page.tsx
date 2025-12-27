@@ -43,14 +43,16 @@ export default async function TenantDashboardPage() {
           </p>
         )}
 
-        <div>
-          <Link
-            href="/tenant/report-issue"
-            className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 active:bg-indigo-700"
-          >
-            Report an issue
-          </Link>
-        </div>
+        {data.activeTenancy && (
+          <div>
+            <Link
+              href="/tenant/report-issue"
+              className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 active:bg-indigo-700"
+            >
+              Report an issue
+            </Link>
+          </div>
+        )}
       </section>
 
       <section className="rounded-xl bg-slate-900 border border-slate-800 p-4 space-y-4">

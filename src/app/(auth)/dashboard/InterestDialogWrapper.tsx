@@ -91,25 +91,57 @@ export default function InterestDialogWrapper({ property }: { property: any }) {
                 {property.interests.map((interest: any, idx: number) => (
                   <div
                     key={idx}
-                    className="mb-2 pb-2 border-b last:border-b-0 last:mb-0 last:pb-0 cursor-pointer hover:bg-indigo-50 rounded"
-                    onClick={() => handleInterestClick(interest)}
+                    className="mb-2 pb-2 border-b last:border-b-0 last:mb-0 last:pb-0 flex items-center gap-2 hover:bg-indigo-50 rounded"
                   >
-                    <div className="font-semibold">
-                      {interestUserNames[interest.applicantId] || interest.applicantName}
-                    </div>
-                    <div className="text-xs text-gray-700">
-                      {interest.applicantEmail}
-                    </div>
-                    {interest.applicantTel && (
+                    <div
+                      className="flex-1 cursor-pointer"
+                      onClick={() => handleInterestClick(interest)}
+                    >
+                      <div className="font-semibold">
+                        {interestUserNames[interest.applicantId] || interest.applicantName}
+                      </div>
                       <div className="text-xs text-gray-700">
-                        {interest.applicantTel}
+                        {interest.applicantEmail}
                       </div>
-                    )}
-                    {interest.date && (
-                      <div className="text-xs text-gray-500">
-                        {formatDateTime(interest.date)}
-                      </div>
-                    )} 
+                      {interest.applicantTel && (
+                        <div className="text-xs text-gray-700">
+                          {interest.applicantTel}
+                        </div>
+                      )}
+                      {interest.date && (
+                        <div className="text-xs text-gray-500">
+                          {formatDateTime(interest.date)}
+                        </div>
+                      )}
+                    </div>
+                    {/* Edit button */}
+                    <a
+                      href={`/landlord/applications/${interest.applicationId || interest._id || ''}/edit`}
+                      className="ml-2 text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-200 bg-blue-50"
+                      title="Edit Application"
+                    >
+                      ✏️ Edit
+                    </a>
+                    {/* Delete button */}
+                    <button
+                      className="ml-2 text-red-600 hover:text-white hover:bg-red-600 text-sm px-2 py-1 rounded border border-red-200 bg-red-50"
+                      title="Delete Application"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (confirm('Are you sure you want to delete this application?')) {
+                          const appId = interest.applicationId || interest._id;
+                          if (!appId) return alert('No application ID found.');
+                          const res = await fetch(`/api/tenancy-applications/${appId}`, { method: 'DELETE' });
+                          if (res.ok) {
+                            router.refresh();
+                          } else {
+                            alert('Failed to delete application.');
+                          }
+                        }
+                      }}
+                    >
+                      🗑️ Delete
+                    </button>
                   </div>
                 ))}
               </div>
@@ -127,6 +159,7 @@ export default function InterestDialogWrapper({ property }: { property: any }) {
           open={dialogOpen}
           onClose={() => setDialogOpen(false)}
           interest={selectedInterest}
+          propertyId={property._id}
           onEditUser={handleEditUser}
           onMessage={handleMessage}
         />

@@ -23,6 +23,12 @@ export default function ProfilePage() {
     postcode: "",
   });
 
+  const [contactPreferences, setContactPreferences] = useState({
+    email: true,
+    sms: false,
+    whatsapp: false,
+  });
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -47,6 +53,12 @@ export default function ProfilePage() {
         addressLine2: data.profile?.address?.line2 ?? "",
         city: data.profile?.address?.city ?? "",
         postcode: data.profile?.address?.postcode ?? "",
+      });
+
+      setContactPreferences({
+        email: data.profile?.contactPreferences?.email ?? true,
+        sms: data.profile?.contactPreferences?.sms ?? false,
+        whatsapp: data.profile?.contactPreferences?.whatsapp ?? false,
       });
 
       // Fetch interests for this user
@@ -84,6 +96,7 @@ export default function ProfilePage() {
             city: profile.city,
             postcode: profile.postcode,
           },
+          contactPreferences,
         },
       }),
     });
@@ -254,6 +267,70 @@ export default function ProfilePage() {
             }
             className="w-full p-2 border border-gray-300 rounded-md"
           />
+        </div>
+
+        {/* CONTACT PREFERENCES */}
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-3">Contact Preferences</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Choose how you&apos;d like to receive notifications and updates about your applications.
+          </p>
+
+          <div className="space-y-3">
+            {/* EMAIL */}
+            <label className="flex items-center space-x-3">
+              <input
+                type="checkbox"
+                checked={contactPreferences.email}
+                onChange={(e) =>
+                  setContactPreferences({ ...contactPreferences, email: e.target.checked })
+                }
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <div>
+                <span className="font-medium">📧 Email</span>
+                <p className="text-sm text-gray-500">Receive notifications via email</p>
+              </div>
+            </label>
+
+            {/* SMS */}
+            <label className="flex items-center space-x-3">
+              <input
+                type="checkbox"
+                checked={contactPreferences.sms}
+                onChange={(e) =>
+                  setContactPreferences({ ...contactPreferences, sms: e.target.checked })
+                }
+                disabled={!profile.phone}
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50"
+              />
+              <div>
+                <span className="font-medium">📱 SMS Text</span>
+                <p className="text-sm text-gray-500">
+                  Receive notifications via SMS {!profile.phone && "(requires phone number)"}
+                </p>
+              </div>
+            </label>
+
+            {/* WHATSAPP */}
+            <label className="flex items-center space-x-3">
+              <input
+                type="checkbox"
+                checked={contactPreferences.whatsapp}
+                onChange={(e) =>
+                  setContactPreferences({ ...contactPreferences, whatsapp: e.target.checked })
+                }
+                disabled={!profile.phone}
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50"
+              />
+              <div>
+                <span className="font-medium">💬 WhatsApp</span>
+                <p className="text-sm text-gray-500">
+                  Receive notifications via WhatsApp {!profile.phone && "(requires phone number)"}
+                </p>
+              </div>
+            </label>
+          </div>
         </div>
 
         <button

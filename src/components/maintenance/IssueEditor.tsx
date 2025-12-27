@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { formatDateTime } from "@/lib/formatDate";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 type IssueHistoryItem = {
   text: string;
@@ -22,8 +23,10 @@ type Issue = {
 
 export default function TenantIssueEditor({ issue }: { issue: Issue }) {
   const router = useRouter();
+  const { data: session } = useSession();
 
   const [title, setTitle] = useState(issue.title);
+  const [status, setStatus] = useState(issue.status);
   const [updateText, setUpdateText] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +41,7 @@ export default function TenantIssueEditor({ issue }: { issue: Issue }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,
+          status,
           updateText,
         }),
       });
@@ -63,10 +67,26 @@ export default function TenantIssueEditor({ issue }: { issue: Issue }) {
   return (
     <section className="rounded-xl bg-slate-900 border border-slate-800 p-4 space-y-4">
       <div>
-        <div className="text-xs text-slate-400">Status</div>
-        <div className="inline-block mt-1 rounded-full bg-slate-800 px-3 py-1 text-sm">
-          {issue.status}
-        </div>
+        <label htmlFor="issue-status" className="text-xs text-slate-400">Status</label>
+        {session?.user?.role === "TENANT" ? (
+          <div className="inline-block mt-1 rounded-full bg-slate-800 px-3 py-1 text-sm">
+            {status}
+          </div>
+        ) : (
+          <select
+            id="issue-status"
+            className="mt-1 w-full rounded-lg bg-slate-950 border border-slate-800 p-2 text-sm"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+          >
+            <option value="REQUESTED">REQUESTED</option>
+            <option value="AUTHORISED">AUTHORISED</option>
+            <option value="ASSIGNED">ASSIGNED</option>
+            <option value="IN_PROGRESS">IN_PROGRESS</option>
+            <option value="COMPLETED">COMPLETED</option>
+            <option value="CLOSED">CLOSED</option>
+          </select>
+        )}
       </div>
 
       <div className="space-y-2">

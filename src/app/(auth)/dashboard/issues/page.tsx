@@ -45,6 +45,14 @@ console.log("SESSION USER", session.user);
     .sort({ updatedAt: -1 })
     .toArray();
 
+  type Issue = {
+    _id: ObjectId;
+    title: string;
+    status: string;
+    propertyId: ObjectId;
+    // Add other fields as needed
+  };
+
   return (
     <main className="p-6 space-y-4">
       <h1 className="text-xl font-semibold">Maintenance Issues</h1>
@@ -55,7 +63,7 @@ console.log("SESSION USER", session.user);
         </p>
       ) : (
         <ul className="space-y-2">
-          {issues.map((issue: any) => (
+          {(issues as Issue[]).map((issue) => (
             <li
               key={issue._id.toString()}
               className="rounded border border-slate-800 bg-slate-950 p-3"

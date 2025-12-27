@@ -71,7 +71,7 @@ console.log("STATUS TRANSITION:", currentStatus, "→", newStatus);
       previousStatus: currentStatus,
       status: newStatus,
     });
-  } catch (err) {
+  } catch (_err) {
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

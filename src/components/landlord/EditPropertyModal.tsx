@@ -594,6 +594,7 @@ async function handleSave() {
         <InterestDialog
           open
           interest={property.interests[interestIdx]}
+          propertyId={property._id}
           onClose={() => setInterestIdx(null)}
         />
       )}

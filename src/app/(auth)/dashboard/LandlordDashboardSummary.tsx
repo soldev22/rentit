@@ -3,21 +3,22 @@ import { ObjectId } from "mongodb";
 import Link from "next/link";
 
 // Reuse the Property type
-import PropertyGrid from "../landlord/properties/PropertyGrid";
 import InterestDialogWrapper from "./InterestDialogWrapper";
 
-type Property = {
-  _id: string;
-  title: string;
-  status: string;
-  rentPcm: number;
-  address: {
+type PropertyDoc = {
+  _id: ObjectId;
+  title?: string;
+  status?: string;
+  rentPcm?: number;
+  createdAt?: string;
+  address?: {
     line1?: string;
     city?: string;
     postcode?: string;
   };
-  createdAt: string;
+  interests?: any[];
 };
+
 
 export default async function LandlordDashboardSummary({ landlordId }: { landlordId: string }) {
   const collection = await getCollection("properties");
@@ -33,21 +34,20 @@ export default async function LandlordDashboardSummary({ landlordId }: { landlor
     })
     .toArray();
 
-
   // Status breakdown
   const statusCounts: Record<string, number> = {};
-  allProperties.forEach((p: any) => {
+  allProperties.forEach((p: PropertyDoc) => {
     statusCounts[p.status ?? "draft"] = (statusCounts[p.status ?? "draft"] || 0) + 1;
   });
 
   // Total revenue (sum of rentPcm for all properties)
-  const totalRevenue = allProperties.reduce((sum: number, p: any) => sum + (p.rentPcm ?? 0), 0);
+  const totalRevenue = allProperties.reduce((sum: number, p: PropertyDoc) => sum + (p.rentPcm ?? 0), 0);
 
   // Only properties with registered interests
   const propertiesWithInterests = allProperties
-    .filter((doc: any) => Array.isArray(doc.interests) && doc.interests.length > 0)
-    .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .map((doc: any) => ({
+    .filter((doc: PropertyDoc) => Array.isArray(doc.interests) && doc.interests.length > 0)
+    .sort((a: PropertyDoc, b: PropertyDoc) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+    .map((doc: PropertyDoc) => ({
       _id: doc._id.toString(),
       title: doc.title ?? "",
       status: doc.status ?? "draft",
@@ -57,13 +57,13 @@ export default async function LandlordDashboardSummary({ landlordId }: { landlor
         city: doc.address?.city ?? "",
         postcode: doc.address?.postcode ?? "",
       },
-      createdAt: doc.createdAt
-        ? typeof doc.createdAt === "string"
-          ? doc.createdAt
-          : doc.createdAt.toISOString()
-        : "",
+      createdAt: doc.createdAt || "",
       interests: doc.interests ?? [],
     }));
+
+  // Fetch submitted applications count for this landlord
+  const tenancyApplications = await getCollection('tenancy_applications');
+  const submittedApplicationsCount = await tenancyApplications.countDocuments({ landlordId: landlordObjectId });
 
   return (
     <div className="w-full pt-6">
@@ -80,6 +80,11 @@ export default async function LandlordDashboardSummary({ landlordId }: { landlor
           <div className="text-3xl font-bold">£{totalRevenue.toLocaleString("en-GB")}</div>
           <div className="text-gray-600">Total Revenue (pcm)</div>
         </div>
+        {/* Applications Submitted tile */}
+        <Link href="/landlord/applications" className="bg-white rounded-lg shadow p-4 flex-1 hover:bg-indigo-50 transition-colors cursor-pointer block">
+          <div className="text-3xl font-bold">{submittedApplicationsCount}</div>
+          <div className="text-gray-600">Applications Submitted</div>
+        </Link>
         {Object.entries(statusCounts).map(([status, count]) => (
           <div key={status} className="bg-white rounded-lg shadow p-4 flex-1">
             <div className="text-3xl font-bold">{count}</div>

@@ -13,10 +13,11 @@ interface InterestDialogProps {
     date?: string;
     applicantId: string;
   };
+  propertyId: string;
   onEditUser?: (applicantId: string) => void;
   onMessage?: (applicantId: string) => void;
 }
-    export default function InterestDialog({ open, onClose, interest, onEditUser, onMessage }: InterestDialogProps) {
+    export default function InterestDialog({ open, onClose, interest, propertyId, onEditUser, onMessage }: InterestDialogProps) {
       const [userDetails, setUserDetails] = useState<any | null>(null);
 
       useEffect(() => {
@@ -118,6 +119,34 @@ interface InterestDialogProps {
             </div>
           </div>
           <div className="flex gap-2 mt-4">
+            <button
+              className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+              onClick={async () => {
+                try {
+                  const res = await fetch('/api/tenancies/agree', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      applicantId: interest.applicantId,
+                      propertyId: propertyId,
+                    }),
+                  });
+                  if (res.ok) {
+                    alert('Tenancy agreed! The applicant is now a tenant.');
+                    onClose();
+                    // Maybe refresh the page or update the interests list
+                    window.location.reload();
+                  } else {
+                    const error = await res.json();
+                    alert(`Error: ${error.error || 'Failed to agree tenancy'}`);
+                  }
+                } catch (err) {
+                  alert('Network error occurred');
+                }
+              }}
+            >
+              Agree to Tenancy
+            </button>
             {onMessage && (
               <button
                 className="bg-gray-200 text-gray-800 px-3 py-1 rounded hover:bg-gray-300"

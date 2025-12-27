@@ -22,6 +22,11 @@ export interface User {
   address?: Address;
   addressVerified: boolean;
   profileCompleteness: number;
+  contactPreferences: {
+    email: boolean;
+    sms: boolean;
+    whatsapp: boolean;
+  };
 }
 export function calculateProfileCompleteness(user: Partial<User>) {
   let score = 0;
