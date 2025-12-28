@@ -36,11 +36,27 @@ export interface TenancyApplication {
     landlordReferenceConsent: boolean;
     employerReferenceConsent: boolean;
     agreedAt?: string;
+    sentAt?: string;
+    token?: string;
+    tokenUsed?: boolean;
+    tokenExpiresAt?: string;
     creditCheck: {
       status: 'not_started' | 'in_progress' | 'completed' | 'failed';
       score?: number;
       reportUrl?: string;
       checkedAt?: string;
+    };
+    backgroundInfo?: {
+      employmentStatus: string;
+      employerName: string;
+      jobTitle: string;
+      monthlyIncome: number;
+      employmentLength: string;
+      prevLandlordName: string;
+      prevLandlordContact: string;
+      creditConsent: boolean;
+      photoIdFile: string;
+      submittedAt: string;
     };
   };
 

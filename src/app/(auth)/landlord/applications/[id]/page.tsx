@@ -54,7 +54,6 @@ export default async function LandlordApplicationDetailPage({
 
       <TenancyApplicationManager
         application={serializedApplication as TenancyApplication}
-        propertyTitle={propertyTitle}
       />
     </div>
   );

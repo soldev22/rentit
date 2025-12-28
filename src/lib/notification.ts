@@ -4,6 +4,7 @@
  */
 
 import twilio from 'twilio';
+import { Resend } from 'resend';
 
 export type ContactMethod = 'email' | 'sms' | 'whatsapp';
 
@@ -23,6 +24,7 @@ export interface UserContactPreferences {
 export class NotificationService {
   private static instance: NotificationService;
   private twilioClient: twilio.Twilio | null = null;
+  private resendClient: Resend | null = null;
 
   private constructor() {
     // Initialize Twilio client if credentials are available
@@ -31,6 +33,10 @@ export class NotificationService {
         process.env.TWILIO_ACCOUNT_SID,
         process.env.TWILIO_AUTH_TOKEN
       );
+    }
+    // Initialize Resend client if API key is available
+    if (process.env.RESEND_API_KEY) {
+      this.resendClient = new Resend(process.env.RESEND_API_KEY);
     }
   }
 
@@ -117,16 +123,34 @@ export class NotificationService {
   }
 
   private async sendEmail(notification: NotificationData): Promise<boolean> {
-    // TODO: Implement actual email sending
-    // For now, just log the notification
-    console.log('📧 EMAIL NOTIFICATION:', {
-      to: notification.to,
-      subject: notification.subject,
-      message: notification.message,
-    });
-
-    // Simulate successful sending
-    return true;
+    if (this.resendClient && process.env.RESEND_FROM_EMAIL) {
+      try {
+        const result = await this.resendClient.emails.send({
+          from: process.env.RESEND_FROM_EMAIL,
+          to: notification.to,
+          subject: notification.subject || '',
+          text: notification.message,
+        });
+        if (result && result.data && result.data.id) {
+          console.log('📧 EMAIL sent via Resend:', result);
+          return true;
+        } else {
+          console.error('❌ Resend email failed:', result);
+          return false;
+        }
+      } catch (error) {
+        console.error('❌ Resend email error:', error);
+        return false;
+      }
+    } else {
+      // Fallback: log the notification
+      console.log('📧 EMAIL NOTIFICATION (SIMULATED):', {
+        to: notification.to,
+        subject: notification.subject,
+        message: notification.message,
+      });
+      return true;
+    }
   }
 
   private async sendSMS(notification: NotificationData): Promise<boolean> {

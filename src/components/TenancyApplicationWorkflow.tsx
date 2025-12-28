@@ -17,8 +17,10 @@ export default function TenancyApplicationWorkflow({
   onComplete,
   onCancel
 }: TenancyApplicationWorkflowProps) {
+
   const { data: session } = useSession();
   const [application, setApplication] = useState<TenancyApplication | null>(null);
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,6 +46,7 @@ export default function TenancyApplicationWorkflow({
   });
 
   const handleStartApplication = async () => {
+    console.log('Start Application button clicked');
     if (!applicantName || !applicantEmail) {
       setError('Please fill in your name and email');
       return;
@@ -55,6 +58,11 @@ export default function TenancyApplicationWorkflow({
     }
 
     setLoading(true);
+    setError(null);
+    // Temporary visual feedback
+    setTimeout(() => {
+      if (loading) setError('Button click registered, waiting for response...');
+    }, 1500);
     setError(null);
 
     try {
@@ -88,6 +96,7 @@ export default function TenancyApplicationWorkflow({
       const appResponse = await fetch(`/api/tenancy-applications/${data.applicationId}`);
       const appData = await appResponse.json();
       setApplication(appData.application);
+      setShowConfirmationModal(true);
 
     } catch {
       setError('An error occurred while starting your application');
@@ -270,6 +279,7 @@ export default function TenancyApplicationWorkflow({
   if (application) {
     return (
       <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg">
+        {/* {renderApplicantBackgroundInfo()} */}
         <div className="mb-6">
           <h2 className="text-2xl font-bold">Tenancy Application</h2>
           <p className="text-gray-600">Property: {propertyTitle}</p>
@@ -281,6 +291,11 @@ export default function TenancyApplicationWorkflow({
           <p>Application created successfully!</p>
           <p className="text-sm mt-2">Application ID: {application._id?.toString()}</p>
           <p className="text-sm">Current Stage: {application.currentStage}</p>
+          {application.stage2?.sentAt && (
+            <div className="mt-4 inline-block px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-semibold border border-green-300">
+              Application form sent: {new Date(application.stage2.sentAt).toLocaleString()}
+            </div>
+          )}
         </div>
 
         <div className="mt-6 flex justify-end">
@@ -291,12 +306,30 @@ export default function TenancyApplicationWorkflow({
             Continue
           </button>
         </div>
+
+        {/* Confirmation Modal */}
+        {showConfirmationModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+            <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+              <h3 className="text-xl font-bold mb-4 text-green-700">Request Sent!</h3>
+              <p className="mb-2">The application form link has been sent to the applicant via email and SMS.</p>
+              <p className="mb-4 text-sm text-gray-500">Please inform the applicant to check their inbox and spam folder.</p>
+              <button
+                onClick={() => setShowConfirmationModal(false)}
+                className="mt-2 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
   return (
     <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg">
+      {/* {renderApplicantBackgroundInfo()} */}
       <div className="mb-6">
         <h2 className="text-2xl font-bold">Start Tenancy Application</h2>
         <p className="text-gray-600">Property: {propertyTitle}</p>
@@ -395,7 +428,8 @@ export default function TenancyApplicationWorkflow({
           </div>
         )}
 
-        <div className="flex justify-between pt-6">
+        <div className="flex flex-col items-end pt-6">
+          <div className="mb-2 text-xs text-red-600 font-mono">[DEBUG] TenancyApplicationWorkflow rendered, button should be visible and enabled.</div>
           <button
             onClick={onCancel}
             className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
@@ -405,9 +439,14 @@ export default function TenancyApplicationWorkflow({
           <button
             onClick={handleStartApplication}
             disabled={loading}
-            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            className="px-8 py-3 bg-gradient-to-r from-green-500 to-blue-600 text-white font-bold text-lg rounded-lg shadow-lg hover:from-green-600 hover:to-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-all duration-200 disabled:opacity-50 border-2 border-blue-700"
+            aria-label="Start Application Stage 2"
           >
-            {loading ? 'Starting Application...' : 'Start Application'}
+            {loading ? (
+              <span className="flex items-center"><svg className="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>Starting Application...</span>
+            ) : (
+              <span>Send Application Form</span>
+            )}
           </button>
         </div>
       </div>
