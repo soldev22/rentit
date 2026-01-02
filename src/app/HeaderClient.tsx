@@ -17,15 +17,15 @@ export default function HeaderClient() {
         {/* Logo on the left */}
         <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
           <Image
-            src="/image.png"
-            alt="RentIT Logo"
+            src="/Logox.png"
+            alt="Rentsimple Logo"
             width={40}
             height={40}
             className="mr-3"
             priority
           />
           <span className="text-lg font-semibold tracking-tight">
-            RentIT
+            Rentsimple
           </span>
         </Link>
 

@@ -1,5 +1,5 @@
 /**
- * Notification service for RentIT
+ * Notification service for Rentsimple
  * Handles sending notifications via email, SMS, and WhatsApp
  */
 

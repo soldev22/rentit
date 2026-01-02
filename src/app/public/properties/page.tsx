@@ -4,7 +4,7 @@ import PropertyCard from '@/components/PropertyCard';
 import React, { Suspense } from 'react';
 
 export const metadata = {
-  title: 'Available Properties | RentIT',
+  title: 'Available Properties | Rentsimple',
   description: 'Browse all available rental properties. Share this page with anyone!'
 };
 

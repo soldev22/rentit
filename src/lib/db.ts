@@ -1,5 +1,5 @@
 /**
- * MongoDB connection and helpers for RentIT
+ * MongoDB connection and helpers for Rentsimple
  */
 import clientPromise from "@/lib/mongodb";
 import { Db, Collection, Document } from "mongodb";

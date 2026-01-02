@@ -1,7 +1,7 @@
+
 # PRE_COMMIT.md
 
-See AUTH_PATTERN.md for authoritative auth and role rules.
-
+See AUTH_PATTERN.md for authoritative auth and role rules for Rentsimple.
 
 This checklist must be followed **before every commit**.
 It exists to prevent auth, routing, and role regressions.
@@ -21,6 +21,7 @@ This is a **human guardrail**, not automation.
 - [ ] I did NOT protect `/` or `/login`
 
 If auth or roles changed:
+
 - [ ] I updated `AUTH_PATTERN.md`
 
 ---
@@ -58,8 +59,6 @@ redirect("/admin
 "use client"
 as any
 
-
-
 If something looks suspicious — stop and review.
 
 ---
@@ -69,7 +68,9 @@ If something looks suspicious — stop and review.
 That means it’s working.
 
 Most serious regressions come from:
+
 - rushed fixes
+
 - duplicated role logic
 - “just one small redirect change”
 
@@ -85,4 +86,4 @@ Infrastructure changes are deliberate by design.
 
 ---
 
-_Last updated: December 2025_
+### Last updated: December 2025

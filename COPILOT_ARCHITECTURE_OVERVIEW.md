@@ -1,9 +1,11 @@
-# RENTIT PROJECT ARCHITECTURE OVERVIEW
+# RENTSIMPLE PROJECT ARCHITECTURE OVERVIEW
 
 **Generated:** 2025-12-20T23:14:34.433Z
 
-## Key Conventions
+n## Key Conventions
+
 - Next.js 13+ (App Router, TypeScript)
+
 - MongoDB via mongodb driver
 - NextAuth.js (credentials, roles, JWT, MongoDB adapter)
 - Tailwind CSS, Geist font
@@ -14,7 +16,9 @@
 ## Main Directories & Files
 
 src/
+
 - app/
+
 - app\(auth)/
 - app\(auth)\accountant/
   - app\(auth)\accountant\page.tsx

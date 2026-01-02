@@ -1,6 +1,6 @@
 export const metadata = {
-  title: 'Contact Us | RentIT',
-  description: 'Get in touch with RentIT for support, questions, or partnership opportunities.'
+  title: 'Contact Us | Rentsimple',
+  description: 'Get in touch with Rentsimple for support, questions, or partnership opportunities.'
 };
 
 export default function ContactPage() {
@@ -10,7 +10,7 @@ export default function ContactPage() {
       <p className="text-lg text-slate-700">We would love to hear from you! Reach out for support, questions, or partnership opportunities.</p>
       <section className="mt-6">
         <h2 className="text-xl font-semibold mb-2">Email</h2>
-        <p><a href="mailto:info@rentit.com" className="text-indigo-600 hover:underline">info@rentit.com</a></p>
+        <p><a href="mailto:info@rentsimple.com" className="text-indigo-600 hover:underline">info@rentsimple.com</a></p>
       </section>
       <section className="mt-6">
         <h2 className="text-xl font-semibold mb-2">Phone</h2>

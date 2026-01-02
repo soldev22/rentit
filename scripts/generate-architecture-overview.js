@@ -24,7 +24,7 @@ function walk(dir, prefix = '') {
   return result;
 }
 
-const header = `# RENTIT PROJECT ARCHITECTURE OVERVIEW\n\n` +
+const header = `# RENTSIMPLE PROJECT ARCHITECTURE OVERVIEW\n\n` +
 `**Generated:** ${new Date().toISOString()}\n\n` +
 `## Key Conventions\n` +
 `- Next.js 13+ (App Router, TypeScript)\n- MongoDB via mongodb driver\n- NextAuth.js (credentials, roles, JWT, MongoDB adapter)\n- Tailwind CSS, Geist font\n- Role-based routing: /admin, /landlord, /tenant, /agent, /dashboard, etc.\n- Zod for input validation\n- All DB access via src/lib/\n\n` +

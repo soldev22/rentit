@@ -1,5 +1,5 @@
 /**
- * RentIT User model
+ * Rentsimple User model
  * - Represents a real person
  * - One login per human
  * - No landlord/tenant/business logic here

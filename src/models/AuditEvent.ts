@@ -1,5 +1,5 @@
 /**
- * RentIT Audit Event
+ * Rentsimple Audit Event
  * - Append-only (never updated or deleted)
  * - Time-ordered record of all significant actions
  * - Used for legal escalation, reporting, and accountability

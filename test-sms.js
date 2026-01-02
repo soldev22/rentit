@@ -30,7 +30,7 @@ loadEnv();
 
 async function testSMS() {
   const phoneNumber = '07769870670';
-  const message = 'Hello! This is a test SMS from RentIT platform. If you received this, SMS notifications are working correctly! 📱';
+  const message = 'Hello! This is a test SMS from Rentsimple platform. If you received this, SMS notifications are working correctly! 📱';
 
   console.log('🚀 Sending test SMS to:', phoneNumber);
 

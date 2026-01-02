@@ -1,14 +1,17 @@
+
 # AUTH_PATTERN.md
 
-> This file is authoritative for **authentication AND authorisation** in RentIT.
+> This file is authoritative for **authentication AND authorisation** in Rentsimple.
 > If auth-related behaviour changes, this file **must** be updated.
 
 ---
 
-## Authentication Pattern for RentIT
+## Authentication Pattern for Rentsimple
 
-### Overview
+n### Overview
+
 - Uses NextAuth.js with:
+
   - CredentialsProvider (email + password)
   - EmailProvider (magic link)
 - Custom `/login` page is the **only** sign-in UI.
@@ -19,8 +22,10 @@
 
 ---
 
-## Key Guardrails (Authentication)
+n## Key Guardrails (Authentication)
+
 - Password login uses `signIn("credentials", ...)` only.
+
 - Magic link login uses `signIn("email", ...)` only.
 - Do NOT mix or reuse logic between providers.
 - Do NOT reintroduce the default NextAuth sign-in page.
@@ -30,11 +35,14 @@
 
 ## Authorisation & Roles
 
-### Roles
+n### Roles
+
 Roles are first-class and enforced **server-side only**.
 
 Valid roles:
+
 - ADMIN
+
 - AGENT
 - LANDLORD
 - TENANT
@@ -43,20 +51,25 @@ Valid roles:
 - ACCOUNTANT
 
 Roles are:
+
 - stored in the session/JWT
+
 - never trusted from the client
 - never enforced client-side
 
 ---
 
-### Role Enforcement Rules
+n### Role Enforcement Rules
+
 - Role checks MUST NOT be performed in client components.
+
 - Role checks MUST NOT be duplicated in pages if a layout guard exists.
 - Server-side enforcement is mandatory for all protected routes.
 
 ---
 
-### Layout Guards
+n### Layout Guards
+
 Role protection is enforced at the **layout level** wherever possible.
 
 - `/admin/*` is protected by `src/app/admin/layout.tsx`
@@ -67,8 +80,10 @@ All routes under these folders automatically inherit role protection.
 
 ---
 
-### requireRole Helper
+n### requireRole Helper
+
 - `requireRole()` is the **only approved helper** for enforcing roles.
+
 - Inline checks like `session.user.role !== "X"` are **not allowed** in pages.
 - If role logic changes, update `requireRole` — not individual pages.
 
@@ -76,21 +91,28 @@ All routes under these folders automatically inherit role protection.
 
 ## UI / UX
 
-### `/login`
+n### `/login`
+
 The `/login` page provides:
+
 - Email + password form (always visible)
+
 - “Sign in with email link” option (magic link)
 - “Forgot password?” link
 
 Design goals:
+
 - Mobile-friendly
+
 - Minimal
 - Accessible
 
 ---
 
-## Registration Rules
+n## Registration Rules
+
 - Public self-registration is limited to:
+
   - TENANT
   - APPLICANT
 - Staff roles (ADMIN, AGENT, LANDLORD, etc.) are created by ADMIN users only.
@@ -99,8 +121,10 @@ Design goals:
 
 ---
 
-## Maintenance Notes
+n## Maintenance Notes
+
 - If adding new auth methods, update `/login` only.
+
 - Keep guardrail comments in:
   - `/login/page.tsx`
   - NextAuth config
@@ -109,16 +133,20 @@ Design goals:
 
 ---
 
-## Known Failure Modes (Avoid)
+n## Known Failure Modes (Avoid)
+
 - Protecting `/` or redirecting from `/` causes auth redirect loops.
+
 - Missing `NEXTAUTH_URL` causes unpredictable redirects.
 - Mixing App Router redirects with NextAuth redirects causes loops.
 - Hard-coded role redirects in pages cause drift and bugs.
 
 ---
 
-## Do Not
+n## Do Not
+
 - Do not redirect users to `/api/auth/signin`
+
 - Do not call NextAuth callbacks manually
 - Do not add auth logic to `/`
 - Do not add role-based redirects in pages
@@ -127,4 +155,4 @@ Design goals:
 
 ---
 
-_Last updated: December 2025_
+### Last updated: December 2025

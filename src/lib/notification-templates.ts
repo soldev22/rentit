@@ -1,5 +1,5 @@
 /**
- * Notification templates and utilities for RentIT
+ * Notification templates and utilities for Rentsimple
  */
 
 export interface NotificationTemplate {

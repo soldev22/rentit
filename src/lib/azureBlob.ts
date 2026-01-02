@@ -11,7 +11,7 @@ export async function deleteBlobs(blobNames: string[]) {
 import { BlobServiceClient } from "@azure/storage-blob";
 
 const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
-const AZURE_STORAGE_CONTAINER = process.env.AZURE_STORAGE_CONTAINER || "rentit_1766317052102";
+const AZURE_STORAGE_CONTAINER = process.env.AZURE_STORAGE_CONTAINER || "rentsimple_1766317052102";
 
 if (!AZURE_STORAGE_CONNECTION_STRING) {
   throw new Error("Missing AZURE_STORAGE_CONNECTION_STRING env var");

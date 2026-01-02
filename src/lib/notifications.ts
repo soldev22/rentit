@@ -89,7 +89,7 @@ export async function sendViewingNotification(
         from: process.env.RESEND_FROM_EMAIL || 'NoReply@solutionsdeveloped.co.uk',
         to: email,
         subject: 'Viewing Scheduled',
-        html: `<p>Hi,<br><br>Your property viewing is scheduled for <b>${ukDate}</b> at <b>${details.time}</b>.<br>Property: <b>${addressString}</b><br><br>We're looking forward to meeting you!<br><br><b>Please do not reply to this email.</b>${landlordContactLine}<br><br>If you have any questions or need to reschedule, please call the landlord directly.<br><br>Best regards,<br>The RentIT Team</p>`
+        html: `<p>Hi,<br><br>Your property viewing is scheduled for <b>${ukDate}</b> at <b>${details.time}</b>.<br>Property: <b>${addressString}</b><br><br>We're looking forward to meeting you!<br><br><b>Please do not reply to this email.</b>${landlordContactLine}<br><br>If you have any questions or need to reschedule, please call the landlord directly.<br><br>Best regards,<br>The Rentsimple Team</p>`
       });
       console.log(`EMAIL SENT via Resend to ${email}`);
     } catch (err) {
@@ -108,7 +108,7 @@ export async function sendViewingNotification(
     } else {
       smsMsg += ` Landlord contact unavailable.`;
     }
-    smsMsg += ' - RentIT';
+    smsMsg += ' - Rentsimple';
     if (twilioClient && twilioFrom) {
       try {
         // Format recipient as E.164 for UK: +447xxxxxxxxx

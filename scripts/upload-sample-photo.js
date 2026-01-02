@@ -19,7 +19,7 @@ if (fs.existsSync(dotenvPath)) {
 
 async function run() {
   const conn = process.env.AZURE_STORAGE_CONNECTION_STRING;
-  const container = process.env.AZURE_STORAGE_CONTAINER || 'rentit2';
+  const container = process.env.AZURE_STORAGE_CONTAINER || 'rentsimple2';
   if (!conn) {
     console.error('AZURE_STORAGE_CONNECTION_STRING missing');
     process.exit(1);

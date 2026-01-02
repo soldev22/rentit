@@ -1,5 +1,5 @@
 /**
- * Test script for RentIT notification system
+ * Test script for Rentsimple notification system
  * Run with: npx tsx scripts/test-notifications.ts
  */
 
@@ -7,7 +7,7 @@ import { notificationService } from '../src/lib/notification';
 import { NotificationTemplates } from '../src/lib/notification-templates';
 
 async function testNotifications() {
-  console.log('🔔 Testing RentIT Notification System\n');
+  console.log('🔔 Testing Rentsimple Notification System\n');
 
   // Test data
   const testUser = {

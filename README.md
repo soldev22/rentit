@@ -1,10 +1,13 @@
-# RentIT — Multi-Role Rental Platform
+
+# Rentsimple — Multi-Role Rental Platform
+
 ⚠️ Auth and roles are opinionated. Read AUTH_PATTERN.md before making changes.
 
-RentIT is a modern, multi-role rental management platform built with
+Rentsimple is a modern, multi-role rental management platform built with
 **Next.js (App Router)**, **TypeScript**, **MongoDB**, and **NextAuth.js**.
 
 It supports distinct experiences for:
+
 - Admin
 - Agent
 - Landlord
@@ -31,6 +34,7 @@ These documents are **authoritative** and exist to prevent regressions.
 ## Getting Started
 
 ### 1. Install dependencies
+
 ```bash
 npm install
 ```
@@ -60,7 +64,8 @@ npm run dev
 ```
 
 Open:
-- http://localhost:3000
+
+- <http://localhost:3000>
 
 ---
 
@@ -97,23 +102,25 @@ Role protection is enforced **server-side**, primarily via layout guards.
 
 ## Learn More
 
-- Next.js — https://nextjs.org/docs
-- NextAuth.js — https://next-auth.js.org
-- MongoDB — https://mongodb.com/docs
+- Next.js — [https://nextjs.org/docs](https://nextjs.org/docs)
+- NextAuth.js — [https://next-auth.js.org](https://next-auth.js.org)
+- MongoDB — [https://mongodb.com/docs](https://mongodb.com/docs)
 
 ---
 
 ## 🔔 Notification System
 
-RentIT includes a comprehensive multi-channel notification system supporting **Email** and **SMS**. **WhatsApp** notifications are currently commented out except for the permissions page.
+Rentsimple includes a comprehensive multi-channel notification system supporting **Email** and **SMS**. **WhatsApp** notifications are currently commented out except for the permissions page.
 
 ### Features
+
 - **User Preferences**: Users can choose their preferred contact methods in their profile
 - **Automatic Triggers**: Notifications sent for key application events
 - **Multi-Channel**: Simultaneous delivery via enabled methods
 - **Graceful Fallback**: System continues working even if some channels fail
 
 ### Supported Notification Events
+
 - ✅ Application submitted
 - ✅ Viewing request approved/declined
 - ✅ Background checks approved/declined
@@ -131,16 +138,19 @@ RentIT includes a comprehensive multi-channel notification system supporting **E
 2. **Get API Credentials**: Copy your Account SID and Auth Token
 3. **Purchase Phone Numbers**: Get SMS and WhatsApp-enabled numbers
 4. **Configure Environment**:
+
    ```env
    TWILIO_ACCOUNT_SID=your_account_sid
    TWILIO_AUTH_TOKEN=your_auth_token
    TWILIO_PHONE_NUMBER=+1234567890
    TWILIO_WHATSAPP_NUMBER=+1234567890
    ```
+
 5. **Enable WhatsApp**: Follow Twilio's WhatsApp setup guide
 6. **Uncomment WhatsApp code**: Remove comment blocks in `src/lib/notification.ts` and `scripts/test-notifications.ts`
 
 ### Usage
+
 ```typescript
 import { notificationService } from '@/lib/notification';
 
@@ -156,4 +166,4 @@ await notificationService.sendToUser(
 
 ---
 
-© 2025 RentIT. All rights reserved.
+© 2025 Rentsimple. All rights reserved.
