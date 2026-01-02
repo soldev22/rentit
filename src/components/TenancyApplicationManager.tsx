@@ -33,12 +33,52 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
   const [currentApplication, setCurrentApplication] = useState(application);
   const [message, setMessage] = useState<string | null>(null);
 
-  // Restore missing handleOpenViewingModal function for Schedule Viewing button
+  // Modal state for scheduling a viewing
+  const [viewingModalOpen, setViewingModalOpen] = useState(false);
+  const [viewingDate, setViewingDate] = useState<string>("");
+  const [viewingTime, setViewingTime] = useState<string>("");
+  const [viewingNote, setViewingNote] = useState<string>("");
   function handleOpenViewingModal() {
-    // This should open the viewing modal (if implemented)
-    // For now, just show a message or implement modal logic as needed
-    setMessage('Viewing modal not implemented.');
+    setViewingModalOpen(true);
   }
+  function handleCloseViewingModal() {
+    setViewingModalOpen(false);
+    setViewingDate("");
+    setViewingTime("");
+    setViewingNote("");
+  }
+  function handleSubmitViewingModal(e: React.FormEvent) {
+    e.preventDefault();
+    // Here you would call backend API to save the viewing info
+    setMessage(`Viewing scheduled for ${viewingDate} at ${viewingTime}. Note: ${viewingNote}`);
+    setViewingModalOpen(false);
+  }
+  // Viewing Modal JSX (move to return)
+  const viewingModal = viewingModalOpen && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+      <div className="bg-white rounded shadow-lg p-6 w-full max-w-md">
+        <h2 className="text-lg font-bold mb-2">Schedule Viewing</h2>
+        <form onSubmit={handleSubmitViewingModal} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1" htmlFor="viewing-date">Date</label>
+            <input id="viewing-date" type="date" className="border rounded px-2 py-1 w-full" value={viewingDate} onChange={e => setViewingDate(e.target.value)} required title="Viewing date" placeholder="Select date" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1" htmlFor="viewing-time">Time</label>
+            <input id="viewing-time" type="time" className="border rounded px-2 py-1 w-full" value={viewingTime} onChange={e => setViewingTime(e.target.value)} required title="Viewing time" placeholder="Select time" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1" htmlFor="viewing-note">Note (optional)</label>
+            <textarea id="viewing-note" className="border rounded px-2 py-1 w-full" value={viewingNote} onChange={e => setViewingNote(e.target.value)} title="Additional notes" placeholder="Add a note (optional)" />
+          </div>
+          <div className="flex gap-2 justify-end">
+            <button type="button" className="px-4 py-2 bg-gray-200 rounded" onClick={handleCloseViewingModal}>Cancel</button>
+            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">Schedule</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 
   // Applicant Background Info (Stage 2) - always show, even if empty
   const info: Partial<NonNullable<TenancyApplication['stage2']>['backgroundInfo']> = currentApplication.stage2?.backgroundInfo || {};
@@ -185,8 +225,8 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
   // Main return at the end
   return (
     <div className="space-y-8">
+      {viewingModal}
       {backgroundInfoPanel}
-      {/* <ViewingModal /> */}
       {/* Stage Cards Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {stages.map((stage) => {
@@ -200,9 +240,13 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
                 <div>
                   <h4 className="text-lg font-semibold mb-1">Stage 1: {stage.name}</h4>
                   <p className="text-sm text-gray-600 mb-2">{stage.description}</p>
-                  {currentApplication.stage1.status === 'agreed' ? (
+                  {currentApplication.stage1.status === 'agreed' || (viewingDate && viewingTime) ? (
                     <div className="text-xs text-green-800 mb-1">
-                      Viewing Agreed: {currentApplication.stage1.viewingDetails?.date ? (
+                      Viewing Agreed: {viewingDate && viewingTime ? (
+                        <span className="font-bold">
+                          {new Date(viewingDate).toLocaleDateString('en-GB')} <span className="font-bold">{viewingTime}</span>
+                        </span>
+                      ) : currentApplication.stage1.viewingDetails?.date ? (
                         <span className="font-bold">
                           {new Date(currentApplication.stage1.viewingDetails.date).toLocaleDateString('en-GB')}
                           {currentApplication.stage1.viewingDetails.time ? (
@@ -218,6 +262,12 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
                       )}
                       {currentApplication.stage1.viewingType && (
                         <> ({currentApplication.stage1.viewingType})</>
+                      )}
+                      {/* Show notes if available */}
+                      {(viewingNote || currentApplication.stage1.viewingDetails?.note) && (
+                        <div className="mt-1 text-xs text-blue-900">
+                          <span className="font-semibold">Notes:</span> {viewingNote || currentApplication.stage1.viewingDetails?.note}
+                        </div>
                       )}
                       {currentApplication.stage1.agreedAt && (
                         <>
@@ -244,6 +294,8 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
                 <button
                   className="mt-2 px-4 py-2 rounded-md font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700"
                   onClick={handleOpenViewingModal}
+                  disabled={false}
+                  aria-label="Schedule Viewing"
                 >
                   {currentApplication.stage1.status === 'agreed' ? 'Edit / Resend Notification' : 'Schedule Viewing'}
                 </button>

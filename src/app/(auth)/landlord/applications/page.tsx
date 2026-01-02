@@ -47,7 +47,7 @@ export default async function LandlordTenancyApplicationsPage() {
 
   // Get property titles for each application
   const applicationsWithTitles = await Promise.all(
-    applications.map(async (app: any) => ({
+    applications.map(async (app: TenancyApplication) => ({
       ...app,
       propertyTitle: await getPropertyTitle(app.propertyId.toString())
     }))
@@ -122,35 +122,18 @@ export default async function LandlordTenancyApplicationsPage() {
                     <span>Stage 6</span>
                   </div>
                   <div className="flex space-x-1">
-                    {[1, 2, 3, 4, 5, 6].map((stage) => {
-                      // For stage 2, use enabled property for color
-                      if (stage === 2) {
-                        const enabled = application.stage2?.enabled === true;
-                        return (
-                          <div
-                            key={stage}
-                            className={`flex-1 h-2 rounded ${
-                              enabled
-                                ? (stage < application.currentStage
-                                    ? 'bg-green-500'
-                                    : stage === application.currentStage
-                                      ? 'bg-blue-500'
-                                      : 'bg-gray-200')
-                                : 'bg-gray-200 opacity-50'
-                            }`}
-                          />
-                        );
+                    {[1, 2, 3, 4, 5, 6].map((stageNum) => {
+                      const stageObj = application[`stage${stageNum}`];
+                      let color = 'bg-gray-200';
+                      if (stageObj?.status === 'agreed' || stageObj?.status === 'complete' || stageObj?.status === 'signed_online' || stageObj?.status === 'signed_physical' || stageObj?.status === 'scheduled' || stageObj?.status === 'confirmed' || stageObj?.status === 'sent' || stageObj?.status === 'received' || stageObj?.status === 'completed') {
+                        color = 'bg-green-500';
+                      } else if (stageObj?.enabled || stageNum === 1) {
+                        color = 'bg-blue-500';
                       }
                       return (
                         <div
-                          key={stage}
-                          className={`flex-1 h-2 rounded ${
-                            stage < application.currentStage
-                              ? 'bg-green-500'
-                              : stage === application.currentStage
-                                ? 'bg-blue-500'
-                                : 'bg-gray-200'
-                          }`}
+                          key={stageNum}
+                          className={`flex-1 h-2 rounded ${color}`}
                         />
                       );
                     })}
