@@ -25,6 +25,7 @@ export interface TenancyApplication {
     viewingDetails?: {
       date?: string;
       time?: string;
+      note?: string;
     };
   };
 

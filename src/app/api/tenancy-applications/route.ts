@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { ObjectId } from "mongodb";
 import { getCollection } from "@/lib/db";
+import { requireSession, validateObjectId, checkDuplicate } from "@/lib/api-utils";
 import {
   createTenancyApplication,
   TenancyApplication
@@ -20,9 +21,11 @@ type QueryFilter = {
 // POST /api/tenancy-applications - Create new tenancy application
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    const body = await req.json();
+    // Validate session
+    const session = await requireSession(req);
+    if (session instanceof Response) return session;
 
+    const body = await req.json();
     const {
       propertyId,
       applicantName,
@@ -40,28 +43,29 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate ObjectId
+    const invalidId = validateObjectId(propertyId, "propertyId");
+    if (invalidId instanceof Response) return invalidId;
+
     // Get property to verify it exists and get landlord
     const properties = await getCollection('properties');
     const property = await properties.findOne({ _id: new ObjectId(propertyId) });
-
     if (!property) {
       return NextResponse.json({ error: "Property not found" }, { status: 404 });
     }
 
-    // Check if user already has an application for this property
+    // Check for duplicate application
     const applications = await getCollection('tenancy_applications');
-    const existingApplication = await applications.findOne({
-      propertyId: new ObjectId(propertyId),
-      applicantEmail: applicantEmail.toLowerCase(),
-      status: { $in: ['draft', 'in_progress'] }
-    });
-
-    if (existingApplication) {
-      return NextResponse.json(
-        { error: "You already have an active application for this property" },
-        { status: 409 }
-      );
-    }
+    const duplicate = await checkDuplicate(
+      applications,
+      {
+        propertyId: new ObjectId(propertyId),
+        applicantEmail: applicantEmail.toLowerCase(),
+        status: { $in: ['draft', 'in_progress'] }
+      },
+      "You already have an active application for this property"
+    );
+    if (duplicate instanceof Response) return duplicate;
 
     // Create the tenancy application
     const application: Omit<TenancyApplication, '_id' | 'createdAt' | 'updatedAt'> = {
@@ -73,13 +77,11 @@ export async function POST(req: NextRequest) {
       applicantAddress,
       isAnonymous: !session?.user?.id,
       landlordId: property.landlordId,
-
       stage1: {
         status: viewingType ? 'agreed' : 'pending',
         viewingType: viewingType || null,
         agreedAt: viewingType ? new Date().toISOString() : undefined
       },
-
       stage2: {
         status: backgroundCheckConsents ? 'agreed' : 'pending',
         creditCheckConsent: backgroundCheckConsents?.creditCheck || false,
@@ -91,7 +93,6 @@ export async function POST(req: NextRequest) {
           status: 'not_started'
         }
       },
-
       stage3: {
         status: 'pending',
         deliveryMethod: null,
@@ -103,22 +104,18 @@ export async function POST(req: NextRequest) {
           otherDocuments: []
         }
       },
-
       stage4: {
         status: 'pending'
       },
-
       stage5: {
         status: 'pending'
       },
-
       stage6: {
         status: 'pending',
         inventoryCompleted: false,
         finalDocumentsSent: false,
         keysHandedOver: false
       },
-
       status: 'in_progress',
       currentStage: backgroundCheckConsents ? 3 : (viewingType ? 2 : 1)
     };
@@ -128,10 +125,8 @@ export async function POST(req: NextRequest) {
     // Send notification to applicant if logged in and has contact preferences
     if (session?.user?.email) {
       try {
-        // Get user's contact preferences
         const users = await getCollection('users');
         const user = await users.findOne({ email: session.user.email });
-
         if (user?.profile?.contactPreferences) {
           const template = NotificationTemplates.applicationSubmitted(property.title);
           await notificationService.sendToUser(
@@ -143,7 +138,6 @@ export async function POST(req: NextRequest) {
           );
         }
       } catch (notificationError) {
-        // Don't fail the application creation if notification fails
         console.error('Error sending notification:', notificationError);
       }
     }
@@ -153,7 +147,6 @@ export async function POST(req: NextRequest) {
       applicationId: result._id?.toString(),
       currentStage: application.currentStage
     });
-
   } catch (error) {
     console.error('Error creating tenancy application:', error);
     return NextResponse.json(

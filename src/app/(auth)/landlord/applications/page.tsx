@@ -7,28 +7,17 @@ import Link from "next/link";
 
 export const dynamic = 'force-dynamic';
 
-interface TenancyApplication {
-  _id: ObjectId;
-  propertyId: ObjectId;
-  applicantName: string;
-  applicantEmail: string;
-  currentStage: number;
-  status: string;
-  createdAt: string;
-  stage1: { status: string };
-  stage2: { status: string; enabled?: boolean };
-  stage3: { status: string };
-  stage4: { status: string };
-  stage5: { status: string };
-  stage6: { status: string };
-}
 
-async function getLandlordApplications(landlordId: string) {
+import type { TenancyApplication } from '@/lib/tenancy-application';
+
+async function getLandlordApplications(landlordId: string): Promise<TenancyApplication[]> {
   const applications = await getCollection('tenancy_applications');
-  return await applications
+  const results = await applications
     .find({ landlordId: new ObjectId(landlordId) })
     .sort({ createdAt: -1 })
     .toArray();
+  // Cast each result to TenancyApplication (runtime check omitted for brevity)
+  return results as TenancyApplication[];
 }
 
 async function getPropertyTitle(propertyId: string) {
@@ -47,7 +36,7 @@ export default async function LandlordTenancyApplicationsPage() {
 
   // Get property titles for each application
   const applicationsWithTitles = await Promise.all(
-    applications.map(async (app: TenancyApplication) => ({
+    applications.map(async (app) => ({
       ...app,
       propertyTitle: await getPropertyTitle(app.propertyId.toString())
     }))
@@ -91,7 +80,7 @@ export default async function LandlordTenancyApplicationsPage() {
       ) : (
         <div className="space-y-4">
           {applicationsWithTitles.map((application: TenancyApplication & { propertyTitle: string }) => {
-            // Debug removed
+            if (!application._id) return null;
             return (
               <div key={application._id.toString()} className="bg-white rounded-lg shadow p-6">
                 {/* Debug output removed */}
@@ -115,7 +104,7 @@ export default async function LandlordTenancyApplicationsPage() {
                 <div className="mb-4">
                   <div className="flex justify-between text-xs text-gray-500 mb-2">
                     <span>Stage 1</span>
-                    <span className={application.stage2?.enabled === true ? '' : 'opacity-50'}>Stage 2</span>
+                    <span>Stage 2</span>
                     <span>Stage 3</span>
                     <span>Stage 4</span>
                     <span>Stage 5</span>
@@ -123,11 +112,11 @@ export default async function LandlordTenancyApplicationsPage() {
                   </div>
                   <div className="flex space-x-1">
                     {[1, 2, 3, 4, 5, 6].map((stageNum) => {
-                      const stageObj = application[`stage${stageNum}`];
+                      const stageObj = (application as any)[`stage${stageNum}`];
                       let color = 'bg-gray-200';
                       if (stageObj?.status === 'agreed' || stageObj?.status === 'complete' || stageObj?.status === 'signed_online' || stageObj?.status === 'signed_physical' || stageObj?.status === 'scheduled' || stageObj?.status === 'confirmed' || stageObj?.status === 'sent' || stageObj?.status === 'received' || stageObj?.status === 'completed') {
                         color = 'bg-green-500';
-                      } else if (stageObj?.enabled || stageNum === 1) {
+                      } else if (stageNum === 1) {
                         color = 'bg-blue-500';
                       }
                       return (
