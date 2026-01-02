@@ -29,10 +29,10 @@ export default async function HomePage() {
           <h3 className="text-2xl font-bold text-indigo-700 mb-2">List your property with Rentsimple!</h3>
           <p className="text-lg text-slate-600 mb-4">No properties found. Be the first to reach thousands of renters—submit your property today.</p>
           <Link
-            href="/landlord/properties/new"
+            href="/register"
             className="bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition"
           >
-            Submit a Property
+            Register to list a property
           </Link>
         </div>
       ) : (

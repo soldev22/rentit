@@ -14,7 +14,10 @@ export async function POST(req: Request) {
     addressLine2,
     city,
     postcode,
+    applicationType,
+    landlordRegId,
   } = body;
+    // Ignore any landlordRegId or role input; always register as APPLICANT
 
   if (!email || !password || !name || !phone) {
     return NextResponse.json(
@@ -44,6 +47,8 @@ export async function POST(req: Request) {
     name,
     hashedPassword,
     role: "APPLICANT",
+    applicationType: applicationType || null,
+    landlordRegId: applicationType === "landlord" ? landlordRegId || null : null,
     profile: {
       phone: phone || null,
       address: {
@@ -60,6 +65,28 @@ export async function POST(req: Request) {
     },
     createdAt: new Date(),
   });
+
+  // Notify admin by email and SMS
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.RESEND_FROM_EMAIL;
+  const NotificationService = (await import("@/lib/notification")).NotificationService;
+  const notification = NotificationService.getInstance();
+  const subject = "New Registration on Rentsimple";
+  let message = `A new user has registered.\nName: ${name}\nEmail: ${email}\nPhone: ${phone}`;
+  if (applicationType) {
+    message += `\nApplication Type: ${applicationType}`;
+  }
+  if (applicationType === "landlord" && landlordRegId) {
+    message += `\nLandlord Registration ID: ${landlordRegId}`;
+  }
+  // Send email only (Resend)
+  if (adminEmail) {
+    await notification.sendNotification({
+      to: adminEmail,
+      subject,
+      message,
+      method: "email",
+    });
+  }
 
   return NextResponse.json({ success: true });
 }
