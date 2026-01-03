@@ -8,9 +8,10 @@ type Photo = { url: string; blobName: string; isHero?: boolean };
 
 export default function NewPropertyPage() {
   const router = useRouter();
-
-  const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [improvingDescription, setImprovingDescription] = useState(false);
+  const [originalDescription, setOriginalDescription] = useState<string | null>(null);
+  const [title, setTitle] = useState("");
   const [line1, setLine1] = useState("");
   const [city, setCity] = useState("");
   const [postcode, setPostcode] = useState("");
@@ -36,6 +37,8 @@ export default function NewPropertyPage() {
 
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [improvingTitle, setImprovingTitle] = useState(false);
+  const [originalTitle, setOriginalTitle] = useState<string | null>(null);
 
   function toggleArrayValue(arr: string[], set: (v: string[]) => void, value: string) {
     if (arr.includes(value)) set(arr.filter((a) => a !== value));
@@ -93,13 +96,76 @@ export default function NewPropertyPage() {
       prev.map((p, i) => ({ ...p, isHero: i === index }))
     );
   }
+  async function handleImproveDescription() {
+  if (!description.trim()) return;
+
+  setImprovingDescription(true);
+  setOriginalDescription((prev) => prev ?? description);
+
+  try {
+    const res = await fetch("/api/ai/improve-property-description", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ description }),
+    });
+
+    if (!res.ok) {
+      throw new Error("AI request failed");
+    }
+
+    const data = await res.json();
+    if (data?.improvedDescription) {
+      setDescription(data.improvedDescription);
+    }
+  } catch {
+    alert("Could not improve description right now.");
+  } finally {
+    setImprovingDescription(false);
+  }
+}
+
+
+  async function handleImproveTitle() {
+    if (!title.trim()) return;
+
+    setImprovingTitle(true);
+    setOriginalTitle((prev) => prev ?? title);
+
+    try {
+      const res = await fetch("/api/ai/improve-property-description", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: title }),
+      });
+
+      if (!res.ok) throw new Error("AI request failed");
+
+      const data = await res.json();
+      if (data?.improvedDescription) {
+        setTitle(data.improvedDescription.slice(0,35));
+      }
+    } catch {
+      alert("Could not improve title right now.");
+    } finally {
+      setImprovingTitle(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
+    // Always use the latest hero selection from state
+    let updatedPhotos = photos;
+    // If no photo is marked as hero, set the first photo as hero
+    if (photos.length > 0 && !photos.some(p => p.isHero)) {
+      updatedPhotos = photos.map((p, i) => ({ ...p, isHero: i === 0 }));
+    }
+
     const body = {
       title,
       description: description || undefined,
+      descriptionSource: originalDescription ? "AI" : "USER",
+      originalDescription: originalDescription || undefined,
       rentPcm: Number(rentPcm),
       deposit: deposit ? Number(deposit) : undefined,
       status,
@@ -107,7 +173,7 @@ export default function NewPropertyPage() {
       virtualTourUrl: virtualTourUrl || undefined,
       viewingInstructions,
       address: { line1, city, postcode },
-      photos,
+      photos: updatedPhotos,
       furnished,
       bedrooms: bedrooms ? Number(bedrooms) : undefined,
       bathrooms: bathrooms ? Number(bathrooms) : undefined,
@@ -158,13 +224,60 @@ export default function NewPropertyPage() {
           <div className="grid gap-4 sm:grid-cols-1">
             <div>
               <label className="block text-sm font-medium text-slate-700">Title</label>
-              <input aria-label="Title" id="title" required value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1 block w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              <input
+                aria-label="Title"
+                id="title"
+                required
+                value={title}
+                maxLength={35}
+                onChange={(e) => setTitle(e.target.value.slice(0, 35))}
+                className="mt-1 block w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <div className="flex items-center gap-3 mt-2">
+                <button
+                  type="button"
+                  onClick={handleImproveTitle}
+                  disabled={improvingTitle || !title.trim()}
+                  className="rounded-md border px-3 py-1.5 text-sm bg-slate-50 hover:bg-slate-100 disabled:opacity-50"
+                >
+                  {improvingTitle ? "Improving…" : "Improve with AI"}
+                </button>
+                {originalTitle && (
+                  <span className="text-xs text-slate-500">
+                    You can edit this text before saving
+                  </span>
+                )}
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Description</label>
-              <textarea aria-label="Description" value={description} onChange={(e) => setDescription(e.target.value)} className="mt-1 block w-full rounded-md border px-3 py-2 min-h-[120px] resize-vertical focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-            </div>
+           <div>
+  <label className="block text-sm font-medium text-slate-700">Description</label>
+
+  <textarea
+    aria-label="Description"
+    value={description}
+    onChange={(e) => setDescription(e.target.value)}
+    className="mt-1 block w-full rounded-md border px-3 py-2 min-h-[120px] resize-vertical focus:outline-none focus:ring-2 focus:ring-indigo-500"
+  />
+
+  <div className="flex items-center gap-3 mt-2">
+    <button
+      type="button"
+      onClick={handleImproveDescription}
+      disabled={improvingDescription || !description.trim()}
+      className="rounded-md border px-3 py-1.5 text-sm bg-slate-50 hover:bg-slate-100 disabled:opacity-50"
+    >
+      {improvingDescription ? "Improving…" : "Improve with AI"}
+    </button>
+
+    {originalDescription && (
+      <span className="text-xs text-slate-500">
+        You can edit this text before saving
+      </span>
+    )}
+  </div>
+</div>
+
           </div>
         </section>
 

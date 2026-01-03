@@ -37,12 +37,17 @@ export default async function AdminUsersPage() {
     console.error("[ADMIN USERS] Error fetching users:", err);
   }
 
+  const allowedRoles = ["ADMIN", "LANDLORD", "TENANT", "APPLICANT", "TRADESPERSON"] as const;
+  type AllowedRole = typeof allowedRoles[number];
+
   const safeUsers = Array.isArray(users)
     ? users.map((u) => ({
         _id: u?._id?.toString?.() ?? "",
         name: u?.name ?? "",
         email: u?.email ?? "",
-        role: u?.role ?? "",
+        role: allowedRoles.includes((u?.role ?? "") as AllowedRole)
+          ? (u?.role as AllowedRole)
+          : "TENANT",
         status: (["ACTIVE", "PAUSED", "INVITED"].includes(u?.status ?? "") ? u?.status : "ACTIVE") as "ACTIVE" | "PAUSED" | "INVITED",
         createdAt: u?.createdAt ? u.createdAt.toISOString() : undefined,
       }))

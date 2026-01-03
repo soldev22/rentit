@@ -293,12 +293,13 @@ async function handleSave() {
 
             {/* RIGHT COLUMN */}
             <div className="space-y-4">
-              <Input
-                id="title"
-                label="Title"
-                value={form.title}
-                onChange={(v) => update("title", v)}
-              />
+           <Input
+  id="title"
+  label="Title"
+  value={form.title}
+  onChange={(v) => update("title", v.slice(0, 35))}
+/>
+
 
               <Textarea
                 id="description"

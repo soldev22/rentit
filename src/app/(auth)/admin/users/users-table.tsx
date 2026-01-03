@@ -8,7 +8,7 @@ type User = {
   _id: string;
   email: string;
   name?: string;
-  role: string;
+  role: "ADMIN" | "LANDLORD" | "TENANT" | "APPLICANT" | "TRADESPERSON";
   status: "ACTIVE" | "INVITED" | "PAUSED";
   createdAt?: string;
 };
@@ -161,7 +161,11 @@ export default function UsersTable({ users }: { users: User[] }) {
             setUsersState((prev) =>
               prev.map((u) =>
                 u._id === updated._id
-                  ? { ...u, role: updated.role, status: updated.status }
+                  ? {
+                      ...u,
+                      role: updated.role as User["role"],
+                      status: updated.status as User["status"],
+                    }
                   : u
               )
             );

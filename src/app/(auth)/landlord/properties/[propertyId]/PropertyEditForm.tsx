@@ -29,7 +29,6 @@ type Property = {
   }[];
 };
 
-
 export default function EditPropertyModal({
   property,
   onClose,
@@ -46,11 +45,10 @@ export default function EditPropertyModal({
     rentPcm: property.rentPcm,
     deposit: property.deposit ?? "",
     status: property.status,
-amenities: property.amenities ? [...property.amenities] : [],
+    amenities: property.amenities ? [...property.amenities] : [],
     virtualTourUrl: property.virtualTourUrl ?? "",
     viewingInstructions: property.viewingInstructions ?? "",
   });
-
 
   const [interestIdx, setInterestIdx] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
@@ -121,15 +119,12 @@ amenities: property.amenities ? [...property.amenities] : [],
         {/* SCROLL AREA */}
         <div className="px-6 py-6 overflow-y-auto flex-1">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-
             {/* LEFT COLUMN */}
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium mb-1">
                   Property Images
                 </label>
-                
-        
               </div>
 
               {property.interests?.length ? (
@@ -160,38 +155,62 @@ amenities: property.amenities ? [...property.amenities] : [],
 
             {/* RIGHT COLUMN */}
             <div className="space-y-4">
-              <Input id="title" label="Title" value={form.title}
-                onChange={(v : string) => update("title", v)} />
+              <Input
+                id="title"
+                label="Title"
+                value={form.title}
+                onChange={(v: string) => update("title", v)}
+              />
 
-              <Textarea id="description" label="Description"
+              <Textarea
+                id="description"
+                label="Description"
                 value={form.description}
-                onChange={(v:string) => update("description", v)} />
+                onChange={(v: string) => update("description", v)}
+              />
 
-              <Input id="line1" label="Address line"
+              <Input
+                id="line1"
+                label="Address line"
                 value={form.line1}
-                onChange={(v: string) => update("line1", v)} />
+                onChange={(v: string) => update("line1", v)}
+              />
 
               <div className="grid grid-cols-2 gap-3">
-                <Input id="city" label="City"
+                <Input
+                  id="city"
+                  label="City"
                   value={form.city}
-                  onChange={(v: string) => update("city", v)} />
-                <Input id="postcode" label="Postcode"
+                  onChange={(v: string) => update("city", v)}
+                />
+                <Input
+                  id="postcode"
+                  label="Postcode"
                   value={form.postcode}
-                  onChange={(v: string) => update("postcode", v)} />
+                  onChange={(v: string) => update("postcode", v)}
+                />
               </div>
 
-              <Input id="rent" label="Rent (pcm)" type="number"
+              <Input
+                id="rent"
+                label="Rent (pcm)"
+                type="number"
                 value={String(form.rentPcm)}
-                onChange={(v: string) => update("rentPcm", Number(v))} />
+                onChange={(v: string) => update("rentPcm", Number(v))}
+              />
 
-              <Input id="deposit" label="Deposit (GBP)" type="number"
+              <Input
+                id="deposit"
+                label="Deposit (GBP)"
+                type="number"
                 value={String(form.deposit)}
-                onChange={(v:string) => update("deposit", v)} />
+                onChange={(v: string) => update("deposit", v)}
+              />
 
               <div>
                 <label className="block text-sm font-medium mb-1">Amenities</label>
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  {["garden","balcony","dishwasher","parking","lift","communal","concierge","washing_machine"].map(a => (
+                  {["garden", "balcony", "dishwasher", "parking", "lift", "communal", "concierge", "washing_machine"].map((a) => (
                     <label key={a} className="flex gap-2 items-center">
                       <input
                         type="checkbox"
@@ -205,21 +224,26 @@ amenities: property.amenities ? [...property.amenities] : [],
                 </div>
               </div>
 
-              <Input id="tour" label="Virtual tour URL"
+              <Input
+                id="tour"
+                label="Virtual tour URL"
                 value={form.virtualTourUrl}
-                onChange={(v: string) => update("virtualTourUrl", v)} />
+                onChange={(v: string) => update("virtualTourUrl", v)}
+              />
 
-              <Textarea id="viewing" label="Viewing instructions"
+              <Textarea
+                id="viewing"
+                label="Viewing instructions"
                 value={form.viewingInstructions}
-                onChange={(v: string) => update("viewingInstructions", v)} />
+                onChange={(v: string) => update("viewingInstructions", v)}
+              />
               <Select
                 id="status"
                 label="Status"
                 value={form.status}
                 onChange={(v: string) => update("status", v)}
-                options={["draft","listed","paused","let","breached"]}
+                options={["draft", "listed", "paused", "let", "breached"]}
               />
-
             </div>
           </div>
 
@@ -243,8 +267,6 @@ amenities: property.amenities ? [...property.amenities] : [],
           </div>
         </div>
       </div>
-
-    
 
       {interestIdx !== null && property.interests && (
         <InterestDialog
@@ -301,7 +323,10 @@ function Input({
         placeholder={label}
         type={type}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        maxLength={id === "title" ? 35 : undefined}
+        onChange={(e) =>
+          onChange(id === "title" ? e.target.value.slice(0, 35) : e.target.value)
+        }
         className="w-full border rounded px-3 py-2"
       />
     </div>

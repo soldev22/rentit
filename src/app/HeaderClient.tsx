@@ -25,7 +25,7 @@ export default function HeaderClient() {
             priority
           />
           <span className="text-lg font-semibold tracking-tight">
-            Rentsimple
+            Rentsimple V1.0
           </span>
         </Link>
 
