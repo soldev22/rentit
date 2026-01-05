@@ -10,15 +10,15 @@ export default function ContactPage() {
       <p className="text-lg text-slate-700">We would love to hear from you! Reach out for support, questions, or partnership opportunities.</p>
       <section className="mt-6">
         <h2 className="text-xl font-semibold mb-2">Email</h2>
-        <p><a href="mailto:info@rentsimple.com" className="text-indigo-600 hover:underline">info@rentsimple.com</a></p>
+        <p><a href="mailto:info@rentsimple.co.uk" className="text-indigo-600 hover:underline">info@rentsimple.co.uk</a></p>
       </section>
       <section className="mt-6">
         <h2 className="text-xl font-semibold mb-2">Phone</h2>
-        <p>+44 1234 567890</p>
+        <p>+44 (0)7739870670</p>
       </section>
       <section className="mt-6">
         <h2 className="text-xl font-semibold mb-2">Address</h2>
-        <p>123 Main Street, London, UK</p>
+        <p>The Crown Hub,Main Street,Thornton, Fife, KY1 4AF </p>
       </section>
     </main>
   );

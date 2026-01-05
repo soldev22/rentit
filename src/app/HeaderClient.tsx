@@ -25,7 +25,7 @@ export default function HeaderClient() {
             priority
           />
           <span className="text-lg font-semibold tracking-tight">
-            Rentsimple V1.0
+            Rentsimple <span className="text-xs">V2.0</span>
           </span>
         </Link>
 
@@ -43,7 +43,7 @@ export default function HeaderClient() {
         {/* Navigation links */}
         <nav className="hidden md:flex gap-6 ml-8">
           <Link href="/" className="hover:underline font-medium">Home</Link>
-          <Link href="/public/properties" className="hover:underline font-medium">Properties</Link>
+          {/* <Link href="/public/properties" className="hover:underline font-medium">Properties</Link> */}
           <Link href="/who-we-are" className="hover:underline font-medium">Who We Are</Link>
           <Link href="/contact" className="hover:underline font-medium">Contact</Link>
         </nav>
@@ -135,7 +135,7 @@ export default function HeaderClient() {
         <div className="md:hidden bg-blue-600 border-t border-blue-700">
           <div className="px-4 py-3 flex flex-col gap-3">
             <Link href="/" className="hover:underline font-medium">Home</Link>
-            <Link href="/public/properties" className="hover:underline font-medium">Properties</Link>
+            {/* <Link href="/public/properties" className="hover:underline font-medium">Properties</Link> */}
             <Link href="/who-we-are" className="hover:underline font-medium">Who We Are</Link>
             <Link href="/contact" className="hover:underline font-medium">Contact</Link>
             <div className="pt-2 border-t border-blue-700"></div>

@@ -1,16 +1,22 @@
 import { getAllPublicProperties } from '@/lib/property';
-import PropertyFilters from '@/components/PropertyFilters';
 import PropertyCard from '@/components/PropertyCard';
-import React, { Suspense } from 'react';
+import React from 'react';
 
+// --- PAGE SERVER COMPONENT ---
 export const metadata = {
   title: 'Available Properties | Rentsimple',
   description: 'Browse all available rental properties. Share this page with anyone!'
 };
 
+import FilterBar from "./FilterBar"; // Import directly (FilterBar must be a client component)
+
 export default async function PublicPropertiesPage({ searchParams }: { searchParams?: { city?: string; minRent?: string; maxRent?: string; rooms?: string; hasHero?: string } | Promise<{ city?: string; minRent?: string; maxRent?: string; rooms?: string; hasHero?: string }> }) {
   // `searchParams` may be a Promise in some Next.js runtimes; unwrap it safely before use
-  const resolvedSearchParams = typeof (searchParams as any)?.then === 'function' ? await (searchParams as any) : searchParams;
+  function isPromise<T>(value: T | Promise<T>): value is Promise<T> {
+    return typeof (value as Promise<T>)?.then === 'function';
+  }
+  const resolvedSearchParams =
+    isPromise(searchParams) ? await searchParams : searchParams;
 
   const filters = {
     city: resolvedSearchParams?.city,
@@ -29,17 +35,35 @@ export default async function PublicPropertiesPage({ searchParams }: { searchPar
         <p className="text-sm text-slate-500">Browse all listed properties. Share this page with anyone interested!</p>
       </header>
 
-      <Suspense fallback={<div className="text-sm text-slate-400">Loading filters…</div>}>
-        <PropertyFilters />
-      </Suspense>
+      <FilterBar />
 
       <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         {properties.length === 0 ? (
           <div className="col-span-full text-slate-400">No properties currently listed.</div>
         ) : (
-          properties.map((property: any) => (
-            <PropertyCard key={property._id} property={property} />
-          ))
+          properties
+            .filter(
+              (property: {
+                _id: string;
+                title: string;
+                rentPcm: number;
+                status: string;
+                [key: string]: unknown;
+              }) =>
+                property &&
+                typeof property.title === 'string' &&
+                typeof property.rentPcm !== 'undefined' &&
+                typeof property.status === 'string'
+            )
+            .map((property: {
+              _id: string;
+              title: string;
+              rentPcm: number;
+              status: string;
+              [key: string]: unknown;
+            }) => (
+              <PropertyCard key={property._id} property={property} />
+            ))
         )}
       </section>
     </main>

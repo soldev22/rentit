@@ -1,14 +1,40 @@
 import Link from "next/link";
 import ApplyButton from "./ApplyButton";
 
-export default function PropertyCard({ property }: { property: any }) {
+interface PropertyPhoto {
+  url: string;
+  isHero?: boolean;
+}
+
+interface PropertyAddress {
+  line1?: string;
+  line2?: string; // Added line2 for the full address
+  city?: string;
+  postcode?: string; // Added postcode for the full address
+}
+
+interface Property {
+  _id: string;
+  title: string;
+  rentPcm: number;
+  photos?: PropertyPhoto[];
+  address?: PropertyAddress;
+  bedrooms?: number;
+  bathrooms?: number;
+  sizeSqm?: number;
+  furnished?: string;
+  status: string;
+  interests?: { userId: string; date: string }[]; // Adjust fields as per actual interest structure
+}
+
+export default function PropertyCard({ property }: { property: Property }) {
   return (
     <article data-testid={`property-card-${property._id}`} className="rounded-xl border bg-warm p-4 shadow-sm hover:shadow-md">
       <Link href={`/public/properties/${property._id}`} className="block" aria-label={`View property ${property.title}`}>
         <div className="w-full aspect-[4/3] rounded-md overflow-hidden mb-3 bg-gray-100 relative">
           {property.photos && property.photos.length > 0 ? (
             (() => {
-              const heroPhoto = property.photos.find((photo: any) => photo.isHero);
+              const heroPhoto = property.photos.find((photo: PropertyPhoto) => photo.isHero);
               const displayPhoto = heroPhoto || property.photos[0];
               return (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -28,7 +54,12 @@ export default function PropertyCard({ property }: { property: any }) {
           <div className="text-sm text-text-dark font-semibold" data-testid="property-price">£{property.rentPcm}</div>
         </div>
 
-        <p className="text-sm text-text-dark mt-1 truncate" data-testid="property-location">{property.address?.line1}, {property.address?.city}</p>
+        <div className="text-sm text-gray-700">
+          {property.address?.line1}
+          {property.address?.line2 && `, ${property.address.line2}`}
+          {property.address?.city && `, ${property.address.city}`}
+          {property.address?.postcode && `, ${property.address.postcode}`}
+        </div>
 
         <div className="mt-3 flex items-center justify-between">
           <div className="flex items-center gap-3 text-sm text-gray-600">

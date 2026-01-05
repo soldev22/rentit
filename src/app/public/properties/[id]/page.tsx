@@ -4,6 +4,7 @@ import PropertyGallery from '@/components/PropertyGallery';
 import ShareButtons from '@/components/ShareButtons';
 import ApplyButton from '@/components/ApplyButton';
 import { formatDateShort } from '@/lib/formatDate';
+import Link from "next/link";
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +38,11 @@ interface RawProperty {
   hmoLicenseRequired?: boolean;
   viewingInstructions?: string;
   status?: string;
-  photos?: Array<{ url: string }>;
+ photos?: Array<{
+  url: string;
+  isHero?: boolean;
+}>;
+
   createdAt?: Date | string;
   interests?: Array<{
     applicantId?: string;
@@ -84,26 +89,54 @@ async function getPropertyById(id: string) {
     hmoLicenseRequired: p.hmoLicenseRequired,
     viewingInstructions: p.viewingInstructions,
     status: p.status,
-    photos: (p.photos || []).map(photo => ({ url: photo.url })),
+   photos: (p.photos || []).map(photo => ({
+  url: photo.url,
+  isHero: photo.isHero === true,
+})),
+
     createdAt: p.createdAt,
     interests: p.interests || [],
   };
 }
 
-export default async function PropertyDetailPage({ params }: { params: { id: string } }) {
+export default async function PropertyDetailPage(
+  { params }: { params: { id: string } }
+) {
   const { id } = params;
   const property = await getPropertyById(id);
   if (!property) return <div className="p-6">Property not found</div>;
 
+  // Compose full address string
+  const address = [
+    property.address?.line1,
+    property.address?.line2,
+    property.address?.city,
+    property.address?.postcode,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  // Add a search/filter button above the property details
+  // (This is a server component, so use a link to the public properties page for filtering)
+  // If you want a client-side filter, convert this to a client component and use useRouter.
+
   return (
     <main className="mx-auto max-w-5xl p-6">
+      <div className="mb-6 flex justify-end">
+        <Link
+          href="/public/properties"
+          className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-white font-semibold hover:bg-indigo-700 transition"
+        >
+          Search Properties
+        </Link>
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
           <PropertyGallery photos={property.photos} />
 
           <div className="mt-4">
             <h1 className="text-3xl font-bold mb-1">{property.title}</h1>
-            <div className="text-sm text-gray-600 mb-3">{property.address?.line1}{property.address?.line2 && `, ${property.address.line2}`}, {property.address?.city} {property.address?.postcode}</div>
+            <div className="text-sm text-gray-600 mb-3">{address}</div>
 
             <div className="prose max-w-none">
               <p>{property.description}</p>
