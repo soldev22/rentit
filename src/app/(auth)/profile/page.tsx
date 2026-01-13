@@ -1,35 +1,15 @@
 "use client";
-import { useEffect, useState } from "react";
-import Image from "next/image";
 
-type PropertyPhoto = {
-  url: string;
-  isHero?: boolean;
-};
+import { useEffect, useState, type FormEvent } from "react";
 
-type Application = {
-  _id: string;
-  propertyTitle?: string;
-  propertyPhoto?: string | PropertyPhoto[];
-  propertyAddress?: string;
-  createdAt?: string;
-  status: string;
-};
+const labelClass = "block text-sm font-medium text-slate-700 mb-1";
+const inputClass =
+  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm " +
+  "placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 " +
+  "disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed";
+const helpClass = "mt-1 text-xs text-slate-500";
 
 export default function ProfilePage() {
-  // Applications state
-  const [applications, setApplications] = useState<Application[]>([]);
-
-  // Load tenancy applications for this user
-  useEffect(() => {
-    async function loadApplications() {
-      const res = await fetch("/api/tenancy-applications/me");
-      if (!res.ok) return;
-      const data = await res.json();
-      setApplications(data.applications || []);
-    }
-    loadApplications();
-  }, []);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
 
@@ -54,62 +34,69 @@ export default function ProfilePage() {
   // LOAD EXISTING DATA
   useEffect(() => {
     async function loadProfile() {
-      const res = await fetch("/api/profile");
-      if (!res.ok) {
+      try {
+        const res = await fetch("/api/profile");
+        if (!res.ok) {
+          setLoading(false);
+          return;
+        }
+
+        const data = await res.json();
+
+        setEmail(data.email ?? "");
+        setName(data.name ?? "");
+
+        setProfile({
+          phone: data.profile?.phone ?? "",
+          addressLine1: data.profile?.address?.line1 ?? "",
+          addressLine2: data.profile?.address?.line2 ?? "",
+          city: data.profile?.address?.city ?? "",
+          postcode: data.profile?.address?.postcode ?? "",
+        });
+
+        setContactPreferences({
+          email: data.profile?.contactPreferences?.email ?? true,
+          sms: data.profile?.contactPreferences?.sms ?? false,
+          whatsapp: data.profile?.contactPreferences?.whatsapp ?? false,
+        });
+      } finally {
         setLoading(false);
-        return;
       }
-
-      const data = await res.json();
-
-      setEmail(data.email ?? "");
-      setName(data.name ?? "");
-
-      setProfile({
-        phone: data.profile?.phone ?? "",
-        addressLine1: data.profile?.address?.line1 ?? "",
-        addressLine2: data.profile?.address?.line2 ?? "",
-        city: data.profile?.address?.city ?? "",
-        postcode: data.profile?.address?.postcode ?? "",
-      });
-
-      setContactPreferences({
-        email: data.profile?.contactPreferences?.email ?? true,
-        sms: data.profile?.contactPreferences?.sms ?? false,
-        whatsapp: data.profile?.contactPreferences?.whatsapp ?? false,
-      });
-
-      setLoading(false);
     }
 
     loadProfile();
   }, []);
 
-  async function saveProfile(e: React.FormEvent) {
+  async function saveProfile(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
     setMessage(null);
 
-    const res = await fetch("/api/profile", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        profile: {
-          phone: profile.phone,
-          address: {
-            line1: profile.addressLine1,
-            line2: profile.addressLine2,
-            city: profile.city,
-            postcode: profile.postcode,
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          profile: {
+            phone: profile.phone,
+            address: {
+              line1: profile.addressLine1,
+              line2: profile.addressLine2,
+              city: profile.city,
+              postcode: profile.postcode,
+            },
+            contactPreferences,
           },
-          contactPreferences,
-        },
-      }),
-    });
+        }),
+      });
 
-    setSaving(false);
-    setMessage(res.ok ? "Profile updated" : "Failed to save profile");
+      setMessage(res.ok ? "Profile updated" : "Failed to save profile");
+    } catch {
+      setMessage("Failed to save profile");
+    } finally {
+      setSaving(false);
+    }
   }
 
   const isIncomplete =
@@ -119,265 +106,262 @@ export default function ProfilePage() {
     !profile.city ||
     !profile.postcode;
 
-
   if (loading) {
     return (
-      <div className="p-6 font-sans">
-        Loading profile…
-      </div>
+      <main className="mx-auto max-w-xl p-4 sm:p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-6 w-32 rounded bg-slate-200" />
+          <div className="h-24 rounded-xl bg-slate-200" />
+          <div className="h-64 rounded-xl bg-slate-200" />
+        </div>
+      </main>
     );
   }
 
   return (
-    <div className="p-6 font-sans max-w-[520px] mx-auto">
-      <h2>My profile</h2>
-
-      {/* Applications Section */}
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-2">My Applications</h3>
-        {applications.length === 0 ? (
-          <div className="text-gray-500 text-sm">No applications found.</div>
-        ) : (
-          <ul className="p-0 list-none">
-            {applications.map((app) => (
-              <li key={app._id} className="mb-2.5 pb-2 border-b border-gray-200 last:border-b-0 last:mb-0 last:pb-0 flex items-center gap-4">
-                {/* Support propertyPhoto as string or array of images */}
-                {(() => {
-                  let photoUrl: string | undefined = undefined;
-                  if (Array.isArray(app.propertyPhoto) && app.propertyPhoto.length > 0) {
-                    const hero = (app.propertyPhoto as PropertyPhoto[]).find(
-                      (img: PropertyPhoto) => img.isHero && typeof img.url === 'string'
-                    );
-                    photoUrl = hero?.url || (typeof (app.propertyPhoto[0] as PropertyPhoto).url === 'string' ? (app.propertyPhoto[0] as PropertyPhoto).url : undefined);
-                  } else if (typeof app.propertyPhoto === 'string' && app.propertyPhoto.trim() !== '') {
-                    photoUrl = app.propertyPhoto;
-                  }
-                  return photoUrl ? (
-                    <Image
-                      src={photoUrl}
-                      alt="Property thumbnail"
-                      width={64}
-                      height={64}
-                      className="w-16 h-16 object-cover rounded"
-                    />
-                  ) : null;
-                })()}
-                <div className="flex-1">
-                  <span className="font-medium block">{app.propertyTitle || 'Property'}</span>
-                  {app.propertyAddress && (
-                    <div className="text-xs text-gray-500 mb-1">{app.propertyAddress}</div>
-                  )}
-                  <div className="text-sm text-slate-600">Applied: {app.createdAt ? new Date(app.createdAt).toLocaleDateString('en-GB') : ''}</div>
-                  <div className="text-sm text-slate-600">Status: {app.status}</div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+    <main className="mx-auto max-w-xl p-4 sm:p-6">
+      <header className="mb-5">
+        <h1 className="text-xl font-semibold text-slate-900">My profile</h1>
+        <p className="mt-1 text-sm text-slate-600">
+          Keep your contact details up to date so we can reach you quickly.
+        </p>
+      </header>
 
       {isIncomplete && (
-        <div
-          className="bg-amber-50 border border-amber-200 p-3 rounded-md mb-4 text-sm"
-        >
-          Please complete your profile. Missing details may delay bookings or
-          communication.
+        <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Please complete your profile. Missing details may delay bookings or communication.
         </div>
       )}
 
-      <form onSubmit={saveProfile}>
-        {/* EMAIL (READ ONLY) */}
-        <div className="mb-3">
-          <label htmlFor="email">Email</label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            disabled
-            title="Email address"
-            placeholder="name@example.com"
-            className="w-full p-2 border border-gray-300 rounded-md bg-slate-50 text-slate-600 cursor-not-allowed"
-          />
-          <small className="text-xs text-gray-500">
-            Email address can only be changed by an administrator.
-          </small>
-        </div>
+      <form onSubmit={saveProfile} className="space-y-5">
+        {/* ACCOUNT */}
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <h2 className="text-base font-semibold text-slate-900">Account</h2>
 
-        {/* NAME */}
-        <div className="mb-3">
-          <label htmlFor="name">Name</label>
-          <input
-            id="name"
-            type="text"
-            value={name}
-            required
-            title="Full name"
-            placeholder="Your full name"
-            onChange={(e) => setName(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-md"
-          />
-        </div>
+          <div className="mt-4 space-y-4">
+            <div>
+              <label className={labelClass} htmlFor="email">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                disabled
+                title="Email address"
+                placeholder="name@example.com"
+                className={inputClass}
+              />
+              <p className={helpClass}>
+                Email address can only be changed by an administrator.
+              </p>
+            </div>
 
-        {/* PHONE */}
-        <div className="mb-3">
-          <label htmlFor="phone">Phone</label>
-          <input
-            id="phone"
-            type="tel"
-            value={profile.phone}
-            required
-            title="Phone number"
-            placeholder="+44 7700 900000"
-            onChange={(e) =>
-              setProfile({ ...profile, phone: e.target.value })
-            }
-            className="w-full p-2 border border-gray-300 rounded-md"
-          />
-        </div>
+            <div>
+              <label className={labelClass} htmlFor="name">
+                Name
+              </label>
+              <input
+                id="name"
+                type="text"
+                value={name}
+                required
+                autoComplete="name"
+                placeholder="Your full name"
+                onChange={(e) => setName(e.target.value)}
+                className={inputClass}
+              />
+            </div>
 
-        {/* ADDRESS LINE 1 */}
-        <div className="mb-3">
-          <label htmlFor="addressLine1">Address line 1</label>
-          <input
-            id="addressLine1"
-            type="text"
-            value={profile.addressLine1}
-            required
-            title="Address line 1"
-            placeholder="Street address"
-            onChange={(e) =>
-              setProfile({ ...profile, addressLine1: e.target.value })
-            }
-            className="w-full p-2 border border-gray-300 rounded-md"
-          />
-        </div>
+            <div>
+              <label className={labelClass} htmlFor="phone">
+                Phone
+              </label>
+              <input
+                id="phone"
+                type="tel"
+                value={profile.phone}
+                required
+                autoComplete="tel"
+                inputMode="tel"
+                placeholder="+44 7700 900000"
+                onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                className={inputClass}
+              />
+            </div>
+          </div>
+        </section>
 
-        {/* ADDRESS LINE 2 */}
-        <div className="mb-3">
-          <label htmlFor="addressLine2">Address line 2</label>
-          <input
-            id="addressLine2"
-            type="text"
-            value={profile.addressLine2}
-            title="Address line 2"
-            placeholder="Apartment, suite, unit (optional)"
-            onChange={(e) =>
-              setProfile({ ...profile, addressLine2: e.target.value })
-            }
-            className="w-full p-2 border border-gray-300 rounded-md"
-          />
-        </div>
+        {/* ADDRESS */}
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <h2 className="text-base font-semibold text-slate-900">Address</h2>
 
-        {/* CITY */}
-        <div className="mb-3">
-          <label htmlFor="city">City</label>
-          <input
-            id="city"
-            type="text"
-            value={profile.city}
-            required
-            title="City"
-            placeholder="City"
-            onChange={(e) =>
-              setProfile({ ...profile, city: e.target.value })
-            }
-            className="w-full p-2 border border-gray-300 rounded-md"
-          />
-        </div>
+          <div className="mt-4 space-y-4">
+            <div>
+              <label className={labelClass} htmlFor="addressLine1">
+                Address line 1
+              </label>
+              <input
+                id="addressLine1"
+                type="text"
+                value={profile.addressLine1}
+                required
+                autoComplete="address-line1"
+                placeholder="Street address"
+                onChange={(e) =>
+                  setProfile({ ...profile, addressLine1: e.target.value })
+                }
+                className={inputClass}
+              />
+            </div>
 
-        {/* POSTCODE */}
-        <div className="mb-3">
-          <label htmlFor="postcode">Postcode</label>
-          <input
-            id="postcode"
-            type="text"
-            value={profile.postcode}
-            required
-            title="Postcode"
-            placeholder="Postal code"
-            onChange={(e) =>
-              setProfile({ ...profile, postcode: e.target.value })
-            }
-            className="w-full p-2 border border-gray-300 rounded-md"
-          />
-        </div>
+            <div>
+              <label className={labelClass} htmlFor="addressLine2">
+                Address line 2 <span className="text-slate-400">(optional)</span>
+              </label>
+              <input
+                id="addressLine2"
+                type="text"
+                value={profile.addressLine2}
+                autoComplete="address-line2"
+                placeholder="Apartment, suite, unit"
+                onChange={(e) =>
+                  setProfile({ ...profile, addressLine2: e.target.value })
+                }
+                className={inputClass}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className={labelClass} htmlFor="city">
+                  City
+                </label>
+                <input
+                  id="city"
+                  type="text"
+                  value={profile.city}
+                  required
+                  autoComplete="address-level2"
+                  placeholder="City"
+                  onChange={(e) => setProfile({ ...profile, city: e.target.value })}
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass} htmlFor="postcode">
+                  Postcode
+                </label>
+                <input
+                  id="postcode"
+                  type="text"
+                  value={profile.postcode}
+                  required
+                  autoComplete="postal-code"
+                  inputMode="text"
+                  placeholder="Postal code"
+                  onChange={(e) =>
+                    setProfile({ ...profile, postcode: e.target.value })
+                  }
+                  className={inputClass}
+                />
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* CONTACT PREFERENCES */}
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold mb-3">Contact Preferences</h3>
-          <p className="text-sm text-gray-600 mb-4">
-            Choose how you&apos;d like to receive notifications and updates about your applications.
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <h2 className="text-base font-semibold text-slate-900">
+            Contact preferences
+          </h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Choose how you&apos;d like to receive notifications and updates.
           </p>
 
-          <div className="space-y-3">
-            {/* EMAIL */}
-            <label className="flex items-center space-x-3">
+          <div className="mt-4 space-y-3">
+            <label className="flex items-start gap-3 rounded-xl border border-slate-200 p-3">
               <input
                 type="checkbox"
                 checked={contactPreferences.email}
                 onChange={(e) =>
-                  setContactPreferences({ ...contactPreferences, email: e.target.checked })
+                  setContactPreferences({
+                    ...contactPreferences,
+                    email: e.target.checked,
+                  })
                 }
-                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
               />
-              <div>
-                <span className="font-medium">📧 Email</span>
-                <p className="text-sm text-gray-500">Receive notifications via email</p>
+              <div className="min-w-0">
+                <div className="text-sm font-medium text-slate-900">Email</div>
+                <div className="text-sm text-slate-600">
+                  Receive notifications via email.
+                </div>
               </div>
             </label>
 
-            {/* SMS */}
-            <label className="flex items-center space-x-3">
+            <label className="flex items-start gap-3 rounded-xl border border-slate-200 p-3">
               <input
                 type="checkbox"
                 checked={contactPreferences.sms}
                 onChange={(e) =>
-                  setContactPreferences({ ...contactPreferences, sms: e.target.checked })
+                  setContactPreferences({
+                    ...contactPreferences,
+                    sms: e.target.checked,
+                  })
                 }
                 disabled={!profile.phone}
-                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50"
+                className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
               />
-              <div>
-                <span className="font-medium">📱 SMS Text</span>
-                <p className="text-sm text-gray-500">
-                  Receive notifications via SMS {!profile.phone && "(requires phone number)"}
-                </p>
+              <div className="min-w-0">
+                <div className="text-sm font-medium text-slate-900">SMS</div>
+                <div className="text-sm text-slate-600">
+                  Receive notifications by text{" "}
+                  {!profile.phone ? "(requires phone number)" : ""}.
+                </div>
               </div>
             </label>
 
-            {/* WHATSAPP */}
-            <label className="flex items-center space-x-3">
+            <label className="flex items-start gap-3 rounded-xl border border-slate-200 p-3">
               <input
                 type="checkbox"
                 checked={contactPreferences.whatsapp}
                 onChange={(e) =>
-                  setContactPreferences({ ...contactPreferences, whatsapp: e.target.checked })
+                  setContactPreferences({
+                    ...contactPreferences,
+                    whatsapp: e.target.checked,
+                  })
                 }
                 disabled={!profile.phone}
-                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50"
+                className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
               />
-              <div>
-                <span className="font-medium">💬 WhatsApp</span>
-                <p className="text-sm text-gray-500">
-                  Receive notifications via WhatsApp {!profile.phone && "(requires phone number)"}
-                </p>
+              <div className="min-w-0">
+                <div className="text-sm font-medium text-slate-900">WhatsApp</div>
+                <div className="text-sm text-slate-600">
+                  Receive notifications via WhatsApp{" "}
+                  {!profile.phone ? "(requires phone number)" : ""}.
+                </div>
               </div>
             </label>
           </div>
+        </section>
+
+        {/* ACTIONS */}
+        <div className="sticky bottom-0 -mx-4 border-t border-slate-200 bg-white/90 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0">
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full rounded-xl bg-blue-700 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-60"
+          >
+            {saving ? "Saving…" : "Save profile"}
+          </button>
+
+          {message && (
+            <p className="mt-2 text-center text-sm text-slate-700">{message}</p>
+          )}
         </div>
-
-        <button
-          type="submit"
-          disabled={saving}
-          className="bg-blue-700 text-white px-3.5 py-2 rounded-md border-none cursor-pointer mt-2 disabled:opacity-50"
-        >
-          {saving ? "Saving…" : "Save profile"}
-        </button>
-
-        {message && <p className="mt-3">{message}</p>}
       </form>
-    </div>
+    </main>
   );
 }
-
-
