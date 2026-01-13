@@ -34,7 +34,7 @@ export default function DashboardPage() {
         router.replace("/admin");
         break;
       case "APPLICANT":
-        router.replace("/applicant");
+        router.replace("/applicant/dashboard");
         break;
       case "TRADESPERSON":
         router.replace("/tradesperson");

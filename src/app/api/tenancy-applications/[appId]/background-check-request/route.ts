@@ -27,6 +27,28 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  // Ensure we have applicant contact details and explicit consent before proceeding.
+  if (!application.applicantEmail || !application.applicantTel) {
+    return NextResponse.json(
+      { error: "Applicant email and phone number are required before requesting a background check." },
+      { status: 400 }
+    );
+  }
+  const hasAllConsents =
+    application.stage2?.creditCheckConsent === true &&
+    application.stage2?.socialMediaConsent === true &&
+    application.stage2?.landlordReferenceConsent === true &&
+    application.stage2?.employerReferenceConsent === true;
+  if (!hasAllConsents) {
+    return NextResponse.json(
+      {
+        error:
+          "Cannot request background check: applicant has not granted all required consents (credit, social media, landlord reference, employer reference)."
+      },
+      { status: 400 }
+    );
+  }
+
   const token = crypto.randomBytes(32).toString("hex");
   const sentAt = new Date().toISOString();
 

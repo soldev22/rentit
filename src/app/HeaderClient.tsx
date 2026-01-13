@@ -29,9 +29,9 @@ export default function HeaderClient() {
           </span>
         </Link>
 
-        {/* Mobile menu button */}
+        {/* Mobile/tablet menu button */}
         <button
-          className="md:hidden ml-4 p-2 rounded-md hover:bg-white/10"
+          className="lg:hidden ml-4 p-2 rounded-md hover:bg-white/10"
           aria-label="Toggle menu"
           onClick={() => setShowMobileMenu((s) => !s)}
         >
@@ -41,14 +41,14 @@ export default function HeaderClient() {
         </button>
 
         {/* Navigation links */}
-        <nav className="hidden md:flex gap-6 ml-8">
+        <nav className="hidden lg:flex gap-6 ml-8">
           <Link href="/" className="hover:underline font-medium">Home</Link>
           {/* <Link href="/public/properties" className="hover:underline font-medium">Properties</Link> */}
           <Link href="/who-we-are" className="hover:underline font-medium">Who We Are</Link>
           <Link href="/contact" className="hover:underline font-medium">Contact</Link>
         </nav>
         {/* Right side (hidden on small, use mobile menu) */}
-        <div className="hidden sm:flex items-center gap-3">
+        <div className="hidden lg:flex items-center gap-3">
           {status === "loading" && (
             <span className="text-sm text-blue-200">
               Loading…
@@ -132,7 +132,7 @@ export default function HeaderClient() {
 
       {/* Mobile dropdown */}
       {showMobileMenu && (
-        <div className="md:hidden bg-blue-600 border-t border-blue-700">
+        <div className="lg:hidden bg-blue-600 border-t border-blue-700">
           <div className="px-4 py-3 flex flex-col gap-3">
             <Link href="/" className="hover:underline font-medium">Home</Link>
             {/* <Link href="/public/properties" className="hover:underline font-medium">Properties</Link> */}

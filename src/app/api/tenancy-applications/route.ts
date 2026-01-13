@@ -33,12 +33,38 @@ export async function POST(req: NextRequest) {
       applicantTel,
       applicantAddress,
       viewingType,
-      backgroundCheckConsents
+      backgroundCheckConsents,
+      referenceContacts
     } = body;
 
-    if (!propertyId || !applicantName || !applicantEmail) {
+    if (!propertyId || !applicantName || !applicantEmail || !applicantTel) {
       return NextResponse.json(
         { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    const consents = backgroundCheckConsents as
+      | {
+          creditCheck?: boolean;
+          socialMedia?: boolean;
+          landlordReference?: boolean;
+          employerReference?: boolean;
+        }
+      | undefined;
+
+    const hasAllConsents =
+      consents?.creditCheck === true &&
+      consents?.socialMedia === true &&
+      consents?.landlordReference === true &&
+      consents?.employerReference === true;
+
+    if (!hasAllConsents) {
+      return NextResponse.json(
+        {
+          error:
+            "You must grant consent for Credit Check, Social Media, Landlord Reference, and Employer Reference to continue."
+        },
         { status: 400 }
       );
     }
@@ -68,6 +94,26 @@ export async function POST(req: NextRequest) {
     if (duplicate instanceof Response) return duplicate;
 
     // Create the tenancy application
+    const stage1Status = viewingType ? 'agreed' : 'pending';
+
+    const rc = (referenceContacts ?? {}) as Partial<NonNullable<TenancyApplication['stage2']>['referenceContacts']>;
+    const clean = (v: unknown) => (typeof v === 'string' ? v.trim().slice(0, 200) : undefined);
+    const nextReferenceContacts = {
+      employerName: clean(rc.employerName),
+      employerEmail: clean(rc.employerEmail),
+      previousEmployerName: clean(rc.previousEmployerName),
+      previousEmployerEmail: clean(rc.previousEmployerEmail),
+      prevLandlordName: clean(rc.prevLandlordName),
+      prevLandlordContact: clean(rc.prevLandlordContact),
+      prevLandlordEmail: clean(rc.prevLandlordEmail),
+      updatedAt: new Date().toISOString(),
+      source: 'application' as const,
+    };
+
+    const hasAnyReferenceContact = Object.values(nextReferenceContacts).some(
+      (v) => typeof v === 'string' && v.length > 0
+    );
+
     const application: Omit<TenancyApplication, '_id' | 'createdAt' | 'updatedAt'> = {
       propertyId: new ObjectId(propertyId),
       applicantId: session?.user?.id ? new ObjectId(session.user.id) : undefined,
@@ -78,20 +124,21 @@ export async function POST(req: NextRequest) {
       isAnonymous: !session?.user?.id,
       landlordId: property.landlordId,
       stage1: {
-        status: viewingType ? 'agreed' : 'pending',
+        status: stage1Status,
         viewingType: viewingType || null,
         agreedAt: viewingType ? new Date().toISOString() : undefined
       },
       stage2: {
-        status: backgroundCheckConsents ? 'agreed' : 'pending',
-        creditCheckConsent: backgroundCheckConsents?.creditCheck || false,
-        socialMediaConsent: backgroundCheckConsents?.socialMedia || false,
-        landlordReferenceConsent: backgroundCheckConsents?.landlordReference || false,
-        employerReferenceConsent: backgroundCheckConsents?.employerReference || false,
-        agreedAt: backgroundCheckConsents ? new Date().toISOString() : undefined,
+        status: 'agreed',
+        creditCheckConsent: true,
+        socialMediaConsent: true,
+        landlordReferenceConsent: true,
+        employerReferenceConsent: true,
+        agreedAt: new Date().toISOString(),
         creditCheck: {
           status: 'not_started'
-        }
+        },
+        referenceContacts: hasAnyReferenceContact ? nextReferenceContacts : undefined,
       },
       stage3: {
         status: 'pending',
@@ -117,7 +164,7 @@ export async function POST(req: NextRequest) {
         keysHandedOver: false
       },
       status: 'in_progress',
-      currentStage: backgroundCheckConsents ? 3 : (viewingType ? 2 : 1)
+      currentStage: stage1Status === 'agreed' ? 3 : 1
     };
 
     const result = await createTenancyApplication(application);
@@ -136,6 +183,28 @@ export async function POST(req: NextRequest) {
             template.subject,
             template.message
           );
+        }
+
+        // Persist reference contacts into profile for auto-fill next time
+        if (hasAnyReferenceContact) {
+          const setOps: Record<string, unknown> = {};
+          if (nextReferenceContacts.employerName) setOps['profile.backgroundCheck.employerName'] = nextReferenceContacts.employerName;
+          if (nextReferenceContacts.employerEmail) setOps['profile.backgroundCheck.employerEmail'] = nextReferenceContacts.employerEmail;
+          if (nextReferenceContacts.previousEmployerName) setOps['profile.backgroundCheck.previousEmployerName'] = nextReferenceContacts.previousEmployerName;
+          if (nextReferenceContacts.previousEmployerEmail) setOps['profile.backgroundCheck.previousEmployerEmail'] = nextReferenceContacts.previousEmployerEmail;
+          if (nextReferenceContacts.prevLandlordName) setOps['profile.backgroundCheck.prevLandlordName'] = nextReferenceContacts.prevLandlordName;
+          if (nextReferenceContacts.prevLandlordContact) setOps['profile.backgroundCheck.prevLandlordContact'] = nextReferenceContacts.prevLandlordContact;
+          if (nextReferenceContacts.prevLandlordEmail) setOps['profile.backgroundCheck.prevLandlordEmail'] = nextReferenceContacts.prevLandlordEmail;
+          setOps['profile.backgroundCheck.updatedAt'] = new Date().toISOString();
+
+          if (Object.keys(setOps).length > 0) {
+            await users.updateOne(
+              { email: session.user.email },
+              {
+                $set: setOps,
+              }
+            );
+          }
         }
       } catch (notificationError) {
         console.error('Error sending notification:', notificationError);

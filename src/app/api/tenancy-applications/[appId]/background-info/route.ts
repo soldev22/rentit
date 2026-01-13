@@ -35,11 +35,16 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
   const formData = await req.formData();
   const employmentStatus = formData.get("employmentStatus")?.toString() || "";
   const employerName = formData.get("employerName")?.toString() || "";
+  const employerEmail = formData.get("employerEmail")?.toString() || "";
+  const previousEmployerName = formData.get("previousEmployerName")?.toString() || "";
+  const previousEmployerEmail = formData.get("previousEmployerEmail")?.toString() || "";
+  const employmentContractType = formData.get("employmentContractType")?.toString() || "";
   const jobTitle = formData.get("jobTitle")?.toString() || "";
   const monthlyIncome = parseFloat(formData.get("monthlyIncome")?.toString() || "0");
   const employmentLength = formData.get("employmentLength")?.toString() || "";
   const prevLandlordName = formData.get("prevLandlordName")?.toString() || "";
   const prevLandlordContact = formData.get("prevLandlordContact")?.toString() || "";
+  const prevLandlordEmail = formData.get("prevLandlordEmail")?.toString() || "";
   const creditConsent = formData.get("creditConsent") === "on";
   const photoIdFrontFile = formData.get("photoIdFront");
   const photoIdBackFile = formData.get("photoIdBack");
@@ -67,8 +72,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
   }
 
   // Validate back file if present
-  let fileBack = null;
-  let fileBackName = null;
+  let fileBack: File | null = null;
   if (photoIdBackFile && typeof photoIdBackFile !== "string") {
     fileBack = photoIdBackFile as File;
     if (fileBack.size > MAX_FILE_SIZE) {
@@ -91,7 +95,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
   const arrayBufferFront = await fileFront.arrayBuffer();
   await fs.writeFile(filePathFront, Buffer.from(arrayBufferFront));
   // Save back if present
-  let fileNameBack = null;
+  let fileNameBack: string | null = null;
   if (fileBack) {
     const fileExtBack = fileBack.name.split(".").pop();
     fileNameBack = `photoid_back_${appId}_${Date.now()}.${fileExtBack}`;
@@ -106,11 +110,16 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
       backgroundInfo: {
         employmentStatus,
         employerName,
+        employerEmail: employerEmail || undefined,
+        previousEmployerName: previousEmployerName || undefined,
+        previousEmployerEmail: previousEmployerEmail || undefined,
+        employmentContractType: employmentContractType || undefined,
         jobTitle,
         monthlyIncome,
         employmentLength,
         prevLandlordName,
         prevLandlordContact,
+        prevLandlordEmail: prevLandlordEmail || undefined,
         creditConsent,
         photoIdFrontFile: `/uploads/${fileNameFront}`,
         photoIdBackFile: fileNameBack ? `/uploads/${fileNameBack}` : undefined,
@@ -118,10 +127,6 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
       },
       status: 'complete',
       tokenUsed: true,
-    },
-    stage3: {
-      ...application.stage3,
-      enabled: true,
     },
     currentStage: 3,
   });

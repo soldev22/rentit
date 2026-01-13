@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { TenancyApplication } from '@/lib/tenancy-application';
 
@@ -45,6 +45,71 @@ export default function TenancyApplicationWorkflow({
     postcode: ''
   });
 
+  // Reference contacts (prefilled from profile where possible)
+  const [employerName, setEmployerName] = useState('');
+  const [employerEmail, setEmployerEmail] = useState('');
+  const [previousEmployerName, setPreviousEmployerName] = useState('');
+  const [previousEmployerEmail, setPreviousEmployerEmail] = useState('');
+  const [prevLandlordName, setPrevLandlordName] = useState('');
+  const [prevLandlordContact, setPrevLandlordContact] = useState('');
+  const [prevLandlordEmail, setPrevLandlordEmail] = useState('');
+
+  useEffect(() => {
+    if (!session?.user?.email) return;
+    let cancelled = false;
+
+    async function loadProfilePrefill() {
+      try {
+        const res = await fetch('/api/profile');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+
+        const phone = data.profile?.phone;
+        const address = data.profile?.address;
+        const bg = data.profile?.backgroundCheck;
+
+        if (typeof phone === 'string' && !applicantTel) setApplicantTel(phone);
+        if (address && !applicantAddress.line1) {
+          setApplicantAddress({
+            line1: address?.line1 ?? '',
+            line2: address?.line2 ?? '',
+            city: address?.city ?? '',
+            postcode: address?.postcode ?? '',
+          });
+        }
+
+        if (bg) {
+          if (typeof bg.employerName === 'string' && !employerName) setEmployerName(bg.employerName);
+          if (typeof bg.employerEmail === 'string' && !employerEmail) setEmployerEmail(bg.employerEmail);
+          if (typeof bg.previousEmployerName === 'string' && !previousEmployerName) setPreviousEmployerName(bg.previousEmployerName);
+          if (typeof bg.previousEmployerEmail === 'string' && !previousEmployerEmail) setPreviousEmployerEmail(bg.previousEmployerEmail);
+          if (typeof bg.prevLandlordName === 'string' && !prevLandlordName) setPrevLandlordName(bg.prevLandlordName);
+          if (typeof bg.prevLandlordContact === 'string' && !prevLandlordContact) setPrevLandlordContact(bg.prevLandlordContact);
+          if (typeof bg.prevLandlordEmail === 'string' && !prevLandlordEmail) setPrevLandlordEmail(bg.prevLandlordEmail);
+        }
+      } catch {
+        // ignore prefill errors
+      }
+    }
+
+    loadProfilePrefill();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    session?.user?.email,
+    applicantTel,
+    applicantAddress.line1,
+    employerName,
+    employerEmail,
+    previousEmployerName,
+    previousEmployerEmail,
+    prevLandlordName,
+    prevLandlordContact,
+    prevLandlordEmail,
+  ]);
+
   // Block unauthenticated users from starting the workflow
   if (status === "loading") {
     return (
@@ -71,8 +136,8 @@ export default function TenancyApplicationWorkflow({
 
   const handleStartApplication = async () => {
     console.log('Start Application button clicked');
-    if (!applicantName || !applicantEmail) {
-      setError('Please fill in your name and email');
+    if (!applicantName || !applicantEmail || !applicantTel) {
+      setError('Please fill in your name, email, and phone number');
       return;
     }
     // Require all Stage 2 consents
@@ -100,6 +165,15 @@ export default function TenancyApplicationWorkflow({
           applicantTel,
           applicantAddress: applicantAddress.line1 ? applicantAddress : undefined,
           viewingType,
+          referenceContacts: {
+            employerName: employerName || undefined,
+            employerEmail: employerEmail || undefined,
+            previousEmployerName: previousEmployerName || undefined,
+            previousEmployerEmail: previousEmployerEmail || undefined,
+            prevLandlordName: prevLandlordName || undefined,
+            prevLandlordContact: prevLandlordContact || undefined,
+            prevLandlordEmail: prevLandlordEmail || undefined,
+          },
           backgroundCheckConsents: {
             creditCheck: creditCheckConsent,
             socialMedia: socialMediaConsent,
@@ -261,6 +335,104 @@ export default function TenancyApplicationWorkflow({
     </div>
   );
 
+  const renderReferenceContacts = () => (
+    <div className="space-y-2">
+      <h3 className="text-lg font-medium">Employer & landlord references</h3>
+      <p className="text-sm text-gray-600">
+        Add these now so your application is ready. We also save them to your profile for next time.
+      </p>
+
+      <div className="border rounded-lg p-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label className="block text-sm font-medium mb-1" htmlFor="ref-employer-name">Employer name</label>
+            <input
+              id="ref-employer-name"
+              type="text"
+              value={employerName}
+              onChange={(e) => setEmployerName(e.target.value)}
+              className="w-full p-2 border rounded-md"
+              placeholder="Optional"
+              title="Employer name"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1" htmlFor="ref-employer-email">Employer email</label>
+            <input
+              id="ref-employer-email"
+              type="email"
+              value={employerEmail}
+              onChange={(e) => setEmployerEmail(e.target.value)}
+              className="w-full p-2 border rounded-md"
+              placeholder="name@company.com"
+              title="Employer email"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1" htmlFor="ref-prev-employer-name">Previous employer name</label>
+            <input
+              id="ref-prev-employer-name"
+              type="text"
+              value={previousEmployerName}
+              onChange={(e) => setPreviousEmployerName(e.target.value)}
+              className="w-full p-2 border rounded-md"
+              placeholder="Optional"
+              title="Previous employer name"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1" htmlFor="ref-prev-employer-email">Previous employer email</label>
+            <input
+              id="ref-prev-employer-email"
+              type="email"
+              value={previousEmployerEmail}
+              onChange={(e) => setPreviousEmployerEmail(e.target.value)}
+              className="w-full p-2 border rounded-md"
+              placeholder="Optional"
+              title="Previous employer email"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1" htmlFor="ref-prev-landlord-name">Previous landlord name</label>
+            <input
+              id="ref-prev-landlord-name"
+              type="text"
+              value={prevLandlordName}
+              onChange={(e) => setPrevLandlordName(e.target.value)}
+              className="w-full p-2 border rounded-md"
+              placeholder="Optional"
+              title="Previous landlord name"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1" htmlFor="ref-prev-landlord-contact">Previous landlord contact</label>
+            <input
+              id="ref-prev-landlord-contact"
+              type="text"
+              value={prevLandlordContact}
+              onChange={(e) => setPrevLandlordContact(e.target.value)}
+              className="w-full p-2 border rounded-md"
+              placeholder="Phone or email (optional)"
+              title="Previous landlord contact"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium mb-1" htmlFor="ref-prev-landlord-email">Previous landlord email</label>
+            <input
+              id="ref-prev-landlord-email"
+              type="email"
+              value={prevLandlordEmail}
+              onChange={(e) => setPrevLandlordEmail(e.target.value)}
+              className="w-full p-2 border rounded-md"
+              placeholder="Optional"
+              title="Previous landlord email"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   const renderProgressIndicator = () => {
     if (!application) return null;
 
@@ -385,13 +557,14 @@ export default function TenancyApplicationWorkflow({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Phone</label>
+            <label className="block text-sm font-medium mb-2">Phone *</label>
             <input
               type="tel"
               value={applicantTel}
               onChange={(e) => setApplicantTel(e.target.value)}
               className="w-full p-2 border rounded-md"
               placeholder="Enter your phone number"
+              required
             />
           </div>
         </div>
@@ -442,6 +615,8 @@ export default function TenancyApplicationWorkflow({
             </div>
           </div>
         </div>
+
+        {renderReferenceContacts()}
 
         {renderStage1()}
         {renderStage2()}

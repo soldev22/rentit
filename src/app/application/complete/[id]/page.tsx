@@ -129,6 +129,56 @@ export default async function ApplicationCompletePage(props: {
         </div>
 
         <div>
+          <label className="block font-medium mb-1">Current Employer Email</label>
+          <input
+            name="employerEmail"
+            type="email"
+            className="w-full border rounded p-2"
+            placeholder="So we can request an employment confirmation"
+          />
+          <div className="text-xs text-gray-500 mt-1">
+            If employed, please provide an employer email for verification.
+          </div>
+        </div>
+
+        <div>
+          <label className="block font-medium mb-1">Previous Employer Name</label>
+          <input
+            name="previousEmployerName"
+            className="w-full border rounded p-2"
+            placeholder="If you changed jobs recently"
+          />
+        </div>
+
+        <div>
+          <label className="block font-medium mb-1">Previous Employer Email</label>
+          <input
+            name="previousEmployerEmail"
+            type="email"
+            className="w-full border rounded p-2"
+            placeholder="Optional"
+          />
+        </div>
+
+        <div>
+          <label className="block font-medium mb-1">Employment Contract Type</label>
+          <select
+            id="employmentContractType"
+            name="employmentContractType"
+            title="Employment contract type"
+            className="w-full border rounded p-2"
+            defaultValue=""
+          >
+            <option value="">Select…</option>
+            <option value="permanent">Permanent</option>
+            <option value="fixed_term">Fixed-term</option>
+            <option value="agency">Agency</option>
+            <option value="zero_hours">Zero-hours</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <div>
           <label className="block font-medium mb-1">Job Title</label>
           <input
             name="jobTitle"
@@ -186,6 +236,16 @@ export default async function ApplicationCompletePage(props: {
             className="w-full border rounded p-2"
             placeholder="e.g. 07700 900123 or email"
             title="Enter your previous landlord's contact (phone or email)"
+          />
+        </div>
+
+        <div>
+          <label className="block font-medium mb-1">Previous Landlord Email</label>
+          <input
+            name="prevLandlordEmail"
+            type="email"
+            className="w-full border rounded p-2"
+            placeholder="So we can request a reference"
           />
         </div>
 

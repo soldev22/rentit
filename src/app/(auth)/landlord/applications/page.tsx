@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getCollection } from "@/lib/db";
 import { ObjectId } from "mongodb";
 import Link from "next/link";
+import { getUnifiedApplicationStatusView } from "@/lib/tenancyApplicationStatus";
 
 export const dynamic = 'force-dynamic';
 
@@ -42,18 +43,6 @@ export default async function LandlordTenancyApplicationsPage() {
     }))
   );
 
-  const getStageName = (stage: number) => {
-    const stages = [
-      'Viewing Agreement',
-      'Background Checks',
-      'Document Pack',
-      'Document Signing',
-      'Move-in Date',
-      'Final Documentation'
-    ];
-    return stages[stage - 1] || 'Unknown';
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'bg-green-100 text-green-800';
@@ -81,6 +70,7 @@ export default async function LandlordTenancyApplicationsPage() {
         <div className="space-y-4">
           {applicationsWithTitles.map((application: TenancyApplication & { propertyTitle: string }) => {
             if (!application._id) return null;
+            const unified = getUnifiedApplicationStatusView(application);
             return (
               <div key={application._id.toString()} className="bg-white rounded-lg shadow p-6">
                 {/* Debug output removed */}
@@ -94,9 +84,10 @@ export default async function LandlordTenancyApplicationsPage() {
                   <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(application.status)}`}>
                     {application.status.replace('_', ' ').toUpperCase()}
                   </span>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Stage {application.currentStage}: {getStageName(application.currentStage)}
-                  </p>
+                  <p className="text-sm text-gray-700 mt-1 font-medium">{unified.label}</p>
+                  {unified.detail ? (
+                    <p className="text-xs text-gray-500 mt-0.5">{unified.detail}</p>
+                  ) : null}
                 </div>
               </div>
 

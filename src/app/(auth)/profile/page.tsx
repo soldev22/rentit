@@ -21,6 +21,16 @@ export default function ProfilePage() {
     postcode: "",
   });
 
+  const [backgroundCheck, setBackgroundCheck] = useState({
+    employerName: "",
+    employerEmail: "",
+    previousEmployerName: "",
+    previousEmployerEmail: "",
+    prevLandlordName: "",
+    prevLandlordContact: "",
+    prevLandlordEmail: "",
+  });
+
   const [contactPreferences, setContactPreferences] = useState({
     email: true,
     sms: false,
@@ -59,6 +69,16 @@ export default function ProfilePage() {
           sms: data.profile?.contactPreferences?.sms ?? false,
           whatsapp: data.profile?.contactPreferences?.whatsapp ?? false,
         });
+
+        setBackgroundCheck({
+          employerName: data.profile?.backgroundCheck?.employerName ?? "",
+          employerEmail: data.profile?.backgroundCheck?.employerEmail ?? "",
+          previousEmployerName: data.profile?.backgroundCheck?.previousEmployerName ?? "",
+          previousEmployerEmail: data.profile?.backgroundCheck?.previousEmployerEmail ?? "",
+          prevLandlordName: data.profile?.backgroundCheck?.prevLandlordName ?? "",
+          prevLandlordContact: data.profile?.backgroundCheck?.prevLandlordContact ?? "",
+          prevLandlordEmail: data.profile?.backgroundCheck?.prevLandlordEmail ?? "",
+        });
       } finally {
         setLoading(false);
       }
@@ -87,6 +107,7 @@ export default function ProfilePage() {
               postcode: profile.postcode,
             },
             contactPreferences,
+            backgroundCheck,
           },
         }),
       });
@@ -267,6 +288,101 @@ export default function ProfilePage() {
                   className={inputClass}
                 />
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* BACKGROUND CHECK CONTACTS */}
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <h2 className="text-base font-semibold text-slate-900">Background check contacts</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Saved here so new applications can be auto-filled.
+          </p>
+
+          <div className="mt-4 space-y-4">
+            <div>
+              <label className={labelClass} htmlFor="bgEmployerName">Employer name</label>
+              <input
+                id="bgEmployerName"
+                type="text"
+                value={backgroundCheck.employerName}
+                placeholder="Optional"
+                onChange={(e) => setBackgroundCheck({ ...backgroundCheck, employerName: e.target.value })}
+                className={inputClass}
+              />
+            </div>
+
+            <div>
+              <label className={labelClass} htmlFor="bgEmployerEmail">Employer email</label>
+              <input
+                id="bgEmployerEmail"
+                type="email"
+                value={backgroundCheck.employerEmail}
+                placeholder="name@company.com"
+                onChange={(e) => setBackgroundCheck({ ...backgroundCheck, employerEmail: e.target.value })}
+                className={inputClass}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className={labelClass} htmlFor="bgPrevEmployerName">Previous employer name</label>
+                <input
+                  id="bgPrevEmployerName"
+                  type="text"
+                  value={backgroundCheck.previousEmployerName}
+                  placeholder="Optional"
+                  onChange={(e) => setBackgroundCheck({ ...backgroundCheck, previousEmployerName: e.target.value })}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass} htmlFor="bgPrevEmployerEmail">Previous employer email</label>
+                <input
+                  id="bgPrevEmployerEmail"
+                  type="email"
+                  value={backgroundCheck.previousEmployerEmail}
+                  placeholder="Optional"
+                  onChange={(e) => setBackgroundCheck({ ...backgroundCheck, previousEmployerEmail: e.target.value })}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className={labelClass} htmlFor="bgPrevLandlordName">Previous landlord name</label>
+              <input
+                id="bgPrevLandlordName"
+                type="text"
+                value={backgroundCheck.prevLandlordName}
+                placeholder="Optional"
+                onChange={(e) => setBackgroundCheck({ ...backgroundCheck, prevLandlordName: e.target.value })}
+                className={inputClass}
+              />
+            </div>
+
+            <div>
+              <label className={labelClass} htmlFor="bgPrevLandlordContact">Previous landlord contact</label>
+              <input
+                id="bgPrevLandlordContact"
+                type="text"
+                value={backgroundCheck.prevLandlordContact}
+                placeholder="Phone or email (optional)"
+                onChange={(e) => setBackgroundCheck({ ...backgroundCheck, prevLandlordContact: e.target.value })}
+                className={inputClass}
+              />
+            </div>
+
+            <div>
+              <label className={labelClass} htmlFor="bgPrevLandlordEmail">Previous landlord email</label>
+              <input
+                id="bgPrevLandlordEmail"
+                type="email"
+                value={backgroundCheck.prevLandlordEmail}
+                placeholder="Optional"
+                onChange={(e) => setBackgroundCheck({ ...backgroundCheck, prevLandlordEmail: e.target.value })}
+                className={inputClass}
+              />
             </div>
           </div>
         </section>

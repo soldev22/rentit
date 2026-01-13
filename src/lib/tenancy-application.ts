@@ -31,7 +31,7 @@ export interface TenancyApplication {
 
   // Stage 2: Background Checks Agreement
   stage2: {
-    status: 'pending' | 'agreed' | 'declined';
+    status: 'pending' | 'agreed' | 'declined' | 'complete';
     creditCheckConsent: boolean;
     socialMediaConsent: boolean;
     landlordReferenceConsent: boolean;
@@ -44,20 +44,74 @@ export interface TenancyApplication {
     creditCheck: {
       status: 'not_started' | 'in_progress' | 'completed' | 'failed';
       score?: number;
+      ccjCount?: number;
+      passed?: boolean;
+      failureReason?: string;
       reportUrl?: string;
       checkedAt?: string;
     };
+
+    employerVerification?: {
+      status: 'not_started' | 'requested' | 'received';
+      requestedAt?: string;
+      token?: string;
+      tokenUsed?: boolean;
+      tokenExpiresAt?: string;
+      response?: {
+        employed?: boolean;
+        nonZeroHoursContract?: boolean;
+        contractType?: string;
+        startDate?: string;
+        comments?: string;
+        submittedAt: string;
+      };
+    };
+
+    previousLandlordReference?: {
+      status: 'not_started' | 'requested' | 'received';
+      requestedAt?: string;
+      token?: string;
+      tokenUsed?: boolean;
+      tokenExpiresAt?: string;
+      response?: {
+        wouldRentAgain?: boolean;
+        paidOnTime?: boolean;
+        arrears?: boolean;
+        comments?: string;
+        submittedAt: string;
+      };
+    };
+
+    referenceContacts?: {
+      employerName?: string;
+      employerEmail?: string;
+      previousEmployerName?: string;
+      previousEmployerEmail?: string;
+      prevLandlordName?: string;
+      prevLandlordContact?: string;
+      prevLandlordEmail?: string;
+      updatedAt?: string;
+      source?: 'profile' | 'application' | 'landlord';
+    };
+
     backgroundInfo?: {
       employmentStatus: string;
       employerName: string;
+      employerEmail?: string;
+      previousEmployerName?: string;
+      previousEmployerEmail?: string;
+      employmentContractType?: string;
       jobTitle: string;
       monthlyIncome: number;
       employmentLength: string;
       prevLandlordName: string;
       prevLandlordContact: string;
+      prevLandlordEmail?: string;
       creditConsent: boolean;
       photoIdFile: string;
       submittedAt: string;
+      photoIdFrontFile?: string;
+      photoIdBackFile?: string;
     };
   };
 

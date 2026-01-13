@@ -9,36 +9,52 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
   if (!ObjectId.isValid(appId)) {
     return NextResponse.json({ error: 'Invalid application ID' }, { status: 400 });
   }
-  const { date, time } = await req.json();
+  const { date, time, note } = await req.json();
   if (!date || !time) {
     return NextResponse.json({ error: 'Date and time are required' }, { status: 400 });
   }
+
+  const safeNote = typeof note === 'string' ? note.trim().slice(0, 500) : undefined;
+
+  // Guard rail: prevent scheduling viewings in the past.
+  // `date` is expected as YYYY-MM-DD from <input type="date" />.
+  const requestedDate = new Date(`${date}T00:00:00.000Z`);
+  if (Number.isNaN(requestedDate.getTime())) {
+    return NextResponse.json({ error: 'Invalid date format' }, { status: 400 });
+  }
+  const todayUtc = new Date();
+  const todayStartUtc = new Date(Date.UTC(todayUtc.getUTCFullYear(), todayUtc.getUTCMonth(), todayUtc.getUTCDate()));
+  if (requestedDate < todayStartUtc) {
+    return NextResponse.json({ error: 'Viewing date cannot be in the past' }, { status: 400 });
+  }
+
   const collection = await getCollection('tenancy_applications');
   const app = await collection.findOne({ _id: new ObjectId(appId) });
   if (!app) {
     return NextResponse.json({ error: 'Application not found' }, { status: 404 });
   }
-  // Update stage1.viewingDetails and enable stage2 (ensure stage2 exists)
+  // Update stage1.viewingDetails and progress to stage 2.
+  // NOTE: The app schema does not include `enabled` flags, so we avoid adding them.
+  const stage2IfMissing = {
+    status: 'pending',
+    creditCheckConsent: false,
+    socialMediaConsent: false,
+    landlordReferenceConsent: false,
+    employerReferenceConsent: false,
+    creditCheck: { status: 'not_started' },
+  };
+
   await collection.updateOne(
     { _id: new ObjectId(appId) },
-    [
-      {
-        $set: {
-          'stage1.viewingDetails': { date, time },
-          'stage1.status': 'agreed',
-          'stage1.agreedAt': new Date().toISOString(),
-          currentStage: 1,
-          // If stage2 doesn't exist, create it with enabled true and default values
-          stage2: {
-            $cond: [
-              { $ifNull: ['$stage2', false] },
-              { $mergeObjects: ['$stage2', { enabled: true }] },
-              { status: 'pending', enabled: true }
-            ]
-          }
-        }
-      }
-    ]
+    {
+      $set: {
+        'stage1.viewingDetails': { date, time, ...(safeNote ? { note: safeNote } : {}) },
+        'stage1.status': 'agreed',
+        'stage1.agreedAt': new Date().toISOString(),
+        currentStage: Math.max(Number(app.currentStage ?? 1), 2),
+        stage2: app.stage2 ?? stage2IfMissing,
+      },
+    }
   );
   // Fetch property details for address
   let property: Property | undefined = undefined;
@@ -48,14 +64,23 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
     const foundProperty = await properties.findOne({ _id: new ObjectId(app.propertyId) });
     if (foundProperty) {
       property = foundProperty as Property;
-      if ((property as any).landlordId) {
+      const landlordIdUnknown = (foundProperty as { landlordId?: unknown }).landlordId;
+      const landlordObjectId =
+        landlordIdUnknown instanceof ObjectId
+          ? landlordIdUnknown
+          : typeof landlordIdUnknown === 'string' && ObjectId.isValid(landlordIdUnknown)
+            ? new ObjectId(landlordIdUnknown)
+            : null;
+
+      if (landlordObjectId) {
         const users = await getCollection('users');
-        const foundLandlord = await users.findOne({ _id: (property as any).landlordId });
+        const foundLandlord = await users.findOne({ _id: landlordObjectId });
         if (foundLandlord) landlord = foundLandlord as Landlord;
       }
     }
   }
   // Send notification (email/SMS)
+  let notificationResult: unknown = undefined;
   try {
     // Convert app (WithId<Document>) to ViewingApplication shape for notification
     const notificationApp = {
@@ -68,10 +93,11 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
       phone: app.phone,
       userPhone: app.userPhone,
     };
-    await sendViewingNotification(notificationApp, { date, time, property, landlord });
+    notificationResult = await sendViewingNotification(notificationApp, { date, time, note: safeNote, property, landlord });
   } catch (e) {
     // Log but don't fail the request
     console.error('Notification error', e);
+    notificationResult = { error: 'Notification threw an exception' };
   }
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, notification: notificationResult });
 }

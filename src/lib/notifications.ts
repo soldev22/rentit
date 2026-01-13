@@ -7,6 +7,21 @@ const twilioClient = (twilioSid && twilioToken) ? twilio(twilioSid, twilioToken)
 import resend from './resend';
 // Notification sender for viewing scheduling
 
+type SendResult = {
+  email: { attempted: boolean; sent: boolean; to?: string; error?: string };
+  adminEmail: { attempted: boolean; sent: boolean; to?: string; error?: string };
+  sms: { attempted: boolean; sent: boolean; to?: string; error?: string };
+};
+
+function toErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  try {
+    return typeof err === 'string' ? err : JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
+}
+
 interface ViewingApplication {
   applicantEmail?: string;
   email?: string;
@@ -37,17 +52,23 @@ export interface Landlord {
   tel?: string;
   profile?: {
     phone?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   // Add other landlord fields as needed
 }
 
 export async function sendViewingNotification(
   application: ViewingApplication,
-  details: { date: string; time: string; property?: Property; landlord?: Landlord }
-) {
+  details: { date: string; time: string; note?: string; property?: Property; landlord?: Landlord }
+) : Promise<SendResult> {
+  const result: SendResult = {
+    email: { attempted: false, sent: false },
+    adminEmail: { attempted: false, sent: false },
+    sms: { attempted: false, sent: false },
+  };
+
   // Try to get the best email and phone fields
-  const email = application.applicantEmail || application.email || application.userEmail || application.applicant?.email || application.applicantName || 'UNKNOWN';
+  const email = application.applicantEmail || application.email || application.userEmail || application.applicant?.email;
   const tel = application.applicantTel || application.phone || application.userPhone || application.applicant?.phone;
 
   // Compose property address string
@@ -77,7 +98,13 @@ export async function sendViewingNotification(
   }
 
   // Send real email via Resend
-  if (email && email !== 'UNKNOWN') {
+  if (email) {
+    result.email.attempted = true;
+    result.email.to = email;
+
+    if (!process.env.RESEND_API_KEY) {
+      result.email.error = 'RESEND_API_KEY is not set';
+    } else {
     try {
       let landlordContactLine = '';
       if (landlordPhone) {
@@ -85,24 +112,52 @@ export async function sendViewingNotification(
       } else {
         landlordContactLine = `<br><br><b>Landlord contact number not available.</b>`;
       }
+
+      const noteLine = details.note ? `<br><br><b>Note:</b> ${details.note}` : '';
       await resend.emails.send({
         from: process.env.RESEND_FROM_EMAIL || 'NoReply@solutionsdeveloped.co.uk',
         to: email,
         subject: 'Viewing Scheduled',
-        html: `<p>Hi,<br><br>Your property viewing is scheduled for <b>${ukDate}</b> at <b>${details.time}</b>.<br>Property: <b>${addressString}</b><br><br>We're looking forward to meeting you!<br><br><b>Please do not reply to this email.</b>${landlordContactLine}<br><br>If you have any questions or need to reschedule, please call the landlord directly.<br><br>Best regards,<br>The Rentsimple Team</p>`
+        html: `<p>Hi,<br><br>Your property viewing is scheduled for <b>${ukDate}</b> at <b>${details.time}</b>.<br>Property: <b>${addressString}</b>${noteLine}<br><br>We're looking forward to meeting you!<br><br><b>Please do not reply to this email.</b>${landlordContactLine}<br><br>If you have any questions or need to reschedule, please call the landlord directly.<br><br>Best regards,<br>The Rentsimple Team</p>`
       });
       console.log(`EMAIL SENT via Resend to ${email}`);
+      result.email.sent = true;
+
+      // Optional: send an admin copy
+      const adminEmail = process.env.ADMIN_EMAIL;
+      if (adminEmail) {
+        result.adminEmail.attempted = true;
+        result.adminEmail.to = adminEmail;
+        try {
+          await resend.emails.send({
+            from: process.env.RESEND_FROM_EMAIL || 'NoReply@solutionsdeveloped.co.uk',
+            to: adminEmail,
+            subject: `COPY: Viewing Scheduled (${ukDate} ${details.time})`,
+            html: `<p><b>Admin copy</b><br><br>Viewing scheduled for <b>${ukDate}</b> at <b>${details.time}</b>.<br>Applicant: <b>${application.applicantName || ''}</b><br>Email: <b>${email}</b><br>Phone: <b>${tel || ''}</b><br>Property: <b>${addressString}</b>${noteLine}</p>`,
+          });
+          console.log(`ADMIN COPY EMAIL SENT via Resend to ${adminEmail}`);
+          result.adminEmail.sent = true;
+        } catch (err) {
+          console.error('Admin copy email error:', err);
+          result.adminEmail.error = toErrorMessage(err);
+        }
+      }
     } catch (err) {
       console.error('Resend email error:', err);
+      result.email.error = toErrorMessage(err);
+    }
     }
   } else {
     console.log('No valid email found, email not sent.');
+    result.email.error = 'No applicant email found on application';
   }
 
   // Send real SMS via Twilio if configured
   if (tel) {
+    result.sms.attempted = true;
     let smsMsg = `Viewing: ${ukDate} at ${details.time}.`;
     if (addressString) smsMsg += ` ${addressString}.`;
+    if (details.note) smsMsg += ` Note: ${details.note}.`;
     if (landlordPhone) {
       smsMsg += ` Call landlord: ${landlordPhone}`;
     } else {
@@ -127,17 +182,22 @@ export async function sendViewingNotification(
           to: formattedTo
         });
         console.log(`SMS SENT via Twilio to ${formattedTo}`);
+        result.sms.sent = true;
+        result.sms.to = formattedTo;
       } catch (err) {
         console.error('Twilio SMS error:', err);
+        result.sms.error = toErrorMessage(err);
       }
     } else {
       console.log(`(Simulated) SMS: To ${tel}`);
       console.log(`Message: ${smsMsg}`);
+      result.sms.sent = true;
+      result.sms.to = tel;
     }
   } else {
     console.log('No applicantTel/phone found, SMS not sent.');
+    result.sms.error = 'No applicant phone found on application';
   }
 
-  // Simulate async
-  return Promise.resolve();
+  return result;
 }

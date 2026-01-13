@@ -33,12 +33,33 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
   const [currentApplication, setCurrentApplication] = useState(application);
   const [message, setMessage] = useState<string | null>(null);
 
+  const [manualEmployerName, setManualEmployerName] = useState<string>(currentApplication.stage2?.referenceContacts?.employerName || currentApplication.stage2?.backgroundInfo?.employerName || '');
+  const [manualEmployerEmail, setManualEmployerEmail] = useState<string>(currentApplication.stage2?.referenceContacts?.employerEmail || currentApplication.stage2?.backgroundInfo?.employerEmail || '');
+  const [manualPrevEmployerName, setManualPrevEmployerName] = useState<string>(currentApplication.stage2?.referenceContacts?.previousEmployerName || currentApplication.stage2?.backgroundInfo?.previousEmployerName || '');
+  const [manualPrevEmployerEmail, setManualPrevEmployerEmail] = useState<string>(currentApplication.stage2?.referenceContacts?.previousEmployerEmail || currentApplication.stage2?.backgroundInfo?.previousEmployerEmail || '');
+  const [manualPrevLandlordName, setManualPrevLandlordName] = useState<string>(currentApplication.stage2?.referenceContacts?.prevLandlordName || currentApplication.stage2?.backgroundInfo?.prevLandlordName || '');
+  const [manualPrevLandlordContact, setManualPrevLandlordContact] = useState<string>(currentApplication.stage2?.referenceContacts?.prevLandlordContact || currentApplication.stage2?.backgroundInfo?.prevLandlordContact || '');
+  const [manualPrevLandlordEmail, setManualPrevLandlordEmail] = useState<string>(currentApplication.stage2?.referenceContacts?.prevLandlordEmail || currentApplication.stage2?.backgroundInfo?.prevLandlordEmail || '');
+  const [manualSaveLoading, setManualSaveLoading] = useState(false);
+
   // Modal state for scheduling a viewing
   const [viewingModalOpen, setViewingModalOpen] = useState(false);
   const [viewingDate, setViewingDate] = useState<string>("");
   const [viewingTime, setViewingTime] = useState<string>("");
   const [viewingNote, setViewingNote] = useState<string>("");
   function handleOpenViewingModal() {
+    const existingDate = currentApplication.stage1.viewingDetails?.date;
+    const existingTime = currentApplication.stage1.viewingDetails?.time;
+    const existingNote = currentApplication.stage1.viewingDetails?.note;
+
+    // Prefill when editing an existing agreed viewing.
+    if (existingDate) setViewingDate(existingDate);
+    else if (currentApplication.stage1.preferredDate) setViewingDate(currentApplication.stage1.preferredDate);
+    else setViewingDate("");
+
+    setViewingTime(existingTime ?? "");
+    setViewingNote(existingNote ?? "");
+
     setViewingModalOpen(true);
   }
   function handleCloseViewingModal() {
@@ -47,11 +68,47 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
     setViewingTime("");
     setViewingNote("");
   }
-  function handleSubmitViewingModal(e: React.FormEvent) {
+  async function handleSubmitViewingModal(e: React.FormEvent) {
     e.preventDefault();
-    // Here you would call backend API to save the viewing info
-    setMessage(`Viewing scheduled for ${viewingDate} at ${viewingTime}. Note: ${viewingNote}`);
-    setViewingModalOpen(false);
+
+    setMessage(null);
+    try {
+      const response = await fetch(
+        `/api/tenancy-applications/${currentApplication._id}/schedule-viewing`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ date: viewingDate, time: viewingTime, note: viewingNote }),
+        }
+      );
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        setMessage(data?.error || "Failed to schedule viewing");
+        return;
+      }
+
+      const data = await response.json().catch(() => null);
+      const emailFailedReason =
+        data?.notification?.email?.attempted === true && data?.notification?.email?.sent === false
+          ? (data?.notification?.email?.error || 'Email failed to send')
+          : null;
+
+      setMessage(
+        emailFailedReason
+          ? `Viewing scheduled for ${viewingDate} at ${viewingTime}. Email not sent: ${emailFailedReason}.`
+          : `Viewing scheduled for ${viewingDate} at ${viewingTime}.`
+      );
+      setViewingModalOpen(false);
+
+      const refreshed = await fetch(`/api/tenancy-applications/${currentApplication._id}`);
+      if (refreshed.ok) {
+        const freshData = await refreshed.json();
+        setCurrentApplication(freshData.application ?? freshData);
+      }
+    } catch {
+      setMessage("An error occurred while scheduling the viewing.");
+    }
   }
   // Viewing Modal JSX (move to return)
   const viewingModal = viewingModalOpen && (
@@ -61,7 +118,17 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
         <form onSubmit={handleSubmitViewingModal} className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1" htmlFor="viewing-date">Date</label>
-            <input id="viewing-date" type="date" className="border rounded px-2 py-1 w-full" value={viewingDate} onChange={e => setViewingDate(e.target.value)} required title="Viewing date" placeholder="Select date" />
+            <input
+              id="viewing-date"
+              type="date"
+              min={new Date().toISOString().slice(0, 10)}
+              className="border rounded px-2 py-1 w-full"
+              value={viewingDate}
+              onChange={e => setViewingDate(e.target.value)}
+              required
+              title="Viewing date"
+              placeholder="Select date"
+            />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1" htmlFor="viewing-time">Time</label>
@@ -91,6 +158,14 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
           <p className="font-medium">{info.employmentStatus || <span className="text-gray-400">Not provided</span>}</p>
           <p className="text-sm text-gray-600 mt-2">Employer Name</p>
           <p className="font-medium">{info.employerName || <span className="text-gray-400">Not provided</span>}</p>
+          <p className="text-sm text-gray-600 mt-2">Employer Email</p>
+          <p className="font-medium">{info.employerEmail || <span className="text-gray-400">Not provided</span>}</p>
+          <p className="text-sm text-gray-600 mt-2">Previous Employer Name</p>
+          <p className="font-medium">{info.previousEmployerName || <span className="text-gray-400">Not provided</span>}</p>
+          <p className="text-sm text-gray-600 mt-2">Previous Employer Email</p>
+          <p className="font-medium">{info.previousEmployerEmail || <span className="text-gray-400">Not provided</span>}</p>
+          <p className="text-sm text-gray-600 mt-2">Employment Contract Type</p>
+          <p className="font-medium">{info.employmentContractType || <span className="text-gray-400">Not provided</span>}</p>
           <p className="text-sm text-gray-600 mt-2">Job Title</p>
           <p className="font-medium">{info.jobTitle || <span className="text-gray-400">Not provided</span>}</p>
           <p className="text-sm text-gray-600 mt-2">Monthly Income</p>
@@ -103,6 +178,8 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
           <p className="font-medium">{info.prevLandlordName || <span className="text-gray-400">Not provided</span>}</p>
           <p className="text-sm text-gray-600 mt-2">Previous Landlord Contact</p>
           <p className="font-medium">{info.prevLandlordContact || <span className="text-gray-400">Not provided</span>}</p>
+          <p className="text-sm text-gray-600 mt-2">Previous Landlord Email</p>
+          <p className="font-medium">{info.prevLandlordEmail || <span className="text-gray-400">Not provided</span>}</p>
           <p className="text-sm text-gray-600 mt-2">Credit Consent</p>
           <p className="font-medium">{info.creditConsent === true ? 'Yes' : info.creditConsent === false ? 'No' : <span className="text-gray-400">Not provided</span>}</p>
           <p className="text-sm text-gray-600 mt-2">Submitted At</p>
@@ -124,6 +201,145 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
           )}
         </div>
       </div>
+
+      <div className="mt-6 border-t border-blue-200 pt-4">
+        <h3 className="text-sm font-semibold text-blue-900 mb-2">Record/Update Reference Contacts (Landlord)</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="manual-employer-name">Employer Name</label>
+            <input
+              id="manual-employer-name"
+              className="w-full border rounded p-2"
+              value={manualEmployerName}
+              onChange={(e) => setManualEmployerName(e.target.value)}
+              placeholder="Optional"
+              title="Employer name"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="manual-employer-email">Employer Email</label>
+            <input
+              id="manual-employer-email"
+              type="email"
+              className="w-full border rounded p-2"
+              value={manualEmployerEmail}
+              onChange={(e) => setManualEmployerEmail(e.target.value)}
+              placeholder="name@company.com"
+              title="Employer email"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="manual-prev-employer-name">Previous Employer Name</label>
+            <input
+              id="manual-prev-employer-name"
+              className="w-full border rounded p-2"
+              value={manualPrevEmployerName}
+              onChange={(e) => setManualPrevEmployerName(e.target.value)}
+              placeholder="Optional"
+              title="Previous employer name"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="manual-prev-employer-email">Previous Employer Email</label>
+            <input
+              id="manual-prev-employer-email"
+              type="email"
+              className="w-full border rounded p-2"
+              value={manualPrevEmployerEmail}
+              onChange={(e) => setManualPrevEmployerEmail(e.target.value)}
+              placeholder="Optional"
+              title="Previous employer email"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="manual-prev-landlord-name">Previous Landlord Name</label>
+            <input
+              id="manual-prev-landlord-name"
+              className="w-full border rounded p-2"
+              value={manualPrevLandlordName}
+              onChange={(e) => setManualPrevLandlordName(e.target.value)}
+              placeholder="Optional"
+              title="Previous landlord name"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="manual-prev-landlord-contact">Previous Landlord Contact</label>
+            <input
+              id="manual-prev-landlord-contact"
+              className="w-full border rounded p-2"
+              value={manualPrevLandlordContact}
+              onChange={(e) => setManualPrevLandlordContact(e.target.value)}
+              placeholder="Phone or email (optional)"
+              title="Previous landlord contact"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="manual-prev-landlord-email">Previous Landlord Email</label>
+            <input
+              id="manual-prev-landlord-email"
+              type="email"
+              className="w-full border rounded p-2"
+              value={manualPrevLandlordEmail}
+              onChange={(e) => setManualPrevLandlordEmail(e.target.value)}
+              placeholder="Optional"
+              title="Previous landlord email"
+            />
+          </div>
+        </div>
+        <div className="mt-3">
+          <button
+            type="button"
+            className="px-4 py-2 rounded-md font-medium transition-colors bg-white text-blue-700 border border-blue-300 hover:bg-blue-100 disabled:opacity-50"
+            disabled={manualSaveLoading}
+            onClick={async () => {
+              setManualSaveLoading(true);
+              setMessage(null);
+              try {
+                const res = await fetch(`/api/tenancy-applications/${currentApplication._id}`,
+                  {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      stage2: {
+                        referenceContacts: {
+                          employerName: manualEmployerName,
+                          employerEmail: manualEmployerEmail,
+                          previousEmployerName: manualPrevEmployerName,
+                          previousEmployerEmail: manualPrevEmployerEmail,
+                          prevLandlordName: manualPrevLandlordName,
+                          prevLandlordContact: manualPrevLandlordContact,
+                          prevLandlordEmail: manualPrevLandlordEmail,
+                        },
+                      },
+                    }),
+                  }
+                );
+                const data = await res.json().catch(() => null);
+                if (!res.ok) {
+                  setMessage(data?.error || 'Failed to save reference contact details');
+                  return;
+                }
+                setMessage('Reference contact details saved.');
+
+                const refreshed = await fetch(`/api/tenancy-applications/${currentApplication._id}`);
+                if (refreshed.ok) {
+                  const freshData = await refreshed.json();
+                  const nextApp = freshData.application ?? freshData;
+                  setCurrentApplication(nextApp);
+                  setStage2SentAt(nextApp.stage2?.sentAt || null);
+                }
+              } catch {
+                setMessage('Failed to save reference contact details');
+              } finally {
+                setManualSaveLoading(false);
+              }
+            }}
+          >
+            {manualSaveLoading ? 'Saving…' : 'Save Reference Contacts'}
+          </button>
+        </div>
+      </div>
     </div>
   );
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -133,6 +349,144 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
   const [stage2Loading, setStage2Loading] = useState(false);
   const [showStage2Modal, setShowStage2Modal] = useState(false);
   const [stage2SentAt, setStage2SentAt] = useState(currentApplication.stage2?.sentAt || null);
+
+  const [creditScore, setCreditScore] = useState<string>('');
+  const [ccjCount, setCcjCount] = useState<string>('0');
+  const [creditReportUrl, setCreditReportUrl] = useState<string>('');
+  const [creditModalOpen, setCreditModalOpen] = useState(false);
+
+  async function refreshApplication() {
+    const refreshed = await fetch(`/api/tenancy-applications/${currentApplication._id}`);
+    if (!refreshed.ok) return;
+    const freshData = await refreshed.json();
+    const nextApp = freshData.application ?? freshData;
+    setCurrentApplication(nextApp);
+    setStage2SentAt(nextApp.stage2?.sentAt || null);
+  }
+
+  async function handleSendEmployerVerification() {
+    setMessage(null);
+    try {
+      const res = await fetch(`/api/tenancy-applications/${currentApplication._id}/employer-verification-request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setMessage(data?.error || 'Failed to send employer verification link');
+        return;
+      }
+      const suffix = data?.link ? ` Link: ${data.link}` : '';
+      setMessage(`Employer verification link sent to ${data?.to || 'employer'}.${suffix}`);
+      await refreshApplication();
+    } catch {
+      setMessage('Failed to send employer verification link');
+    }
+  }
+
+  async function handleSendLandlordReference() {
+    setMessage(null);
+    try {
+      const res = await fetch(`/api/tenancy-applications/${currentApplication._id}/landlord-reference-request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setMessage(data?.error || 'Failed to send previous landlord reference link');
+        return;
+      }
+      const suffix = data?.link ? ` Link: ${data.link}` : '';
+      setMessage(`Previous landlord reference link sent to ${data?.to || 'previous landlord'}.${suffix}`);
+      await refreshApplication();
+    } catch {
+      setMessage('Failed to send previous landlord reference link');
+    }
+  }
+
+  async function handleSubmitCreditCheck(e: React.FormEvent) {
+    e.preventDefault();
+    setMessage(null);
+
+    const scoreNum = Number(creditScore);
+    const ccjNum = Number(ccjCount);
+    if (!Number.isFinite(scoreNum) || !Number.isFinite(ccjNum)) {
+      setMessage('Please enter a valid Experian score and CCJ count.');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/tenancy-applications/${currentApplication._id}/credit-check`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ experianScore: scoreNum, ccjCount: ccjNum, reportUrl: creditReportUrl || undefined }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setMessage(data?.error || 'Failed to record credit check');
+        return;
+      }
+      setMessage(data?.passed ? 'Credit check recorded: PASS' : `Credit check recorded: FAIL (${data?.failureReason || 'criteria not met'})`);
+      setCreditModalOpen(false);
+
+      const refreshed = await fetch(`/api/tenancy-applications/${currentApplication._id}`);
+      if (refreshed.ok) {
+        const freshData = await refreshed.json();
+        setCurrentApplication(freshData.application ?? freshData);
+      }
+    } catch {
+      setMessage('Failed to record credit check');
+    }
+  }
+
+  const creditModal = creditModalOpen && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+      <div className="bg-white rounded shadow-lg p-6 w-full max-w-md">
+        <h2 className="text-lg font-bold mb-2">Record Credit Check</h2>
+        <form onSubmit={handleSubmitCreditCheck} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Experian Score</label>
+            <input
+              id="credit-score"
+              title="Experian score"
+              placeholder="e.g. 820"
+              className="border rounded px-2 py-1 w-full"
+              value={creditScore}
+              onChange={e => setCreditScore(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">CCJ Count</label>
+            <input
+              id="ccj-count"
+              title="CCJ count"
+              placeholder="e.g. 0"
+              className="border rounded px-2 py-1 w-full"
+              value={ccjCount}
+              onChange={e => setCcjCount(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Report URL (optional)</label>
+            <input
+              id="credit-report-url"
+              title="Credit report URL"
+              placeholder="https://..."
+              className="border rounded px-2 py-1 w-full"
+              value={creditReportUrl}
+              onChange={e => setCreditReportUrl(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2 justify-end">
+            <button type="button" className="px-4 py-2 bg-gray-200 rounded" onClick={() => setCreditModalOpen(false)}>Cancel</button>
+            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 
   async function handleStage2Action() {
     setStage2Loading(true);
@@ -225,7 +579,19 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
   // Main return at the end
   return (
     <div className="space-y-8">
+      {/* Messages (keep near top so actions feel responsive) */}
+      {message && (
+        <div
+          className={`p-4 rounded-md ${
+            /\b(failed|error)\b/i.test(message) ? 'bg-red-50 text-red-800' : 'bg-green-50 text-green-800'
+          }`}
+        >
+          {message}
+        </div>
+      )}
+
       {viewingModal}
+      {creditModal}
       {backgroundInfoPanel}
       {/* Stage Cards Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -356,6 +722,103 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
                           Background check request sent: {new Date(stage2SentAt).toLocaleString()}
                         </div>
                       )}
+
+                      <div className="mt-3 pt-3 border-t border-blue-200 space-y-2">
+                        <div className="text-sm font-semibold text-blue-900">Checks</div>
+                        <div className="text-sm">
+                          Credit check: <span className="font-semibold">{currentApplication.stage2.creditCheck?.status || 'not_started'}</span>
+                          {currentApplication.stage2.creditCheck?.score != null ? (
+                            <> (Score: <span className="font-semibold">{currentApplication.stage2.creditCheck.score}</span>)</>
+                          ) : null}
+                          {currentApplication.stage2.creditCheck?.ccjCount != null ? (
+                            <> (CCJs: <span className="font-semibold">{currentApplication.stage2.creditCheck.ccjCount}</span>)</>
+                          ) : null}
+                        </div>
+                        <div className="text-sm">
+                          Employer verification: <span className="font-semibold">{currentApplication.stage2.employerVerification?.status || 'not_started'}</span>
+                        </div>
+                        {currentApplication.stage2.employerVerification?.token ? (
+                          <div className="text-sm">
+                            <a
+                              className="text-blue-700 underline hover:text-blue-900"
+                              href={`/reference/employer/${currentApplication._id}?token=${encodeURIComponent(currentApplication.stage2.employerVerification.token)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Open employer form link (testing)
+                            </a>
+                          </div>
+                        ) : null}
+                        {currentApplication.stage2.employerVerification?.response ? (
+                          <div className="text-xs text-gray-700 pl-2">
+                            Employed:{' '}
+                            <span className="font-semibold">
+                              {currentApplication.stage2.employerVerification.response.employed === true
+                                ? 'Yes'
+                                : currentApplication.stage2.employerVerification.response.employed === false
+                                  ? 'No'
+                                  : '—'}
+                            </span>
+                            {currentApplication.stage2.employerVerification.response.contractType ? (
+                              <> · Contract: <span className="font-semibold">{currentApplication.stage2.employerVerification.response.contractType}</span></>
+                            ) : null}
+                          </div>
+                        ) : null}
+                        <div className="text-sm">
+                          Previous landlord reference: <span className="font-semibold">{currentApplication.stage2.previousLandlordReference?.status || 'not_started'}</span>
+                        </div>
+                        {currentApplication.stage2.previousLandlordReference?.token ? (
+                          <div className="text-sm">
+                            <a
+                              className="text-blue-700 underline hover:text-blue-900"
+                              href={`/reference/landlord/${currentApplication._id}?token=${encodeURIComponent(currentApplication.stage2.previousLandlordReference.token)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Open landlord reference form link (testing)
+                            </a>
+                          </div>
+                        ) : null}
+                        {currentApplication.stage2.previousLandlordReference?.response ? (
+                          <div className="text-xs text-gray-700 pl-2">
+                            Would rent again:{' '}
+                            <span className="font-semibold">
+                              {currentApplication.stage2.previousLandlordReference.response.wouldRentAgain === true
+                                ? 'Yes'
+                                : currentApplication.stage2.previousLandlordReference.response.wouldRentAgain === false
+                                  ? 'No'
+                                  : '—'}
+                            </span>
+                            {typeof currentApplication.stage2.previousLandlordReference.response.paidOnTime === 'boolean' ? (
+                              <> · Paid on time: <span className="font-semibold">{currentApplication.stage2.previousLandlordReference.response.paidOnTime ? 'Yes' : 'No'}</span></>
+                            ) : null}
+                          </div>
+                        ) : null}
+
+                        <div className="flex flex-col gap-2 pt-2">
+                          <button
+                            type="button"
+                            className="px-4 py-2 rounded-md font-medium transition-colors bg-white text-blue-700 border border-blue-300 hover:bg-blue-100"
+                            onClick={() => setCreditModalOpen(true)}
+                          >
+                            Record Credit Check
+                          </button>
+                          <button
+                            type="button"
+                            className="px-4 py-2 rounded-md font-medium transition-colors bg-white text-blue-700 border border-blue-300 hover:bg-blue-100"
+                            onClick={handleSendEmployerVerification}
+                          >
+                            Send Employer Verification Link
+                          </button>
+                          <button
+                            type="button"
+                            className="px-4 py-2 rounded-md font-medium transition-colors bg-white text-blue-700 border border-blue-300 hover:bg-blue-100"
+                            onClick={handleSendLandlordReference}
+                          >
+                            Send Previous Landlord Reference Link
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -439,17 +902,6 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
           }
         }}
       />
-
-
-
-      {/* Messages */}
-      {message && (
-        <div className={`p-4 rounded-md ${
-          message && message.includes('success') ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
-        }`}>
-          {message}
-        </div>
-      )}
     </div>
   );
 }
