@@ -1,4 +1,4 @@
-import { ObjectId } from "mongodb";
+import { ObjectId, WithId } from "mongodb";
 import { getCollection } from "@/lib/db";
 
 export interface TenancyApplication {
@@ -108,7 +108,7 @@ export interface TenancyApplication {
       prevLandlordContact: string;
       prevLandlordEmail?: string;
       creditConsent: boolean;
-      photoIdFile: string;
+      photoIdFile?: string;
       submittedAt: string;
       photoIdFrontFile?: string;
       photoIdBackFile?: string;
@@ -172,7 +172,7 @@ export interface TenancyApplication {
 
 // Helper functions for tenancy applications
 export async function createTenancyApplication(application: Omit<TenancyApplication, '_id' | 'createdAt' | 'updatedAt'>) {
-  const collection = await getCollection('tenancy_applications');
+  const collection = await getCollection<TenancyApplication>('tenancy_applications');
   const now = new Date().toISOString();
 
   const newApplication = {
@@ -185,13 +185,13 @@ export async function createTenancyApplication(application: Omit<TenancyApplicat
   return { ...newApplication, _id: result.insertedId };
 }
 
-export async function getTenancyApplicationById(id: string) {
-  const collection = await getCollection('tenancy_applications');
+export async function getTenancyApplicationById(id: string): Promise<WithId<TenancyApplication> | null> {
+  const collection = await getCollection<TenancyApplication>('tenancy_applications');
   return await collection.findOne({ _id: new ObjectId(id) });
 }
 
 export async function updateTenancyApplication(id: string, updates: Partial<TenancyApplication>) {
-  const collection = await getCollection('tenancy_applications');
+  const collection = await getCollection<TenancyApplication>('tenancy_applications');
   const result = await collection.updateOne(
     { _id: new ObjectId(id) },
     {
@@ -205,11 +205,11 @@ export async function updateTenancyApplication(id: string, updates: Partial<Tena
 }
 
 export async function getApplicationsByProperty(propertyId: string) {
-  const collection = await getCollection('tenancy_applications');
+  const collection = await getCollection<TenancyApplication>('tenancy_applications');
   return await collection.find({ propertyId: new ObjectId(propertyId) }).toArray();
 }
 
 export async function getApplicationsByApplicant(applicantId: string) {
-  const collection = await getCollection('tenancy_applications');
+  const collection = await getCollection<TenancyApplication>('tenancy_applications');
   return await collection.find({ applicantId: new ObjectId(applicantId) }).toArray();
 }

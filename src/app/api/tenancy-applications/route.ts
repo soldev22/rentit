@@ -18,6 +18,20 @@ type QueryFilter = {
   propertyId?: ObjectId;
 };
 
+type PropertyDoc = {
+  title?: string;
+  landlordId?: ObjectId | string;
+};
+
+type LandlordDoc = {
+  email?: string;
+  tel?: string;
+  phone?: string;
+  profile?: {
+    phone?: string;
+  };
+};
+
 // POST /api/tenancy-applications - Create new tenancy application
 export async function POST(req: NextRequest) {
   try {
@@ -75,9 +89,24 @@ export async function POST(req: NextRequest) {
 
     // Get property to verify it exists and get landlord
     const properties = await getCollection('properties');
-    const property = await properties.findOne({ _id: new ObjectId(propertyId) });
+    const property = (await properties.findOne({ _id: new ObjectId(propertyId) })) as unknown as PropertyDoc | null;
     if (!property) {
       return NextResponse.json({ error: "Property not found" }, { status: 404 });
+    }
+
+    const landlordIdRaw = property.landlordId;
+    const landlordId =
+      landlordIdRaw instanceof ObjectId
+        ? landlordIdRaw
+        : typeof landlordIdRaw === 'string' && ObjectId.isValid(landlordIdRaw)
+          ? new ObjectId(landlordIdRaw)
+          : null;
+
+    if (!landlordId) {
+      return NextResponse.json(
+        { error: 'Property is missing a valid landlordId' },
+        { status: 500 }
+      );
     }
 
     // Check for duplicate application
@@ -96,7 +125,12 @@ export async function POST(req: NextRequest) {
     // Create the tenancy application
     const stage1Status = viewingType ? 'agreed' : 'pending';
 
-    const rc = (referenceContacts ?? {}) as Partial<NonNullable<TenancyApplication['stage2']>['referenceContacts']>;
+    type ReferenceContacts = NonNullable<TenancyApplication['stage2']['referenceContacts']>;
+
+    const rc: Partial<ReferenceContacts> =
+      typeof referenceContacts === 'object' && referenceContacts !== null
+        ? (referenceContacts as Partial<ReferenceContacts>)
+        : {};
     const clean = (v: unknown) => (typeof v === 'string' ? v.trim().slice(0, 200) : undefined);
     const nextReferenceContacts = {
       employerName: clean(rc.employerName),
@@ -122,7 +156,7 @@ export async function POST(req: NextRequest) {
       applicantTel,
       applicantAddress,
       isAnonymous: !session?.user?.id,
-      landlordId: property.landlordId,
+      landlordId,
       stage1: {
         status: stage1Status,
         viewingType: viewingType || null,
@@ -169,13 +203,74 @@ export async function POST(req: NextRequest) {
 
     const result = await createTenancyApplication(application);
 
+    // Notify landlord via email + SMS (best-effort)
+    try {
+      const users = await getCollection('users');
+
+      const applicantEmailLower = applicantEmail.toLowerCase();
+
+      const landlordIdRaw = property.landlordId;
+      const landlordId = typeof landlordIdRaw === 'string' && ObjectId.isValid(landlordIdRaw)
+        ? new ObjectId(landlordIdRaw)
+        : landlordIdRaw instanceof ObjectId
+          ? landlordIdRaw
+          : null;
+
+      if (landlordId) {
+        const landlord = (await users.findOne({ _id: landlordId })) as unknown as LandlordDoc | null;
+        const landlordEmail = typeof landlord?.email === 'string' ? landlord.email : null;
+        const landlordPhoneRaw =
+          (typeof landlord?.profile?.phone === 'string' && landlord.profile.phone) ||
+          (typeof landlord?.tel === 'string' && landlord.tel) ||
+          (typeof landlord?.phone === 'string' && landlord.phone) ||
+          null;
+
+        const propertyTitle = property?.title || 'your property';
+        const subject = `New application: ${propertyTitle}`;
+        const message =
+          `A new applicant has applied for ${propertyTitle}.\n` +
+          `Name: ${applicantName}\n` +
+          `Email: ${applicantEmailLower}` +
+          (applicantTel ? `\nTel: ${applicantTel}` : '') +
+          `\n\nLog in to your landlord dashboard to review.`;
+
+        if (landlordEmail) {
+          await notificationService.sendNotification({
+            to: landlordEmail,
+            subject,
+            message,
+            method: 'email',
+          });
+        }
+
+        if (landlordPhoneRaw) {
+          let formattedTo = landlordPhoneRaw.trim();
+          if (formattedTo.startsWith('07')) {
+            formattedTo = '+44' + formattedTo.slice(1);
+          } else if (formattedTo.startsWith('44')) {
+            formattedTo = '+' + formattedTo;
+          } else if (!formattedTo.startsWith('+')) {
+            formattedTo = '+' + formattedTo;
+          }
+
+          await notificationService.sendNotification({
+            to: formattedTo,
+            message,
+            method: 'sms',
+          });
+        }
+      }
+    } catch (landlordNotifyError) {
+      console.error('Error notifying landlord of application:', landlordNotifyError);
+    }
+
     // Send notification to applicant if logged in and has contact preferences
     if (session?.user?.email) {
       try {
         const users = await getCollection('users');
         const user = await users.findOne({ email: session.user.email });
         if (user?.profile?.contactPreferences) {
-          const template = NotificationTemplates.applicationSubmitted(property.title);
+          const template = NotificationTemplates.applicationSubmitted(property.title || 'your property');
           await notificationService.sendToUser(
             session.user.email,
             user.profile.phone,

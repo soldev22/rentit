@@ -185,10 +185,10 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
           <p className="text-sm text-gray-600 mt-2">Submitted At</p>
           <p className="font-medium">{info.submittedAt ? new Date(info.submittedAt).toLocaleString() : <span className="text-gray-400">Not provided</span>}</p>
           <p className="text-sm text-gray-600 mt-2">Photo ID</p>
-          {info.photoIdFile ? (
+          {(info.photoIdFrontFile || info.photoIdFile) ? (
             <div className="flex flex-col gap-1">
               <a
-                href={info.photoIdFile}
+                href={info.photoIdFrontFile || info.photoIdFile}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-block text-blue-700 underline hover:text-blue-900"

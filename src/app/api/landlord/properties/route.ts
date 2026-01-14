@@ -31,7 +31,6 @@ export async function POST(req: NextRequest) {
       landlordId: new ObjectId(session.user.id),
       createdAt: new Date(),
       updatedAt: new Date(),
-      interests: [], // Initialize empty
     };
 
     // Insert into DB

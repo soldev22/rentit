@@ -14,10 +14,8 @@ export async function POST(req: Request) {
     addressLine2,
     city,
     postcode,
-    applicationType,
-    landlordRegId,
   } = body;
-    // Ignore any landlordRegId or role input; always register as APPLICANT
+  // Ignore any role/application type input; always register as APPLICANT
 
   if (!email || !password || !name || !phone) {
     return NextResponse.json(
@@ -47,8 +45,8 @@ export async function POST(req: Request) {
     name,
     hashedPassword,
     role: "APPLICANT",
-    applicationType: applicationType || null,
-    landlordRegId: applicationType === "landlord" ? landlordRegId || null : null,
+    applicationType: "applicant",
+    landlordRegId: null,
     profile: {
       phone: phone || null,
       address: {
@@ -71,13 +69,7 @@ export async function POST(req: Request) {
   const NotificationService = (await import("@/lib/notification")).NotificationService;
   const notification = NotificationService.getInstance();
   const subject = "New Registration on Rentsimple";
-  let message = `A new user has registered.\nName: ${name}\nEmail: ${email}\nPhone: ${phone}`;
-  if (applicationType) {
-    message += `\nApplication Type: ${applicationType}`;
-  }
-  if (applicationType === "landlord" && landlordRegId) {
-    message += `\nLandlord Registration ID: ${landlordRegId}`;
-  }
+  const message = `A new user has registered.\nName: ${name}\nEmail: ${email}\nPhone: ${phone}`;
   // Send email only (Resend)
   if (adminEmail) {
     await notification.sendNotification({

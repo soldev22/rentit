@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import InterestDialog from "@/components/landlord/InterestDialog";
-import { formatDateTime } from "@/lib/formatDate";
 
 type Property = {
   _id: string;
@@ -20,13 +18,6 @@ type Property = {
     postcode?: string;
   };
   photos?: { url: string; blobName: string }[];
-  interests?: {
-    applicantId: string;
-    applicantName: string;
-    applicantEmail: string;
-    applicantTel?: string;
-    date?: string;
-  }[];
 };
 
 export default function EditPropertyModal({
@@ -50,7 +41,6 @@ export default function EditPropertyModal({
     viewingInstructions: property.viewingInstructions ?? "",
   });
 
-  const [interestIdx, setInterestIdx] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -126,31 +116,6 @@ export default function EditPropertyModal({
                   Property Images
                 </label>
               </div>
-
-              {property.interests?.length ? (
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Registered Interests
-                  </label>
-                  <div className="border rounded p-2 max-h-40 overflow-y-auto">
-                    {property.interests.map((i, idx) => (
-                      <div
-                        key={idx}
-                        className="text-sm cursor-pointer hover:bg-gray-50 p-1 rounded"
-                        onClick={() => setInterestIdx(idx)}
-                      >
-                        <strong>{i.applicantName}</strong>
-                        <div>{i.applicantEmail}</div>
-                        {i.date && (
-                          <div className="text-xs text-gray-500">
-                            {formatDateTime(i.date)}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
             </div>
 
             {/* RIGHT COLUMN */}
@@ -268,14 +233,6 @@ export default function EditPropertyModal({
         </div>
       </div>
 
-      {interestIdx !== null && property.interests && (
-        <InterestDialog
-          open
-          interest={property.interests[interestIdx]}
-          propertyId={property._id}
-          onClose={() => setInterestIdx(null)}
-        />
-      )}
     </div>
   );
 }

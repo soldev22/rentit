@@ -12,8 +12,6 @@ export default function RegisterPage() {
   const [city, setCity] = useState("");
   const [postcode, setPostcode] = useState("");
   const [password, setPassword] = useState("");
-  const [landlordRegId, setLandlordRegId] = useState("");
-  const [applicationType, setApplicationType] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -36,8 +34,6 @@ export default function RegisterPage() {
         addressLine2,
         city,
         postcode,
-        applicationType,
-        landlordRegId: applicationType === "landlord" ? landlordRegId : undefined,
       }),
     });
 
@@ -151,37 +147,7 @@ export default function RegisterPage() {
           />
         </label>
 
-        {/* Removed Landlord Registration ID field; all users register as applicants */}
-
-        <label className="block mb-4">
-          What type of application are you making?
-          <select
-            className="mt-1 w-full p-2 border rounded"
-            value={applicationType}
-            onChange={(e) => setApplicationType(e.target.value)}
-            required
-          >
-            <option value="" disabled>Select type…</option>
-            <option value="tenant">Tenant</option>
-            <option value="landlord">Landlord</option>
-            <option value="agent">Agent</option>
-            <option value="tradesperson">Tradesperson</option>
-            <option value="other">Other</option>
-          </select>
-        </label>
-        {applicationType === "landlord" && (
-          <label className="block mb-4">
-            Landlord Registration ID
-            <input
-              type="text"
-              className="mt-1 w-full p-2 border rounded"
-              value={landlordRegId}
-              onChange={(e) => setLandlordRegId(e.target.value)}
-              placeholder="Enter your Landlord Registration ID"
-              required
-            />
-          </label>
-        )}
+        {/* All users register as applicants */}
 
         <button
           type="submit"

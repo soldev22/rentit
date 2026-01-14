@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import InterestDialog from "@/components/landlord/InterestDialog";
-import { formatDateTime } from "@/lib/formatDate";
 import PropertyMediaPanel from "@/components/landlord/Property/PropertyMediaPanel";
 
 /* ---------- TYPES ---------- */
@@ -44,13 +42,6 @@ type Property = {
   parking?: string;
   floor?: string;
   hmoLicenseRequired?: boolean;
-  interests?: {
-    applicantId: string;
-    applicantName: string;
-    applicantEmail: string;
-    applicantTel?: string;
-    date?: string;
-  }[];
 };
 
 /* ---------- COMPONENT ---------- */
@@ -97,7 +88,6 @@ export default function EditPropertyModal({
   });
 
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos);
-  const [interestIdx, setInterestIdx] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false); // New state for delete confirmation
@@ -265,30 +255,6 @@ async function handleSave() {
                 </div>
               </div>
 
-              {property.interests?.length ? (
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Registered Interests
-                  </label>
-                  <div className="border rounded p-2 max-h-40 overflow-y-auto">
-                    {property.interests.map((i, idx) => (
-                      <div
-                        key={idx}
-                        className="text-sm cursor-pointer hover:bg-gray-50 p-1 rounded"
-                        onClick={() => setInterestIdx(idx)}
-                      >
-                        <strong>{i.applicantName}</strong>
-                        <div>{i.applicantEmail}</div>
-                        {i.date && (
-                          <div className="text-xs text-gray-500">
-                            {formatDateTime(i.date)}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
             </div>
 
             {/* RIGHT COLUMN */}
@@ -591,14 +557,6 @@ async function handleSave() {
         </div>
       )}
 
-      {interestIdx !== null && property.interests && (
-        <InterestDialog
-          open
-          interest={property.interests[interestIdx]}
-          propertyId={property._id}
-          onClose={() => setInterestIdx(null)}
-        />
-      )}
     </div>
   );
 }

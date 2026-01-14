@@ -135,7 +135,6 @@ export default function TenancyApplicationWorkflow({
   }
 
   const handleStartApplication = async () => {
-    console.log('Start Application button clicked');
     if (!applicantName || !applicantEmail || !applicantTel) {
       setError('Please fill in your name, email, and phone number');
       return;
@@ -147,11 +146,6 @@ export default function TenancyApplicationWorkflow({
     }
 
     setLoading(true);
-    setError(null);
-    // Temporary visual feedback
-    setTimeout(() => {
-      if (loading) setError('Button click registered, waiting for response...');
-    }, 1500);
     setError(null);
 
     try {

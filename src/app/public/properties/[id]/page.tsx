@@ -44,13 +44,6 @@ interface RawProperty {
 }>;
 
   createdAt?: Date | string;
-  interests?: Array<{
-    applicantId?: string;
-    applicantName: string;
-    applicantEmail: string;
-    applicantTel?: string;
-    date?: string;
-  }>;
 }
 
 async function getPropertyById(id: string) {
@@ -95,7 +88,6 @@ async function getPropertyById(id: string) {
 })),
 
     createdAt: p.createdAt,
-    interests: p.interests || [],
   };
 }
 
@@ -167,11 +159,10 @@ export default async function PropertyDetailPage(
           </div>
 
           <div className="mt-6">
-            {/* Client-side apply button handles auth and registers interest via API */}
+            {/* Client-side apply button handles auth and starts the application workflow */}
             <ApplyButton 
               propertyId={property._id} 
               propertyTitle={property.title}
-              interests={property.interests || []}
             />
           </div>
 

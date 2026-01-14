@@ -39,7 +39,6 @@ type Property = {
   hmoLicenseRequired?: boolean;
   createdAt: string;
   updatedAt?: string;
-  interests?: { renterId: string; message?: string }[];
 };
 
 const PAGE_SIZE = 12;
@@ -118,7 +117,6 @@ export default async function LandlordPropertiesPage({
       hmoLicenseRequired?: boolean;
       createdAt?: string | Date;
       updatedAt?: string | Date;
-      interests?: { renterId: string; message?: string }[];
     };
     return {
       _id: typeof d._id === "string" ? d._id : d._id?.toString() ?? "",
@@ -159,7 +157,6 @@ export default async function LandlordPropertiesPage({
           ? d.updatedAt
           : (d.updatedAt as Date).toISOString()
         : undefined,
-      interests: d.interests ?? [],
     };
   });
 

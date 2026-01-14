@@ -70,15 +70,9 @@ export async function POST(req: Request) {
     { _id: new ObjectId(applicantId) },
     { $set: { role: "TENANT", updatedAt: new Date() } }
   );
-
-  // Optionally remove this interest from the property
-  // (since they've now become a tenant)
   await db.collection("properties").updateOne(
     { _id: new ObjectId(propertyId) },
-    {
-      $pull: { interests: { applicantId } },
-      $set: { updatedAt: new Date() }
-    }
+    { $set: { updatedAt: new Date() } }
   );
 
   return NextResponse.json({

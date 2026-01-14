@@ -21,13 +21,6 @@ interface RawProperty {
     postcode?: string;
   };
   photos?: Array<{ url: string; blobName: string; isHero?: boolean }>;
-  interests?: Array<{
-    applicantId: string;
-    applicantName: string;
-    applicantEmail: string;
-    applicantTel?: string;
-    date?: string;
-  }>;
   furnished?: boolean;
   bedrooms?: number;
   bathrooms?: number;
@@ -81,7 +74,6 @@ export default async function PropertyEditPage({
           viewingInstructions: property.viewingInstructions,
           address: property.address || {},
           photos: property.photos,
-          interests: property.interests,
         }}
         onClose={() => {}}
       />

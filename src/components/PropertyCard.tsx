@@ -24,7 +24,6 @@ interface Property {
   sizeSqm?: number;
   furnished?: string;
   status: string;
-  interests?: { userId: string; date: string }[]; // Adjust fields as per actual interest structure
 }
 
 export default function PropertyCard({ property }: { property: Property }) {
@@ -83,7 +82,6 @@ export default function PropertyCard({ property }: { property: Property }) {
           <ApplyButton 
             propertyId={property._id} 
             propertyTitle={property.title}
-            interests={property.interests || []}
           />
         </div>
       )}
