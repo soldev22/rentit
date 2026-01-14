@@ -2,12 +2,13 @@ import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { withApiAudit } from "@/lib/api/withApiAudit";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
-export async function POST(req: Request) {
+async function improveDescription(req: Request) {
   // 🔐 Require authenticated user
   const session = await getServerSession(authOptions);
   if (!session) {
@@ -93,3 +94,5 @@ ${description}
     );
   }
 }
+
+export const POST = withApiAudit(improveDescription);

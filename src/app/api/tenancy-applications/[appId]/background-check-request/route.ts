@@ -7,8 +7,9 @@ import crypto from "crypto";
 import { NotificationTemplates } from "@/lib/notification-templates";
 import { getCollection } from "@/lib/db";
 import { notificationService } from "@/lib/notification";
+import { withApiAudit } from "@/lib/api/withApiAudit";
 
-export async function POST(req: NextRequest, context: { params: Promise<{ appId: string }> }) {
+async function requestBackgroundCheck(req: NextRequest, context: { params: Promise<{ appId: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user || session.user.role !== "LANDLORD") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -100,3 +101,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
 
   return NextResponse.json({ success: true, sentAt });
 }
+
+export const POST = withApiAudit(requestBackgroundCheck);

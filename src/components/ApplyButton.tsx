@@ -83,7 +83,9 @@ export default function ApplyButton({
               propertyTitle={propertyTitle}
               onComplete={() => {
                 setShowApplicationWorkflow(false);
-                setMessage("Tenancy application started successfully!");
+                setMessage(
+                  "Thank you. The landlord will get back to you to confirm the viewing."
+                );
               }}
               onCancel={() => setShowApplicationWorkflow(false)}
             />

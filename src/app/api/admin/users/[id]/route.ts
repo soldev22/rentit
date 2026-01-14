@@ -4,15 +4,25 @@ import { getCollection } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { z } from "zod";
+import { withApiAudit } from "@/lib/api/withApiAudit";
 
 /**
  * GET /api/admin/users/[id]
  */
-export async function GET(
+async function getAdminUser(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params; // ✅ FIX
+
+  // Admin-only guard
+  const session = await getServerSession(authOptions);
+  if (!session || session.user?.role !== "ADMIN") {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
+  }
 
   if (!ObjectId.isValid(id)) {
     return NextResponse.json(
@@ -60,7 +70,7 @@ export async function GET(
 /**
  * PATCH /api/admin/users/[id]
  */
-export async function PATCH(
+async function patchAdminUser(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -141,3 +151,6 @@ export async function PATCH(
     updatedAt: rest.updatedAt?.toISOString?.() ?? null,
   });
 }
+
+export const GET = withApiAudit(getAdminUser);
+export const PATCH = withApiAudit(patchAdminUser);

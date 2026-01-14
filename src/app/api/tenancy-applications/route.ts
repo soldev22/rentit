@@ -10,6 +10,7 @@ import {
 } from "@/lib/tenancy-application";
 import { notificationService } from "@/lib/notification";
 import { NotificationTemplates } from "@/lib/notification-templates";
+import { withApiAudit } from "@/lib/api/withApiAudit";
 
 type QueryFilter = {
   landlordId?: ObjectId;
@@ -33,7 +34,7 @@ type LandlordDoc = {
 };
 
 // POST /api/tenancy-applications - Create new tenancy application
-export async function POST(req: NextRequest) {
+async function createApplication(req: NextRequest) {
   try {
     // Validate session
     const session = await requireSession(req);
@@ -204,6 +205,12 @@ export async function POST(req: NextRequest) {
     const result = await createTenancyApplication(application);
 
     // Notify landlord via email + SMS (best-effort)
+    const notificationResults = {
+      landlordEmail: false,
+      landlordSms: false,
+      applicantNotification: false,
+    };
+
     try {
       const users = await getCollection('users');
 
@@ -225,6 +232,35 @@ export async function POST(req: NextRequest) {
           (typeof landlord?.phone === 'string' && landlord.phone) ||
           null;
 
+        const normalizePhoneToE164 = (raw: string): string | null => {
+          const trimmed = raw.trim();
+          if (!trimmed) return null;
+
+          // Keep leading '+' if present, strip everything else that's not a digit.
+          const cleaned = trimmed
+            .replace(/\(0\)/g, '')
+            .replace(/[^\d+]/g, '');
+
+          let e164 = cleaned;
+          if (e164.startsWith('00')) e164 = '+' + e164.slice(2);
+
+          // UK-centric normalization:
+          //  - 07xxxxxxxxx or 0xxxxxxxxxx => +44xxxxxxxxxx
+          if (!e164.startsWith('+')) {
+            if (e164.startsWith('0')) {
+              e164 = '+44' + e164.slice(1);
+            } else if (e164.startsWith('44')) {
+              e164 = '+' + e164;
+            } else {
+              e164 = '+' + e164;
+            }
+          }
+
+          // Final validation (E.164 max 15 digits).
+          if (!/^\+\d{8,15}$/.test(e164)) return null;
+          return e164;
+        };
+
         const propertyTitle = property?.title || 'your property';
         const subject = `New application: ${propertyTitle}`;
         const message =
@@ -235,29 +271,33 @@ export async function POST(req: NextRequest) {
           `\n\nLog in to your landlord dashboard to review.`;
 
         if (landlordEmail) {
-          await notificationService.sendNotification({
+          const ok = await notificationService.sendNotification({
             to: landlordEmail,
             subject,
             message,
             method: 'email',
           });
+          notificationResults.landlordEmail = ok;
+          if (!ok) {
+            console.error('Landlord email notification failed');
+          }
         }
 
         if (landlordPhoneRaw) {
-          let formattedTo = landlordPhoneRaw.trim();
-          if (formattedTo.startsWith('07')) {
-            formattedTo = '+44' + formattedTo.slice(1);
-          } else if (formattedTo.startsWith('44')) {
-            formattedTo = '+' + formattedTo;
-          } else if (!formattedTo.startsWith('+')) {
-            formattedTo = '+' + formattedTo;
+          const smsTo = normalizePhoneToE164(landlordPhoneRaw);
+          if (!smsTo) {
+            console.error('Landlord SMS not sent: invalid phone number format');
+          } else {
+            const ok = await notificationService.sendNotification({
+              to: smsTo,
+              message,
+              method: 'sms',
+            });
+            notificationResults.landlordSms = ok;
+            if (!ok) {
+              console.error('Landlord SMS notification failed');
+            }
           }
-
-          await notificationService.sendNotification({
-            to: formattedTo,
-            message,
-            method: 'sms',
-          });
         }
       }
     } catch (landlordNotifyError) {
@@ -271,13 +311,14 @@ export async function POST(req: NextRequest) {
         const user = await users.findOne({ email: session.user.email });
         if (user?.profile?.contactPreferences) {
           const template = NotificationTemplates.applicationSubmitted(property.title || 'your property');
-          await notificationService.sendToUser(
+          const r = await notificationService.sendToUser(
             session.user.email,
             user.profile.phone,
             user.profile.contactPreferences,
             template.subject,
             template.message
           );
+          notificationResults.applicantNotification = Boolean(r.email || r.sms || r.whatsapp);
         }
 
         // Persist reference contacts into profile for auto-fill next time
@@ -309,19 +350,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       applicationId: result._id?.toString(),
-      currentStage: application.currentStage
+      currentStage: application.currentStage,
+      message: "Tenancy application started successfully",
+      notificationResults,
     });
   } catch (error) {
     console.error('Error creating tenancy application:', error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
 // GET /api/tenancy-applications - Get applications (filtered by user role)
-export async function GET(req: NextRequest) {
+async function listApplications(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
@@ -364,3 +404,6 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+
+export const POST = withApiAudit(createApplication);
+export const GET = withApiAudit(listApplications);

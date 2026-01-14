@@ -160,7 +160,15 @@ export interface TenancyApplication {
   };
 
   // Overall status
-  status: 'draft' | 'in_progress' | 'completed' | 'cancelled' | 'rejected';
+  status:
+    | 'draft'
+    | 'in_progress'
+    | 'completed'
+    | 'cancelled'
+    | 'rejected'
+    | 'approved'
+    | 'accepted'
+    | 'refused';
   currentStage: 1 | 2 | 3 | 4 | 5 | 6;
 
   // Metadata

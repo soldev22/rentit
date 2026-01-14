@@ -26,9 +26,25 @@ interface Property {
   status: string;
 }
 
-export default function PropertyCard({ property }: { property: Property }) {
+export default function PropertyCard({
+  property,
+  isApplied,
+}: {
+  property: Property;
+  isApplied?: boolean;
+}) {
   return (
-    <article data-testid={`property-card-${property._id}`} className="rounded-xl border bg-warm p-4 shadow-sm hover:shadow-md">
+    <article
+      data-testid={`property-card-${property._id}`}
+      className={`rounded-xl border p-4 shadow-sm hover:shadow-md ${
+        isApplied ? 'bg-green-50 border-green-200' : 'bg-warm'
+      }`}
+    >
+      {isApplied && (
+        <div className="mb-3 inline-flex items-center gap-2 rounded-md bg-green-600 px-2 py-1 text-xs font-semibold text-white">
+          Property applied for
+        </div>
+      )}
       <Link href={`/public/properties/${property._id}`} className="block" aria-label={`View property ${property.title}`}>
         <div className="w-full aspect-[4/3] rounded-md overflow-hidden mb-3 bg-gray-100 relative">
           {property.photos && property.photos.length > 0 ? (
@@ -77,7 +93,7 @@ export default function PropertyCard({ property }: { property: Property }) {
       </Link>
 
       {/* Apply button - only show for listed properties */}
-      {property.status === 'listed' && (
+      {property.status === 'listed' && !isApplied && (
         <div className="mt-4">
           <ApplyButton 
             propertyId={property._id} 

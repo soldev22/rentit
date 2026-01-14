@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getCollection } from "@/lib/db";
+import { withApiAudit } from "@/lib/api/withApiAudit";
 
-export async function GET() {
+async function getProfile() {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.email) {
@@ -34,7 +35,7 @@ export async function GET() {
   });
 }
 
-export async function PATCH(req: Request) {
+async function updateProfile(req: Request) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.email) {
@@ -58,3 +59,6 @@ export async function PATCH(req: Request) {
 
   return NextResponse.json({ ok: true });
 }
+
+export const GET = withApiAudit(getProfile);
+export const PATCH = withApiAudit(updateProfile);

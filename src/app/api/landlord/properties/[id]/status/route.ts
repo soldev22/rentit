@@ -8,8 +8,9 @@ import { canTransition } from "@/lib/propertyStatus";
 import type { PropertyStatus } from "@/models/Property";
 
 import type { NextRequest } from "next/server";
+import { withApiAudit } from "@/lib/api/withApiAudit";
 
-export async function PATCH(
+async function updatePropertyStatusById(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
@@ -104,3 +105,5 @@ export async function PATCH(
     );
   }
 }
+
+export const PATCH = withApiAudit(updatePropertyStatusById);

@@ -11,6 +11,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getCollection } from '@/lib/db';
 import { evaluateTenantPreQualification } from '@/lib/prequalification-eval';
 import { TenantPreQualification } from '@/types/tenant-prequalification';
+import { withApiAudit } from '@/lib/api/withApiAudit';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +26,7 @@ type TenantPreQualificationRequest = {
   consentTimestamp: string;
 };
 
-export async function POST(req: NextRequest) {
+async function runPreQualification(req: NextRequest) {
   // Validate request body
   let body: TenantPreQualificationRequest;
   try {
@@ -101,4 +102,6 @@ export async function POST(req: NextRequest) {
   // Return status only in the response
   return NextResponse.json({ status: evalResult.status });
 }
+
+export const POST = withApiAudit(runPreQualification);
 

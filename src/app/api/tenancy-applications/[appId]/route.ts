@@ -3,8 +3,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { ObjectId } from 'mongodb';
 import { getTenancyApplicationById, updateTenancyApplication } from '@/lib/tenancy-application';
+import { withApiAudit } from '@/lib/api/withApiAudit';
 
-export async function GET(req: NextRequest, context: { params: Promise<{ appId: string }> }) {
+async function getApplication(req: NextRequest, context: { params: Promise<{ appId: string }> }) {
   const { appId } = await context.params;
   if (!ObjectId.isValid(appId)) {
     return NextResponse.json({ error: 'Invalid application ID' }, { status: 400 });
@@ -30,7 +31,7 @@ type PatchBody = {
   };
 };
 
-export async function PATCH(req: NextRequest, context: { params: Promise<{ appId: string }> }) {
+async function patchApplication(req: NextRequest, context: { params: Promise<{ appId: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user || session.user.role !== 'LANDLORD') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -88,7 +89,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ appId
 
 import { getCollection } from '@/lib/db';
 
-export async function DELETE(req: NextRequest, context: { params: Promise<{ appId: string }> }) {
+async function deleteApplication(req: NextRequest, context: { params: Promise<{ appId: string }> }) {
   const { appId } = await context.params;
   if (!ObjectId.isValid(appId)) {
     return NextResponse.json({ error: 'Invalid application ID' }, { status: 400 });
@@ -100,3 +101,7 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ appI
   }
   return NextResponse.json({ success: true });
 }
+
+export const GET = withApiAudit(getApplication);
+export const PATCH = withApiAudit(patchApplication);
+export const DELETE = withApiAudit(deleteApplication);

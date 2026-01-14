@@ -6,13 +6,20 @@ export type UnifiedApplicationStatusView = {
 };
 
 function formatViewingDetails(stage1: TenancyApplication["stage1"]): string | undefined {
-  const date = stage1.viewingDetails?.date;
+  const date = stage1.viewingDetails?.date || stage1.preferredDate;
   const time = stage1.viewingDetails?.time;
   const note = stage1.viewingDetails?.note;
 
   const dateTime = [date, time].filter(Boolean).join(" ").trim();
-  if (dateTime && note) return `${dateTime} (${note})`;
-  if (dateTime) return dateTime;
+  const type = stage1.viewingType ? String(stage1.viewingType) : "";
+
+  const parts: string[] = [];
+  if (dateTime) parts.push(dateTime);
+  if (type) parts.push(type);
+  const head = parts.join(" ");
+
+  if (head && note) return `${head} (${note})`;
+  if (head) return head;
   if (note) return note;
   return undefined;
 }
@@ -32,8 +39,17 @@ export function getUnifiedApplicationStatusView(
   }
 
   // Terminal states
+  if (application.status === "approved") {
+    return { label: "Approved" };
+  }
+  if (application.status === "accepted") {
+    return { label: "Accepted" };
+  }
   if (application.status === "rejected") {
     return { label: "Rejected" };
+  }
+  if (application.status === "refused") {
+    return { label: "Refused" };
   }
   if (application.status === "cancelled") {
     return { label: "Cancelled" };

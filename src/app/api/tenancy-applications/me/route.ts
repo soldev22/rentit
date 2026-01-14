@@ -3,9 +3,10 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getCollection } from "@/lib/db";
 import { ObjectId } from "mongodb";
+import { withApiAudit } from "@/lib/api/withApiAudit";
 
 // GET /api/tenancy-applications/me - Get all applications for the current user
-export async function GET() {
+async function listMyApplications() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -47,3 +48,5 @@ export async function GET() {
   const results = await applications.aggregate(pipeline).toArray();
   return NextResponse.json({ applications: results });
 }
+
+export const GET = withApiAudit(listMyApplications);

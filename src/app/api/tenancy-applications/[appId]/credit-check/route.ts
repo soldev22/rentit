@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { ObjectId } from 'mongodb';
 import { getTenancyApplicationById, updateTenancyApplication } from '@/lib/tenancy-application';
+import { withApiAudit } from '@/lib/api/withApiAudit';
 
 type CreditCheckBody = {
   experianScore: number;
@@ -13,7 +14,7 @@ type CreditCheckBody = {
 const MIN_EXPERIAN_SCORE = 750;
 const MAX_CCJS = 1;
 
-export async function POST(req: NextRequest, context: { params: Promise<{ appId: string }> }) {
+async function submitCreditCheck(req: NextRequest, context: { params: Promise<{ appId: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user || session.user.role !== 'LANDLORD') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -68,3 +69,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
 
   return NextResponse.json({ ok: true, passed, failureReason });
 }
+
+export const POST = withApiAudit(submitCreditCheck);

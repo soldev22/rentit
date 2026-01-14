@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { TenancyApplication } from '@/lib/tenancy-application';
+import { TENANCY_APPLICATION_STAGE_LABELS } from '@/lib/tenancyApplicationStages';
 
 interface TenancyApplicationWorkflowProps {
   propertyId: string;
@@ -20,13 +21,8 @@ export default function TenancyApplicationWorkflow({
 
   const { data: session, status } = useSession();
   const [application, setApplication] = useState<TenancyApplication | null>(null);
-  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Stage 1: Viewing Agreement
-  const [viewingType, setViewingType] = useState<'onsite' | 'virtual' | null>(null);
-  const [preferredDate, setPreferredDate] = useState('');
 
   // Stage 2: Background Checks
   const [creditCheckConsent, setCreditCheckConsent] = useState(false);
@@ -158,7 +154,6 @@ export default function TenancyApplicationWorkflow({
           applicantEmail,
           applicantTel,
           applicantAddress: applicantAddress.line1 ? applicantAddress : undefined,
-          viewingType,
           referenceContacts: {
             employerName: employerName || undefined,
             employerEmail: employerEmail || undefined,
@@ -184,11 +179,10 @@ export default function TenancyApplicationWorkflow({
         return;
       }
 
-      // Fetch the created application
+      // Fetch the created application (for consistency with existing flow)
       const appResponse = await fetch(`/api/tenancy-applications/${data.applicationId}`);
       const appData = await appResponse.json();
       setApplication(appData.application);
-      setShowConfirmationModal(true);
 
     } catch {
       setError('An error occurred while starting your application');
@@ -196,59 +190,6 @@ export default function TenancyApplicationWorkflow({
       setLoading(false);
     }
   };
-
-  const renderStage1 = () => (
-    <div className="space-y-6">
-      <div className="text-center">
-        <h3 className="text-xl font-semibold mb-2">Stage 1: Property Viewing</h3>
-        <p className="text-gray-600">Would you like to arrange a property viewing?</p>
-      </div>
-
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-2">Viewing Type</label>
-          <div className="space-y-2">
-            <label className="flex items-center">
-              <input
-                type="radio"
-                name="viewingType"
-                value="onsite"
-                checked={viewingType === 'onsite'}
-                onChange={(e) => setViewingType(e.target.value as 'onsite')}
-                className="mr-2"
-              />
-              On-site viewing
-            </label>
-            <label className="flex items-center">
-              <input
-                type="radio"
-                name="viewingType"
-                value="virtual"
-                checked={viewingType === 'virtual'}
-                onChange={(e) => setViewingType(e.target.value as 'virtual')}
-                className="mr-2"
-              />
-              Virtual viewing
-            </label>
-          </div>
-        </div>
-
-        {viewingType && (
-          <div>
-            <label className="block text-sm font-medium mb-2">Preferred Date (Optional)</label>
-            <input
-              type="date"
-              value={preferredDate}
-              onChange={(e) => setPreferredDate(e.target.value)}
-              className="w-full p-2 border rounded-md"
-              min={new Date().toISOString().split('T')[0]}
-              aria-label="Preferred Date"
-            />
-          </div>
-        )}
-      </div>
-    </div>
-  );
 
   const renderStage2 = () => (
     <div className="space-y-6">
@@ -431,12 +372,12 @@ export default function TenancyApplicationWorkflow({
     if (!application) return null;
 
     const stages = [
-      { number: 1, name: 'Viewing', status: application.stage1.status },
-      { number: 2, name: 'Checks', status: application.stage2.status },
-      { number: 3, name: 'Documents', status: application.stage3.status },
-      { number: 4, name: 'Signing', status: application.stage4.status },
-      { number: 5, name: 'Move-in', status: application.stage5.status },
-      { number: 6, name: 'Complete', status: application.stage6.status }
+      { number: 1, name: TENANCY_APPLICATION_STAGE_LABELS[1], status: application.stage1.status },
+      { number: 2, name: TENANCY_APPLICATION_STAGE_LABELS[2], status: application.stage2.status },
+      { number: 3, name: TENANCY_APPLICATION_STAGE_LABELS[3], status: application.stage3.status },
+      { number: 4, name: TENANCY_APPLICATION_STAGE_LABELS[4], status: application.stage4.status },
+      { number: 5, name: TENANCY_APPLICATION_STAGE_LABELS[5], status: application.stage5.status },
+      { number: 6, name: TENANCY_APPLICATION_STAGE_LABELS[6], status: application.stage6.status }
     ];
 
     return (
@@ -469,50 +410,28 @@ export default function TenancyApplicationWorkflow({
   if (application) {
     return (
       <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg">
-        {/* {renderApplicantBackgroundInfo()} */}
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold">Tenancy Application</h2>
-          <p className="text-gray-600">Property: {propertyTitle}</p>
-        </div>
-
-        {renderProgressIndicator()}
-
-        <div className="text-center text-gray-500">
-          <p>Application created successfully!</p>
-          <p className="text-sm mt-2">Application ID: {application._id?.toString()}</p>
-          <p className="text-sm">Current Stage: {application.currentStage}</p>
-          {application.stage2?.sentAt && (
-            <div className="mt-4 inline-block px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-semibold border border-green-300">
-              Application form sent: {new Date(application.stage2.sentAt).toLocaleString()}
-            </div>
-          )}
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900">Thank you</h2>
+          <p className="mt-3 text-gray-700">
+            The landlord will get back to you to confirm the viewing.
+          </p>
+          <p className="mt-2 text-sm text-gray-500">
+            Property: {propertyTitle}
+          </p>
         </div>
 
         <div className="mt-6 flex justify-end">
           <button
-            onClick={onComplete}
+            onClick={() => {
+              if (onComplete) return onComplete();
+              if (onCancel) return onCancel();
+              setApplication(null);
+            }}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
-            Continue
+            Close
           </button>
         </div>
-
-        {/* Confirmation Modal */}
-        {showConfirmationModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-            <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
-              <h3 className="text-xl font-bold mb-4 text-green-700">Request Sent!</h3>
-              <p className="mb-2">The application form link has been sent to the applicant via email and SMS.</p>
-              <p className="mb-4 text-sm text-gray-500">Please inform the applicant to check their inbox and spam folder.</p>
-              <button
-                onClick={() => setShowConfirmationModal(false)}
-                className="mt-2 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     );
   }
@@ -611,8 +530,6 @@ export default function TenancyApplicationWorkflow({
         </div>
 
         {renderReferenceContacts()}
-
-        {renderStage1()}
         {renderStage2()}
 
         {error && (

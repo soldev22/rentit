@@ -2,10 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCollection } from "@/lib/db";
 import { ObjectId } from "mongodb";
 import { containerClient } from "@/lib/azureBlob";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { withApiAudit } from "@/lib/api/withApiAudit";
 
 export const runtime = "nodejs";
 
-export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+async function deletePropertyPhoto(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!['LANDLORD', 'ADMIN', 'AGENT'].includes(session.user.role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const { id } = await context.params;
   const { blobName } = await req.json();
   if (!blobName) {
@@ -25,3 +36,5 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
 
   return NextResponse.json({ success: true });
 }
+
+export const DELETE = withApiAudit(deletePropertyPhoto);

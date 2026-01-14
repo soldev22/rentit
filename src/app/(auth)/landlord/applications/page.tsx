@@ -5,6 +5,7 @@ import { getCollection } from "@/lib/db";
 import { ObjectId } from "mongodb";
 import Link from "next/link";
 import { getUnifiedApplicationStatusView } from "@/lib/tenancyApplicationStatus";
+import { TENANCY_APPLICATION_STAGE_LABELS } from "@/lib/tenancyApplicationStages";
 
 export const dynamic = 'force-dynamic';
 
@@ -94,12 +95,12 @@ export default async function LandlordTenancyApplicationsPage() {
               {/* Progress indicator */}
                 <div className="mb-4">
                   <div className="flex justify-between text-xs text-gray-500 mb-2">
-                    <span>Stage 1</span>
-                    <span>Stage 2</span>
-                    <span>Stage 3</span>
-                    <span>Stage 4</span>
-                    <span>Stage 5</span>
-                    <span>Stage 6</span>
+                    <span>1. {TENANCY_APPLICATION_STAGE_LABELS[1]}</span>
+                    <span>2. {TENANCY_APPLICATION_STAGE_LABELS[2]}</span>
+                    <span>3. {TENANCY_APPLICATION_STAGE_LABELS[3]}</span>
+                    <span>4. {TENANCY_APPLICATION_STAGE_LABELS[4]}</span>
+                    <span>5. {TENANCY_APPLICATION_STAGE_LABELS[5]}</span>
+                    <span>6. {TENANCY_APPLICATION_STAGE_LABELS[6]}</span>
                   </div>
                   <div className="flex space-x-1">
                     {[1, 2, 3, 4, 5, 6].map((stageNum) => {

@@ -4,8 +4,9 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { randomBytes } from "crypto";
 import { getCollection } from "@/lib/db";
 import { sendPasswordResetEmail } from "@/lib/email";
+import { withApiAudit } from "@/lib/api/withApiAudit";
 
-export async function POST(req: Request) {
+async function inviteUser(req: Request) {
   const session = await getServerSession(authOptions);
 
   if (!session || session.user.role !== "ADMIN") {
@@ -64,3 +65,5 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ ok: true });
 }
+
+export const POST = withApiAudit(inviteUser);

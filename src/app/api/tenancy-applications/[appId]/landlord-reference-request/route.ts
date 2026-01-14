@@ -6,8 +6,9 @@ import crypto from 'crypto';
 import { getTenancyApplicationById, updateTenancyApplication } from '@/lib/tenancy-application';
 import { notificationService } from '@/lib/notification';
 import { getCollection } from '@/lib/db';
+import { withApiAudit } from '@/lib/api/withApiAudit';
 
-export async function POST(req: NextRequest, context: { params: Promise<{ appId: string }> }) {
+async function requestLandlordReference(req: NextRequest, context: { params: Promise<{ appId: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user || session.user.role !== 'LANDLORD') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
 
   if (!referenceEmail) {
     return NextResponse.json(
-      { error: 'Missing previous landlord email. Add it on the applicant profile or in the application Stage 2 reference contacts.' },
+      { error: 'Missing previous landlord email. Add it on the applicant profile or in the application Stage 2 (Background Checks) reference contacts.' },
       { status: 400 }
     );
   }
@@ -78,3 +79,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
 
   return NextResponse.json({ ok: true, emailed: ok, to: referenceEmail, requestedAt, link });
 }
+
+export const POST = withApiAudit(requestLandlordReference);

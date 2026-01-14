@@ -3,8 +3,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import clientPromise from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
+import { withApiAudit } from "@/lib/api/withApiAudit";
 
-export async function POST(req: Request) {
+async function agreeTenancy(req: Request) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
@@ -81,3 +82,5 @@ export async function POST(req: Request) {
     message: "Tenancy agreed successfully"
   });
 }
+
+export const POST = withApiAudit(agreeTenancy);

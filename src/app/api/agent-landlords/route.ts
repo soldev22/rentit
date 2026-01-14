@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getCollection } from "@/lib/db";
+import { withApiAudit } from "@/lib/api/withApiAudit";
 
-export async function POST(req: Request) {
+async function assignLandlord(req: Request) {
   // 1. Auth guard
   const session = await getServerSession(authOptions);
 
@@ -50,3 +51,5 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ success: true });
 }
+
+export const POST = withApiAudit(assignLandlord);

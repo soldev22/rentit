@@ -3,12 +3,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import clientPromise from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
+import { withApiAudit } from "@/lib/api/withApiAudit";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
-export async function PATCH(req: Request, { params }: RouteContext) {
+async function updateMaintenanceIssue(req: Request, { params }: RouteContext) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
@@ -100,3 +101,5 @@ export async function PATCH(req: Request, { params }: RouteContext) {
 
   return NextResponse.json({ ok: true });
 }
+
+export const PATCH = withApiAudit(updateMaintenanceIssue);

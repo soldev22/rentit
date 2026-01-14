@@ -74,8 +74,9 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getCollection } from "@/lib/db";
 import { ObjectId } from "mongodb";
 import { deleteBlobs } from "@/lib/azureBlob";
+import { withApiAudit } from "@/lib/api/withApiAudit";
 
-export async function DELETE(
+async function deleteProperty(
   req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
@@ -116,7 +117,7 @@ export async function DELETE(
   return NextResponse.json({ ok: true });
 }
 
-export async function PUT(
+async function updateProperty(
   req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
@@ -315,7 +316,7 @@ export async function PUT(
 
 // ... existing code ...
 
-export async function PATCH(
+async function setHeroPhoto(
   req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
@@ -379,3 +380,7 @@ export async function PATCH(
     );
   }
 }
+
+export const DELETE = withApiAudit(deleteProperty);
+export const PUT = withApiAudit(updateProperty);
+export const PATCH = withApiAudit(setHeroPhoto);

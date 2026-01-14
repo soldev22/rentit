@@ -6,6 +6,9 @@ export type AuditAction =
   | "LOGIN"
   | "ROLE_ASSIGNED"
 
+  // Generic activity
+  | "API_REQUEST"
+
   // Password / auth
   | "PASSWORD_RESET_REQUESTED"
   | "PASSWORD_RESET_COMPLETED"

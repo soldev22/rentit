@@ -5,6 +5,7 @@ import { ObjectId } from "mongodb";
 import { authOptions } from "../../../auth/[...nextauth]/route";
 import { getCollection } from "../../../../../lib/db";
 import { Session } from "next-auth";
+import { withApiAudit } from "@/lib/api/withApiAudit";
 type UserRole =
   | "ADMIN"
   | "LANDLORD"
@@ -16,7 +17,7 @@ type UserRole =
  * PUT /api/landlord/properties/update?id=PROPERTY_ID
  * Updates editable property details (NOT status)
  */
-export async function PUT(req: Request) {
+async function updateProperty(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
@@ -134,3 +135,5 @@ export async function PUT(req: Request) {
     );
   }
 }
+
+export const PUT = withApiAudit(updateProperty);

@@ -155,11 +155,12 @@ export class NotificationService {
 
   private async sendSMS(notification: NotificationData): Promise<boolean> {
     if (!this.twilioClient || !process.env.TWILIO_PHONE_NUMBER) {
-      console.log('📱 SMS NOTIFICATION (SIMULATED - Twilio not configured):', {
+      console.warn('📱 SMS NOT SENT (Twilio not configured):', {
         to: notification.to,
-        message: notification.message,
+        hasClient: Boolean(this.twilioClient),
+        hasFrom: Boolean(process.env.TWILIO_PHONE_NUMBER),
       });
-      return true; // Simulate success for development
+      return false;
     }
 
     try {

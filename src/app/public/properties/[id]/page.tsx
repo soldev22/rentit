@@ -5,6 +5,11 @@ import ShareButtons from '@/components/ShareButtons';
 import ApplyButton from '@/components/ApplyButton';
 import { formatDateShort } from '@/lib/formatDate';
 import Link from "next/link";
+import { getServerSession } from 'next-auth';
+
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { getUnifiedApplicationStatusView } from '@/lib/tenancyApplicationStatus';
+import { TENANCY_APPLICATION_STAGE_LABELS } from '@/lib/tenancyApplicationStages';
 
 export const dynamic = 'force-dynamic';
 
@@ -92,9 +97,47 @@ async function getPropertyById(id: string) {
 }
 
 export default async function PropertyDetailPage(
-  { params }: { params: { id: string } }
+  {
+    params,
+  }: {
+    params: { id: string } | Promise<{ id: string }>;
+  }
 ) {
-  const { id } = params;
+  function isPromise<T>(value: T | Promise<T>): value is Promise<T> {
+    return typeof (value as Promise<T>)?.then === 'function';
+  }
+
+  const resolvedParams = isPromise(params) ? await params : params;
+  const { id } = resolvedParams;
+
+  // If an applicant is logged in, fetch their most recent application for this property
+  // so we can show stage/status at the top of the page.
+  const session = await getServerSession(authOptions);
+  let applicantApplication:
+    | (import('@/lib/tenancy-application').TenancyApplication & { _id?: ObjectId })
+    | null = null;
+
+  if (
+    session?.user?.role === 'APPLICANT' &&
+    session.user.id &&
+    ObjectId.isValid(session.user.id) &&
+    ObjectId.isValid(id)
+  ) {
+    try {
+      const applications = await getCollection('tenancy_applications');
+      applicantApplication = (await applications.findOne(
+        {
+          applicantId: new ObjectId(session.user.id),
+          propertyId: new ObjectId(id),
+        },
+        { sort: { createdAt: -1 } }
+      )) as any;
+    } catch (err) {
+      console.error('Error fetching applicant application for property:', err);
+      applicantApplication = null;
+    }
+  }
+
   const property = await getPropertyById(id);
   if (!property) return <div className="p-6">Property not found</div>;
 
@@ -114,14 +157,37 @@ export default async function PropertyDetailPage(
 
   return (
     <main className="mx-auto max-w-5xl p-6">
-      <div className="mb-6 flex justify-end">
-        <Link
-          href="/public/properties"
-          className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-white font-semibold hover:bg-indigo-700 transition"
-        >
-          Search Properties
-        </Link>
-      </div>
+      {applicantApplication ? (() => {
+        const unified = getUnifiedApplicationStatusView(applicantApplication);
+        const stageLabel = TENANCY_APPLICATION_STAGE_LABELS[applicantApplication.currentStage];
+        const statusText = applicantApplication.status.replace(/_/g, ' ');
+
+        return (
+          <section className="mb-6 rounded-xl border border-green-200 bg-green-50 p-4" aria-label="Your application status">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-lg font-bold text-green-900">Your application</div>
+                <div className="mt-1 text-lg font-bold text-green-900">
+                  <span className="font-bold capitalize">{statusText}</span>
+                  <span className="mx-2 text-green-700">•</span>
+                  <span className="font-bold">Stage {applicantApplication.currentStage}</span>: {stageLabel}
+                </div>
+                <div className="mt-1 text-lg font-bold text-green-800">
+                  {unified.label}{unified.detail ? ` — ${unified.detail}` : ''}
+                </div>
+              </div>
+
+              <Link
+                href="/applicant/dashboard"
+                className="inline-flex items-center rounded-md bg-green-700 px-3 py-2 text-sm font-semibold text-white hover:bg-green-800"
+              >
+                View in dashboard
+              </Link>
+            </div>
+          </section>
+        );
+      })() : null}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
           <PropertyGallery photos={property.photos} />

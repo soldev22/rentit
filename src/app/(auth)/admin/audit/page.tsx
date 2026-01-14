@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import clientPromise from "@/lib/mongodb";
 import { formatDateTime } from "@/lib/formatDate";
 import { ObjectId } from "mongodb";
+import { formatAuditActivity } from "@/lib/auditActivity";
 
 type AuditEvent = {
   _id: any;
@@ -13,10 +14,25 @@ type AuditEvent = {
   description?: string;
   success?: boolean;
   source?: string;
+  metadata?: Record<string, unknown>;
   createdAt?: Date;
 };
 
-export default async function AdminAuditPage() {
+function asString(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+function asNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+export default async function AdminAuditPage({
+  searchParams,
+}: {
+  searchParams?:
+    | Record<string, string | string[] | undefined>
+    | Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await getServerSession(authOptions);
 
   if (!session || session.user.role !== "ADMIN") {
@@ -26,12 +42,47 @@ export default async function AdminAuditPage() {
   const client = await clientPromise;
   const db = client.db();
 
+  const resolvedSearchParams = await Promise.resolve(searchParams ?? {});
+
+  const actorQueryRaw = resolvedSearchParams?.actor;
+  const actorQuery =
+    typeof actorQueryRaw === "string" ? actorQueryRaw.trim() : "";
+  const actionRaw = resolvedSearchParams?.action;
+  const action = typeof actionRaw === "string" ? actionRaw.trim() : "";
+  const successRaw = resolvedSearchParams?.success;
+  const success = typeof successRaw === "string" ? successRaw.trim() : "";
+  const limitRaw = resolvedSearchParams?.limit;
+  const limitStr = typeof limitRaw === "string" ? limitRaw.trim() : "100";
+  const limit = Math.max(1, Math.min(500, Number(limitStr) || 100));
+
+  let resolvedActorUserId: string | null = null;
+
+  if (actorQuery) {
+    if (actorQuery.includes("@")) {
+      const user = await db
+        .collection("users")
+        .findOne(
+          { email: actorQuery.toLowerCase() },
+          { projection: { _id: 1 } }
+        );
+      resolvedActorUserId = user?._id?.toString?.() ?? null;
+    } else {
+      resolvedActorUserId = actorQuery;
+    }
+  }
+
+  const filter: Record<string, any> = {};
+  if (resolvedActorUserId) filter.actorUserId = resolvedActorUserId;
+  if (action) filter.action = action;
+  if (success === "true") filter.success = true;
+  if (success === "false") filter.success = false;
+
   // 1️⃣ Load audit events
   const rawEvents = await db
     .collection("audit_events")
-    .find({})
+    .find(filter)
     .sort({ createdAt: -1 })
-    .limit(100)
+    .limit(limit)
     .toArray();
 
   const events: AuditEvent[] = rawEvents.map((doc) => ({
@@ -42,6 +93,7 @@ export default async function AdminAuditPage() {
     description: doc.description,
     success: doc.success,
     source: doc.source,
+    metadata: doc.metadata ?? undefined,
     createdAt: doc.createdAt ? new Date(doc.createdAt) : undefined,
   }));
 
@@ -80,10 +132,57 @@ if (objectIdActors.length > 0) {
     <div className="p-6 font-sans">
       <h2 className="mb-4">Audit log</h2>
 
+      <form className="mb-6 flex flex-wrap gap-2" method="GET">
+        <input
+          name="actor"
+          placeholder="Actor user id or email"
+          defaultValue={actorQuery}
+          className="w-[320px] rounded border border-gray-300 px-3 py-2"
+        />
+
+        <input
+          name="action"
+          placeholder="Action (optional)"
+          defaultValue={action}
+          className="w-[240px] rounded border border-gray-300 px-3 py-2"
+        />
+
+        <select
+          name="success"
+          defaultValue={success}
+          aria-label="Filter by success"
+          className="rounded border border-gray-300 px-3 py-2"
+        >
+          <option value="">Any result</option>
+          <option value="true">Success only</option>
+          <option value="false">Failures only</option>
+        </select>
+
+        <select
+          name="limit"
+          defaultValue={String(limit)}
+          aria-label="Number of results"
+          className="rounded border border-gray-300 px-3 py-2"
+        >
+          <option value="50">50</option>
+          <option value="100">100</option>
+          <option value="200">200</option>
+          <option value="500">500</option>
+        </select>
+
+        <button
+          type="submit"
+          className="rounded bg-black px-4 py-2 text-white"
+        >
+          Filter
+        </button>
+      </form>
+
       <table className="w-full border-collapse">
         <thead>
           <tr className="border-b border-gray-300">
             <th className="text-left">Time</th>
+            <th className="text-left">Activity</th>
             <th className="text-left">Action</th>
             <th className="text-left">Actor</th>
             <th className="text-left">Target</th>
@@ -100,6 +199,35 @@ if (objectIdActors.length > 0) {
                 {e.createdAt
                   ? formatDateTime(e.createdAt)
                   : "-"}
+              </td>
+
+              <td>
+                <div className="flex flex-col">
+                  <span>
+                    {formatAuditActivity({
+                      action: e.action,
+                      description: e.description,
+                      source: e.source,
+                      metadata: e.metadata ?? null,
+                    })}
+                  </span>
+                  <span className="text-xs text-gray-600">
+                    {(() => {
+                      const method = asString(e.metadata?.method).toUpperCase();
+                      const path = asString(e.metadata?.path) || asString(e.source);
+                      const status = asNumber(e.metadata?.status);
+                      const durationMs = asNumber(e.metadata?.durationMs);
+
+                      const parts = [
+                        method && path ? `${method} ${path}` : path,
+                        typeof status === "number" ? `status ${status}` : "",
+                        typeof durationMs === "number" ? `${durationMs}ms` : "",
+                      ].filter(Boolean);
+
+                      return parts.join(" • ") || "";
+                    })()}
+                  </span>
+                </div>
               </td>
 
               <td>{e.action}</td>

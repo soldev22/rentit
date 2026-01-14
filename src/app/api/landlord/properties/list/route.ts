@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getCollection } from "@/lib/db";
 import { ObjectId } from "mongodb";
+import { withApiAudit } from "@/lib/api/withApiAudit";
 
 // import Property from "@/models/Property";
 
@@ -10,7 +11,7 @@ import { ObjectId } from "mongodb";
  * POST /api/landlord/properties
  * Creates a new property in DRAFT state
  */
-export async function POST(req: Request) {
+async function listProperties(req: Request) {
   try {
     // 1. Ensure user is logged in
     const session = await getServerSession(authOptions);
@@ -84,3 +85,5 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export const POST = withApiAudit(listProperties);

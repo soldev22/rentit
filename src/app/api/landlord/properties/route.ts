@@ -4,8 +4,9 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getCollection } from "@/lib/db";
 import { createPropertySchema } from "@/lib/schemas/property";  // Change to named import
 import { ObjectId } from "mongodb";
+import { withApiAudit } from "@/lib/api/withApiAudit";
 
-export async function POST(req: NextRequest) {
+async function createProperty(req: NextRequest) {
   try {
     // Auth check
     const session = await getServerSession(authOptions);
@@ -49,3 +50,5 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+export const POST = withApiAudit(createProperty);

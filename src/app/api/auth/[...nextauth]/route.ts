@@ -5,6 +5,7 @@ import clientPromise from "@/lib/mongodb";
 import bcrypt from "bcrypt";
 import { isRole, type Role } from "@/lib/roles"; // 🔧 ADD Role import
 import { isUserStatus } from "@/lib/status";
+import { auditEvent } from "@/lib/audit";
 
 
 export const authOptions = {
@@ -65,6 +66,17 @@ const status = isUserStatus(dbUser.status)
           role: dbUser.role,
           status: dbUser.status ?? "ACTIVE",
         });
+
+        await auditEvent({
+          action: "LOGIN",
+          actorUserId: dbUser._id.toString(),
+          description: "User login",
+          source: "/api/auth/[...nextauth]",
+          metadata: {
+            email: dbUser.email,
+            role: dbUser.role,
+          },
+        }).catch(() => undefined);
 
      return {
   id: dbUser._id.toString(),

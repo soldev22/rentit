@@ -3,8 +3,19 @@ import { getCollection } from '@/lib/db';
 import { ObjectId } from 'mongodb';
 import { sendViewingNotification } from '@/lib/notifications';
 import type { Property, Landlord } from '@/lib/notifications';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { withApiAudit } from '@/lib/api/withApiAudit';
 
-export async function POST(req: NextRequest, context: { params: Promise<{ appId: string }> }) {
+async function scheduleViewing(req: NextRequest, context: { params: Promise<{ appId: string }> }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  if (session.user.role !== 'LANDLORD') {
+    return NextResponse.json({ error: 'Only landlords can schedule viewings' }, { status: 403 });
+  }
+
   const { appId } = await context.params;
   if (!ObjectId.isValid(appId)) {
     return NextResponse.json({ error: 'Invalid application ID' }, { status: 400 });
@@ -32,6 +43,18 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
   const app = await collection.findOne({ _id: new ObjectId(appId) });
   if (!app) {
     return NextResponse.json({ error: 'Application not found' }, { status: 404 });
+  }
+
+  const landlordIdUnknown = (app as { landlordId?: unknown }).landlordId;
+  const landlordObjectId =
+    landlordIdUnknown instanceof ObjectId
+      ? landlordIdUnknown
+      : typeof landlordIdUnknown === 'string' && ObjectId.isValid(landlordIdUnknown)
+        ? new ObjectId(landlordIdUnknown)
+        : null;
+
+  if (!landlordObjectId || landlordObjectId.toString() !== session.user.id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   // Update stage1.viewingDetails and progress to stage 2.
   // NOTE: The app schema does not include `enabled` flags, so we avoid adding them.
@@ -101,3 +124,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
   }
   return NextResponse.json({ ok: true, notification: notificationResult });
 }
+
+export const POST = withApiAudit(scheduleViewing);

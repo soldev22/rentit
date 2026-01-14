@@ -1,12 +1,19 @@
 import { getAllPublicProperties } from '@/lib/property';
 import PropertyCard from '@/components/PropertyCard';
 import React from 'react';
+import { getServerSession } from 'next-auth';
+import { ObjectId } from 'mongodb';
+
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { getCollection } from '@/lib/db';
 
 // --- PAGE SERVER COMPONENT ---
 export const metadata = {
   title: 'Available Properties | Rentsimple',
   description: 'Browse all available rental properties. Share this page with anyone!'
 };
+
+export const dynamic = 'force-dynamic';
 
 import FilterBar from "./FilterBar"; // Import directly (FilterBar must be a client component)
 
@@ -27,6 +34,31 @@ export default async function PublicPropertiesPage({ searchParams }: { searchPar
   };
 
   const properties = await getAllPublicProperties(filters);
+
+  // If an applicant is logged in, mark properties with an active application.
+  const appliedPropertyIds = new Set<string>();
+  const session = await getServerSession(authOptions);
+
+  if (
+    session?.user?.role === 'APPLICANT' &&
+    session.user.id &&
+    ObjectId.isValid(session.user.id)
+  ) {
+    const applications = await getCollection('tenancy_applications');
+    const applicantId = new ObjectId(session.user.id);
+
+    const activeApps = await applications
+      .find(
+        { applicantId, status: { $in: ['draft', 'in_progress'] } },
+        { projection: { propertyId: 1 } }
+      )
+      .toArray();
+
+    for (const app of activeApps) {
+      const pid = (app as { propertyId?: ObjectId })?.propertyId;
+      if (pid instanceof ObjectId) appliedPropertyIds.add(pid.toString());
+    }
+  }
 
   return (
     <main className="mx-auto max-w-5xl p-4 sm:p-6 space-y-6">
@@ -62,7 +94,11 @@ export default async function PublicPropertiesPage({ searchParams }: { searchPar
               status: string;
               [key: string]: unknown;
             }) => (
-              <PropertyCard key={property._id} property={property} />
+              <PropertyCard
+                key={property._id}
+                property={property}
+                isApplied={appliedPropertyIds.has(property._id)}
+              />
             ))
         )}
       </section>

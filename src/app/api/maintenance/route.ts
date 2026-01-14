@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { createMaintenanceRequest } from "@/lib/maintenance/transitions";
+import { withApiAudit } from "@/lib/api/withApiAudit";
 
-export async function POST(req: Request) {
+async function createMaintenance(req: Request) {
   const session = await getServerSession(authOptions);
 
   console.log("Session in /api/maintenance:", session);
@@ -54,3 +55,5 @@ if (!session.user.id) {
 
   return NextResponse.json({ ok: true, maintenance: result });
 }
+
+export const POST = withApiAudit(createMaintenance);

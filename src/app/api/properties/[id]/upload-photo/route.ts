@@ -3,10 +3,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCollection } from "@/lib/db";
 import { ObjectId } from "mongodb";
 import { containerClient } from "@/lib/azureBlob";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { withApiAudit } from "@/lib/api/withApiAudit";
 
 export const runtime = "nodejs";
 
-export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+async function uploadPropertyPhoto(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!['LANDLORD', 'ADMIN', 'AGENT'].includes(session.user.role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const { id } = await context.params;
   const formData = await req.formData();
   const file = formData.get("file");
@@ -38,3 +49,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
 
   return NextResponse.json({ url, blobName });
 }
+
+export const POST = withApiAudit(uploadPropertyPhoto);

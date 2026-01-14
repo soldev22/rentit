@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import clientPromise from "@/lib/mongodb";
+import { auditEvent } from "@/lib/audit";
 
 export async function POST(req: Request) {
   const body = await req.json();
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  await db.collection("users").insertOne({
+  const insertResult = await db.collection("users").insertOne({
     email,
     name,
     hashedPassword,
@@ -63,6 +64,17 @@ export async function POST(req: Request) {
     },
     createdAt: new Date(),
   });
+
+  await auditEvent({
+    action: "USER_REGISTERED",
+    actorUserId: insertResult.insertedId.toString(),
+    description: "User registered",
+    source: "/api/register",
+    metadata: {
+      email,
+      role: "APPLICANT",
+    },
+  }).catch(() => undefined);
 
   // Notify admin by email and SMS
   const adminEmail = process.env.ADMIN_EMAIL || process.env.RESEND_FROM_EMAIL;

@@ -4,6 +4,7 @@
 // Stage 2 logic will be moved inside the component
 import { useState } from 'react';
 import type { TenancyApplication } from '@/lib/tenancy-application';
+import { TENANCY_APPLICATION_STAGE_LABELS } from '@/lib/tenancyApplicationStages';
 
 // Removed unused handleStageUpdate function to resolve lint error
 
@@ -32,15 +33,6 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
   // State hooks must come first
   const [currentApplication, setCurrentApplication] = useState(application);
   const [message, setMessage] = useState<string | null>(null);
-
-  const [manualEmployerName, setManualEmployerName] = useState<string>(currentApplication.stage2?.referenceContacts?.employerName || currentApplication.stage2?.backgroundInfo?.employerName || '');
-  const [manualEmployerEmail, setManualEmployerEmail] = useState<string>(currentApplication.stage2?.referenceContacts?.employerEmail || currentApplication.stage2?.backgroundInfo?.employerEmail || '');
-  const [manualPrevEmployerName, setManualPrevEmployerName] = useState<string>(currentApplication.stage2?.referenceContacts?.previousEmployerName || currentApplication.stage2?.backgroundInfo?.previousEmployerName || '');
-  const [manualPrevEmployerEmail, setManualPrevEmployerEmail] = useState<string>(currentApplication.stage2?.referenceContacts?.previousEmployerEmail || currentApplication.stage2?.backgroundInfo?.previousEmployerEmail || '');
-  const [manualPrevLandlordName, setManualPrevLandlordName] = useState<string>(currentApplication.stage2?.referenceContacts?.prevLandlordName || currentApplication.stage2?.backgroundInfo?.prevLandlordName || '');
-  const [manualPrevLandlordContact, setManualPrevLandlordContact] = useState<string>(currentApplication.stage2?.referenceContacts?.prevLandlordContact || currentApplication.stage2?.backgroundInfo?.prevLandlordContact || '');
-  const [manualPrevLandlordEmail, setManualPrevLandlordEmail] = useState<string>(currentApplication.stage2?.referenceContacts?.prevLandlordEmail || currentApplication.stage2?.backgroundInfo?.prevLandlordEmail || '');
-  const [manualSaveLoading, setManualSaveLoading] = useState(false);
 
   // Modal state for scheduling a viewing
   const [viewingModalOpen, setViewingModalOpen] = useState(false);
@@ -143,202 +135,6 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
             <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">Schedule</button>
           </div>
         </form>
-      </div>
-    </div>
-  );
-
-  // Applicant Background Info (Stage 2) - always show, even if empty
-  const info: Partial<NonNullable<TenancyApplication['stage2']>['backgroundInfo']> = currentApplication.stage2?.backgroundInfo || {};
-  const backgroundInfoPanel = (
-    <div className="bg-blue-50 rounded-lg shadow p-6 mb-8">
-      <h2 className="text-lg font-semibold mb-4 text-blue-800">Applicant Background Information</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <p className="text-sm text-gray-600">Employment Status</p>
-          <p className="font-medium">{info.employmentStatus || <span className="text-gray-400">Not provided</span>}</p>
-          <p className="text-sm text-gray-600 mt-2">Employer Name</p>
-          <p className="font-medium">{info.employerName || <span className="text-gray-400">Not provided</span>}</p>
-          <p className="text-sm text-gray-600 mt-2">Employer Email</p>
-          <p className="font-medium">{info.employerEmail || <span className="text-gray-400">Not provided</span>}</p>
-          <p className="text-sm text-gray-600 mt-2">Previous Employer Name</p>
-          <p className="font-medium">{info.previousEmployerName || <span className="text-gray-400">Not provided</span>}</p>
-          <p className="text-sm text-gray-600 mt-2">Previous Employer Email</p>
-          <p className="font-medium">{info.previousEmployerEmail || <span className="text-gray-400">Not provided</span>}</p>
-          <p className="text-sm text-gray-600 mt-2">Employment Contract Type</p>
-          <p className="font-medium">{info.employmentContractType || <span className="text-gray-400">Not provided</span>}</p>
-          <p className="text-sm text-gray-600 mt-2">Job Title</p>
-          <p className="font-medium">{info.jobTitle || <span className="text-gray-400">Not provided</span>}</p>
-          <p className="text-sm text-gray-600 mt-2">Monthly Income</p>
-          <p className="font-medium">{info.monthlyIncome ? `£${info.monthlyIncome}` : <span className="text-gray-400">Not provided</span>}</p>
-          <p className="text-sm text-gray-600 mt-2">Employment Length</p>
-          <p className="font-medium">{info.employmentLength || <span className="text-gray-400">Not provided</span>}</p>
-        </div>
-        <div>
-          <p className="text-sm text-gray-600">Previous Landlord Name</p>
-          <p className="font-medium">{info.prevLandlordName || <span className="text-gray-400">Not provided</span>}</p>
-          <p className="text-sm text-gray-600 mt-2">Previous Landlord Contact</p>
-          <p className="font-medium">{info.prevLandlordContact || <span className="text-gray-400">Not provided</span>}</p>
-          <p className="text-sm text-gray-600 mt-2">Previous Landlord Email</p>
-          <p className="font-medium">{info.prevLandlordEmail || <span className="text-gray-400">Not provided</span>}</p>
-          <p className="text-sm text-gray-600 mt-2">Credit Consent</p>
-          <p className="font-medium">{info.creditConsent === true ? 'Yes' : info.creditConsent === false ? 'No' : <span className="text-gray-400">Not provided</span>}</p>
-          <p className="text-sm text-gray-600 mt-2">Submitted At</p>
-          <p className="font-medium">{info.submittedAt ? new Date(info.submittedAt).toLocaleString() : <span className="text-gray-400">Not provided</span>}</p>
-          <p className="text-sm text-gray-600 mt-2">Photo ID</p>
-          {(info.photoIdFrontFile || info.photoIdFile) ? (
-            <div className="flex flex-col gap-1">
-              <a
-                href={info.photoIdFrontFile || info.photoIdFile}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block text-blue-700 underline hover:text-blue-900"
-              >
-                View Photo ID
-              </a>
-            </div>
-          ) : (
-            <span className="text-gray-400">No file uploaded</span>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-6 border-t border-blue-200 pt-4">
-        <h3 className="text-sm font-semibold text-blue-900 mb-2">Record/Update Reference Contacts (Landlord)</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="manual-employer-name">Employer Name</label>
-            <input
-              id="manual-employer-name"
-              className="w-full border rounded p-2"
-              value={manualEmployerName}
-              onChange={(e) => setManualEmployerName(e.target.value)}
-              placeholder="Optional"
-              title="Employer name"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="manual-employer-email">Employer Email</label>
-            <input
-              id="manual-employer-email"
-              type="email"
-              className="w-full border rounded p-2"
-              value={manualEmployerEmail}
-              onChange={(e) => setManualEmployerEmail(e.target.value)}
-              placeholder="name@company.com"
-              title="Employer email"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="manual-prev-employer-name">Previous Employer Name</label>
-            <input
-              id="manual-prev-employer-name"
-              className="w-full border rounded p-2"
-              value={manualPrevEmployerName}
-              onChange={(e) => setManualPrevEmployerName(e.target.value)}
-              placeholder="Optional"
-              title="Previous employer name"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="manual-prev-employer-email">Previous Employer Email</label>
-            <input
-              id="manual-prev-employer-email"
-              type="email"
-              className="w-full border rounded p-2"
-              value={manualPrevEmployerEmail}
-              onChange={(e) => setManualPrevEmployerEmail(e.target.value)}
-              placeholder="Optional"
-              title="Previous employer email"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="manual-prev-landlord-name">Previous Landlord Name</label>
-            <input
-              id="manual-prev-landlord-name"
-              className="w-full border rounded p-2"
-              value={manualPrevLandlordName}
-              onChange={(e) => setManualPrevLandlordName(e.target.value)}
-              placeholder="Optional"
-              title="Previous landlord name"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="manual-prev-landlord-contact">Previous Landlord Contact</label>
-            <input
-              id="manual-prev-landlord-contact"
-              className="w-full border rounded p-2"
-              value={manualPrevLandlordContact}
-              onChange={(e) => setManualPrevLandlordContact(e.target.value)}
-              placeholder="Phone or email (optional)"
-              title="Previous landlord contact"
-            />
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="manual-prev-landlord-email">Previous Landlord Email</label>
-            <input
-              id="manual-prev-landlord-email"
-              type="email"
-              className="w-full border rounded p-2"
-              value={manualPrevLandlordEmail}
-              onChange={(e) => setManualPrevLandlordEmail(e.target.value)}
-              placeholder="Optional"
-              title="Previous landlord email"
-            />
-          </div>
-        </div>
-        <div className="mt-3">
-          <button
-            type="button"
-            className="px-4 py-2 rounded-md font-medium transition-colors bg-white text-blue-700 border border-blue-300 hover:bg-blue-100 disabled:opacity-50"
-            disabled={manualSaveLoading}
-            onClick={async () => {
-              setManualSaveLoading(true);
-              setMessage(null);
-              try {
-                const res = await fetch(`/api/tenancy-applications/${currentApplication._id}`,
-                  {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      stage2: {
-                        referenceContacts: {
-                          employerName: manualEmployerName,
-                          employerEmail: manualEmployerEmail,
-                          previousEmployerName: manualPrevEmployerName,
-                          previousEmployerEmail: manualPrevEmployerEmail,
-                          prevLandlordName: manualPrevLandlordName,
-                          prevLandlordContact: manualPrevLandlordContact,
-                          prevLandlordEmail: manualPrevLandlordEmail,
-                        },
-                      },
-                    }),
-                  }
-                );
-                const data = await res.json().catch(() => null);
-                if (!res.ok) {
-                  setMessage(data?.error || 'Failed to save reference contact details');
-                  return;
-                }
-                setMessage('Reference contact details saved.');
-
-                const refreshed = await fetch(`/api/tenancy-applications/${currentApplication._id}`);
-                if (refreshed.ok) {
-                  const freshData = await refreshed.json();
-                  const nextApp = freshData.application ?? freshData;
-                  setCurrentApplication(nextApp);
-                  setStage2SentAt(nextApp.stage2?.sentAt || null);
-                }
-              } catch {
-                setMessage('Failed to save reference contact details');
-              } finally {
-                setManualSaveLoading(false);
-              }
-            }}
-          >
-            {manualSaveLoading ? 'Saving…' : 'Save Reference Contacts'}
-          </button>
-        </div>
       </div>
     </div>
   );
@@ -565,12 +361,12 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
 
 
   const stages = [
-    { number: 1, name: 'Viewing Agreement', description: 'Property viewing arrangements' },
-    { number: 2, name: 'Background Checks', description: 'Credit and reference checks' },
-    { number: 3, name: 'Document Pack', description: 'Legal documents sent to applicant' },
-    { number: 4, name: 'Document Signing', description: 'Online and physical signatures' },
-    { number: 5, name: 'Move-in Date', description: 'Tenancy start date confirmation' },
-    { number: 6, name: 'Final Documentation', description: 'Inventory and keys handover' }
+    { number: 1, name: TENANCY_APPLICATION_STAGE_LABELS[1], description: 'Property viewing arranged and agreed' },
+    { number: 2, name: TENANCY_APPLICATION_STAGE_LABELS[2], description: 'Background checks and references' },
+    { number: 3, name: TENANCY_APPLICATION_STAGE_LABELS[3], description: 'Document pack delivered to the tenant' },
+    { number: 4, name: TENANCY_APPLICATION_STAGE_LABELS[4], description: 'Required documents signed' },
+    { number: 5, name: TENANCY_APPLICATION_STAGE_LABELS[5], description: 'Move-in date agreed' },
+    { number: 6, name: TENANCY_APPLICATION_STAGE_LABELS[6], description: 'Tenant settled and tenancy underway' }
   ];
 
   // --- All renderStageXControls functions must be defined before the return ---
@@ -592,7 +388,6 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
 
       {viewingModal}
       {creditModal}
-      {backgroundInfoPanel}
       {/* Stage Cards Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {stages.map((stage) => {
@@ -861,9 +656,6 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
             </div>
           );
         })}
-
-      {/* Applicant Background Info (Stage 2) - now at top */}
-      {backgroundInfoPanel}
       {/* Close the grid container div for stage cards */}
       </div>
 

@@ -6,8 +6,9 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getCollection } from "@/lib/db";
 import { canTransition } from "@/lib/propertyStatus";
 import type { PropertyStatus } from "@/models/Property";
+import { withApiAudit } from "@/lib/api/withApiAudit";
 
-export async function PATCH(req: Request) {
+async function updatePropertyStatus(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
@@ -78,3 +79,5 @@ console.log("STATUS TRANSITION:", currentStatus, "→", newStatus);
     );
   }
 }
+
+export const PATCH = withApiAudit(updatePropertyStatus);
