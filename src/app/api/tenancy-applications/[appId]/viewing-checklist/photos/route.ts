@@ -9,9 +9,23 @@ import { getTenancyApplicationById, updateTenancyApplication } from "@/lib/tenan
 
 export const runtime = "nodejs";
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB (phone photos can be larger)
 const MAX_FILES = 8;
-const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
+// iPhone often produces HEIC/HEIF. We accept it and store as-is.
+const ALLOWED_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+];
+
+const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "heic", "heif"] as const;
+
+function getExtension(fileName: string | undefined) {
+  const ext = (fileName?.split(".").pop() || "").toLowerCase();
+  return ext;
+}
 
 function sanitizeFilename(name: string) {
   return name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
@@ -73,20 +87,25 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
 
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { error: `File too large (max 5MB): ${file.name || "upload"}` },
+        { error: `File too large (max 10MB): ${file.name || "upload"}` },
         { status: 400 }
       );
     }
 
-    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+    const ext = getExtension(file.name);
+    const mimeOk = ALLOWED_MIME_TYPES.includes(file.type);
+    const extOk = ALLOWED_EXTENSIONS.includes(ext as any);
+
+    // Some mobile browsers report empty/unknown mime types (or octet-stream) for HEIC.
+    if (!mimeOk && !(extOk && (!file.type || file.type === "application/octet-stream"))) {
       return NextResponse.json(
         { error: `Unsupported file type: ${file.type || "unknown"}` },
         { status: 400 }
       );
     }
 
-    const ext = (file.name?.split(".").pop() || "jpg").toLowerCase();
-    const safe = sanitizeFilename(file.name || `photo-${idx + 1}.${ext}`);
+    const safeExt = ext || "jpg";
+    const safe = sanitizeFilename(file.name || `photo-${idx + 1}.${safeExt}`);
     const fileName = `viewing_${appId}_${Date.now()}_${idx}_${safe}`;
     const filePath = path.join(uploadsDir, fileName);
 

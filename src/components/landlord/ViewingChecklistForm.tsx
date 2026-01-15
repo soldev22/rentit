@@ -222,9 +222,7 @@ export default function ViewingChecklistForm({
       {message ? (
         <div
           className={`rounded-md p-3 text-sm ${
-            messageType === "error"
-              ? "bg-red-50 text-red-800"
-              : "bg-green-50 text-green-800"
+            messageType === "error" ? "bg-red-50 text-red-800" : "bg-green-50 text-green-800"
           }`}
         >
           {message}
@@ -266,7 +264,7 @@ export default function ViewingChecklistForm({
         <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <input
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
             multiple
             disabled={uploadingPhotos}
             onChange={(e) => {
@@ -274,10 +272,10 @@ export default function ViewingChecklistForm({
               // reset input so user can re-upload same file after changes
               e.currentTarget.value = "";
             }}
-            placeholder="Upload photos (JPG, PNG, WEBP)"
+            placeholder="Upload photos (JPG, PNG, WEBP, HEIC)"
           />
           <div className="text-xs text-slate-500">
-            JPG/PNG/WEBP up to 5MB each.
+            JPG/PNG/WEBP/HEIC up to 10MB each.
           </div>
         </div>
 
