@@ -64,6 +64,11 @@ export default async function LandlordApplicationDetailPage({
 
   const unifiedStatus = getUnifiedApplicationStatusView(application);
 
+  const displayStatusLabel =
+    unifiedStatus.label === "Awaiting applicant confirmation"
+      ? "In progress"
+      : unifiedStatus.label;
+
   const serializedApplication = JSON.parse(JSON.stringify(application));
 
   return (
@@ -93,7 +98,7 @@ export default async function LandlordApplicationDetailPage({
         <div className="mt-2">
           <div className="inline-flex flex-col">
             <span className="inline-block rounded-lg bg-blue-600 px-5 py-3 text-xl font-bold text-white shadow-sm">
-              {unifiedStatus.label}
+              {displayStatusLabel}
             </span>
             {unifiedStatus.detail ? (
               <span className="mt-1 text-sm text-gray-700">{unifiedStatus.detail}</span>

@@ -42,6 +42,19 @@ function sanitizeFilename(name: string) {
   return name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
 }
 
+function tryDeriveBlobNameFromUrl(url: string, containerName: string): string | null {
+  try {
+    const u = new URL(url);
+    // Path is usually: /<containerName>/<blobName>
+    const parts = u.pathname.split("/").filter(Boolean);
+    if (parts.length < 2) return null;
+    if (parts[0] !== containerName) return null;
+    return decodeURIComponent(parts.slice(1).join("/"));
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(req: NextRequest, context: { params: Promise<{ appId: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -60,6 +73,15 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
   }
 
   const formData = await req.formData();
+
+  const rawItemKey = formData.get("itemKey");
+  const itemKey = typeof rawItemKey === "string" ? rawItemKey.trim().slice(0, 40) : null;
+  if (rawItemKey != null && typeof rawItemKey !== "string") {
+    return NextResponse.json({ error: "Invalid itemKey" }, { status: 400 });
+  }
+  if (typeof rawItemKey === "string" && !itemKey) {
+    return NextResponse.json({ error: "Invalid itemKey" }, { status: 400 });
+  }
 
   const fileList: File[] = [];
   const fileSingle = formData.get("file");
@@ -97,6 +119,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
   const uploaded: Array<{
     url: string;
     blobName?: string;
+    itemKey?: string;
     uploadedAt: string;
     uploadedBy?: ObjectId;
     fileName?: string;
@@ -142,6 +165,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
     uploaded.push({
       url: blockBlob.url,
       blobName,
+      itemKey: itemKey || undefined,
       uploadedAt: nowIso,
       uploadedBy: landlordObjectId,
       fileName: safe,
@@ -168,4 +192,68 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
   if (!ok) return NextResponse.json({ error: "Failed to save" }, { status: 500 });
 
   return NextResponse.json({ ok: true, uploaded }, { status: 200 });
+}
+
+export async function DELETE(req: NextRequest, context: { params: Promise<{ appId: string }> }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.user.role !== "LANDLORD") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const { appId } = await context.params;
+  if (!ObjectId.isValid(appId)) {
+    return NextResponse.json({ error: "Invalid application id" }, { status: 400 });
+  }
+
+  const application = await getTenancyApplicationById(appId);
+  if (!application?._id) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  if (application.landlordId.toString() !== session.user.id) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const body = await req.json().catch(() => null);
+  const url = typeof body?.url === "string" ? body.url.trim() : "";
+  const blobNameFromBody = typeof body?.blobName === "string" ? body.blobName.trim() : "";
+  if (!url) return NextResponse.json({ error: "Missing url" }, { status: 400 });
+
+  const existing = application.stage1.viewingSummary?.photos ?? [];
+  const photo = existing.find((p) => p.url === url);
+  if (!photo) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const containerClient = getAzureContainerClient();
+  if (containerClient) {
+    const containerName = containerClient.containerName;
+    const blobName =
+      blobNameFromBody ||
+      photo.blobName ||
+      tryDeriveBlobNameFromUrl(url, containerName) ||
+      "";
+
+    if (blobName) {
+      try {
+        await containerClient.deleteBlob(blobName, { deleteSnapshots: "include" });
+      } catch {
+        // Best-effort: still remove from DB even if blob deletion fails.
+      }
+    }
+  }
+
+  const nowIso = new Date().toISOString();
+  const landlordObjectId = ObjectId.isValid(session.user.id) ? new ObjectId(session.user.id) : undefined;
+  const nextPhotos = existing.filter((p) => p.url !== url);
+
+  const ok = await updateTenancyApplication(appId, {
+    stage1: {
+      ...application.stage1,
+      viewingSummary: {
+        ...(application.stage1.viewingSummary ?? {}),
+        photos: nextPhotos,
+        savedAt: nowIso,
+        completedBy: landlordObjectId ?? application.stage1.viewingSummary?.completedBy,
+      },
+    },
+  });
+
+  if (!ok) return NextResponse.json({ error: "Failed to save" }, { status: 500 });
+  return NextResponse.json({ ok: true }, { status: 200 });
 }

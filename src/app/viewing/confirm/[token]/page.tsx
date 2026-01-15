@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 
 import { getCollection } from "@/lib/db";
 import { formatPropertyLabel } from "@/lib/formatPropertyLabel";
@@ -68,6 +69,9 @@ export default async function ViewingConfirmPage({
   const checklist = Array.isArray(summary?.checklist) ? summary.checklist : [];
   const notes = typeof summary?.notes === "string" ? summary.notes : "";
   const photos = Array.isArray(summary?.photos) ? summary.photos : [];
+  const photosForItem = (itemKey: string) =>
+    photos.filter((p: any) => String(p?.itemKey || "") === String(itemKey));
+  const unassignedPhotos = photos.filter((p: any) => !p?.itemKey);
 
   return (
     <div className="mx-auto w-full max-w-xl p-4 sm:p-6">
@@ -107,18 +111,40 @@ export default async function ViewingConfirmPage({
                   {item.comment ? (
                     <div className="mt-1 text-sm text-slate-700">{String(item.comment)}</div>
                   ) : null}
+
+                  {photosForItem(String(item.key)).length > 0 ? (
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      {photosForItem(String(item.key)).slice(0, 4).map((p: any) => (
+                        <a
+                          key={String(p.url)}
+                          href={String(p.url)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="group overflow-hidden rounded-md border border-slate-200 bg-slate-50"
+                          title="Open image"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={String(p.url)}
+                            alt="Checklist photo"
+                            className="h-24 w-full object-cover transition-transform group-hover:scale-[1.02]"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               ))}
             </div>
           </div>
         ) : null}
 
-        {photos.length > 0 ? (
+        {unassignedPhotos.length > 0 ? (
           <div className="mt-4">
-            <h2 className="text-sm font-semibold text-slate-900">Photos</h2>
-            <p className="mt-1 text-sm text-slate-600">Optional photos captured during the viewing.</p>
+            <h2 className="text-sm font-semibold text-slate-900">Other photos</h2>
+            <p className="mt-1 text-sm text-slate-600">Photos not tied to a specific checklist item.</p>
             <div className="mt-2 grid grid-cols-2 gap-3">
-              {photos.map((p: any) => (
+              {unassignedPhotos.map((p: any) => (
                 <a
                   key={String(p.url)}
                   href={String(p.url)}
@@ -141,6 +167,15 @@ export default async function ViewingConfirmPage({
 
         <div className="mt-6">
           <ViewingConfirmForm token={token} />
+        </div>
+
+        <div className="mt-6 flex justify-end">
+          <Link
+            href="/dashboard"
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+          >
+            Back to dashboard
+          </Link>
         </div>
       </div>
     </div>

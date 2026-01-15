@@ -35,6 +35,8 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
   const [currentApplication, setCurrentApplication] = useState(application);
   const [message, setMessage] = useState<string | null>(null);
 
+  const stage1Complete = Boolean(currentApplication.stage1?.viewingSummary?.completedAt);
+
   // Modal state for scheduling a viewing
   const [viewingModalOpen, setViewingModalOpen] = useState(false);
   const [viewingDate, setViewingDate] = useState<string>("");
@@ -101,6 +103,37 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
       }
     } catch {
       setMessage("An error occurred while scheduling the viewing.");
+    }
+  }
+
+  async function markStage1Complete() {
+    if (stage1Complete) return;
+    const ok = confirm('Mark Stage 1 as complete and enable Stage 2?');
+    if (!ok) return;
+
+    setMessage(null);
+    try {
+      const response = await fetch(`/api/tenancy-applications/${currentApplication._id}/viewing-checklist`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stage1Complete: true }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        setMessage(data?.error || 'Failed to mark Stage 1 complete');
+        return;
+      }
+
+      const refreshed = await fetch(`/api/tenancy-applications/${currentApplication._id}`);
+      if (refreshed.ok) {
+        const freshData = await refreshed.json().catch(() => null);
+        setCurrentApplication(freshData?.application ?? freshData);
+      }
+
+      setMessage('Stage 1 marked complete. Stage 2 is now enabled.');
+    } catch {
+      setMessage('Failed to mark Stage 1 complete');
     }
   }
   // Viewing Modal JSX (move to return)
@@ -198,7 +231,11 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
             return (
               <div
                 key={stage.number}
-                className="rounded-lg border-2 p-4 shadow-sm flex flex-col justify-between border-green-400 bg-green-50"
+                className={
+                  stage1Complete
+                    ? "rounded-lg border-2 p-4 shadow-sm flex flex-col justify-between border-green-400 bg-green-50"
+                    : "rounded-lg border-2 p-4 shadow-sm flex flex-col justify-between border-amber-400 bg-amber-50"
+                }
               >
                 <div>
                   <h4 className="text-lg font-semibold mb-1">Stage 1: {stage.name}</h4>
@@ -254,10 +291,28 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
                   ) : (
                     <div className="text-xs text-yellow-800 mb-1">Viewing not scheduled yet.</div>
                   )}
-                  <span className="inline-block px-2 py-1 rounded text-xs font-medium mb-2 bg-green-200 text-green-800">
-                    {currentApplication.stage1.status === 'agreed' ? 'AGREED' : 'PENDING'}
+                  <span
+                    className={
+                      stage1Complete
+                        ? "inline-block px-2 py-1 rounded text-xs font-medium mb-2 bg-green-200 text-green-800"
+                        : "inline-block px-2 py-1 rounded text-xs font-medium mb-2 bg-amber-200 text-amber-800"
+                    }
+                  >
+                    {stage1Complete ? 'COMPLETE' : 'IN PROGRESS'}
                   </span>
                 </div>
+
+                <label className="mt-2 flex items-center gap-2 text-sm text-gray-800">
+                  <input
+                    type="checkbox"
+                    checked={stage1Complete}
+                    disabled={stage1Complete}
+                    onChange={() => {
+                      void markStage1Complete();
+                    }}
+                  />
+                  Stage 1 complete (enable Stage 2)
+                </label>
                 <button
                   className="mt-2 px-4 py-2 rounded-md font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700"
                   onClick={handleOpenViewingModal}
@@ -309,9 +364,7 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
 
           // Stage 2: enabled if currentApplication.stage2?.enabled
           if (stage.number === 2) {
-            // Stage 2 is enabled if status is not 'pending'
-            const stage2Status = currentApplication.stage2?.status ?? 'pending';
-            const enabled = (currentApplication.currentStage ?? 1) >= 2 || stage2Status !== 'pending';
+            const enabled = stage1Complete;
 
             return (
               <div

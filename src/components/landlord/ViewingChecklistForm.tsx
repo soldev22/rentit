@@ -21,6 +21,7 @@ type ViewingSummary = {
   photos?: Array<{
     url: string;
     blobName?: string;
+    itemKey?: string;
     uploadedAt: string;
     fileName?: string;
     mimeType?: string;
@@ -29,6 +30,7 @@ type ViewingSummary = {
   savedAt?: string;
   completedAt?: string;
   sentToApplicantAt?: string;
+  editingUnlockedAt?: string;
   confirmationTokenExpiresAt?: string;
   confirmationTokenUsedAt?: string;
   applicantResponse?: ApplicantResponse;
@@ -93,10 +95,13 @@ export default function ViewingChecklistForm({
   const [message, setMessage] = useState<string | null>(null);
   const [messageType, setMessageType] = useState<"success" | "error" | null>(null);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const [deletingPhotoUrl, setDeletingPhotoUrl] = useState<string | null>(null);
 
   const sentAt = summary?.sentToApplicantAt;
   const applicantResponse = summary?.applicantResponse;
   const photos = summary?.photos ?? [];
+  const draftLocked = Boolean(sentAt) && !Boolean(summary?.editingUnlockedAt);
+  const canSendToApplicant = !sentAt || Boolean(summary?.editingUnlockedAt);
 
   async function refreshSummary() {
     const res = await fetch(`/api/tenancy-applications/${appId}`);
@@ -106,7 +111,7 @@ export default function ViewingChecklistForm({
     if (app?.stage1?.viewingSummary) setSummary(app.stage1.viewingSummary);
   }
 
-  async function uploadPhotos(fileList: FileList | null) {
+  async function uploadPhotos(fileList: FileList | null, itemKey?: string) {
     if (!fileList || fileList.length === 0) return;
 
     setMessage(null);
@@ -115,6 +120,7 @@ export default function ViewingChecklistForm({
     setUploadingPhotos(true);
     try {
       const formData = new FormData();
+      if (itemKey) formData.append("itemKey", itemKey);
       for (const f of Array.from(fileList)) formData.append("files", f);
 
       const res = await fetch(`/api/tenancy-applications/${appId}/viewing-checklist/photos`, {
@@ -137,6 +143,38 @@ export default function ViewingChecklistForm({
       setMessage("Failed to upload photos");
     } finally {
       setUploadingPhotos(false);
+    }
+  }
+
+  async function deletePhoto(photo: { url: string; blobName?: string }) {
+    if (!photo?.url) return;
+    if (!confirm("Remove this photo?")) return;
+
+    setMessage(null);
+    setMessageType(null);
+    setDeletingPhotoUrl(photo.url);
+    try {
+      const res = await fetch(`/api/tenancy-applications/${appId}/viewing-checklist/photos`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: photo.url, blobName: photo.blobName }),
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setMessageType("error");
+        setMessage(data?.error || "Failed to delete photo");
+        return;
+      }
+
+      setMessageType("success");
+      setMessage("Photo removed.");
+      await refreshSummary();
+    } catch {
+      setMessageType("error");
+      setMessage("Failed to delete photo");
+    } finally {
+      setDeletingPhotoUrl(null);
     }
   }
 
@@ -218,6 +256,34 @@ export default function ViewingChecklistForm({
     }
   }
 
+  async function unlockDraft() {
+    if (!sentAt || !draftLocked) return;
+    if (!confirm("Unlock this draft for editing? (Landlord only)")) return;
+
+    setMessage(null);
+    setMessageType(null);
+
+    try {
+      const res = await fetch(`/api/tenancy-applications/${appId}/viewing-checklist/unlock`, {
+        method: "POST",
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setMessageType("error");
+        setMessage(data?.error || "Failed to unlock draft");
+        return;
+      }
+
+      setMessageType("success");
+      setMessage("Draft unlocked.");
+      await refreshSummary();
+    } catch {
+      setMessageType("error");
+      setMessage("Failed to unlock draft");
+    }
+  }
+
   return (
     <div className="space-y-4">
       {message ? (
@@ -256,9 +322,9 @@ export default function ViewingChecklistForm({
 
       <div className="rounded-lg border border-slate-200 bg-white p-4 sm:p-5">
         <div className="flex flex-col gap-1">
-          <h2 className="text-base font-semibold text-slate-900">Photos</h2>
+          <h2 className="text-base font-semibold text-slate-900">General photos</h2>
           <p className="text-sm text-slate-600">
-            Optional photos to record condition/issues (avoid personal items if the property is currently occupied).
+            Optional photos not tied to a specific checklist item.
           </p>
         </div>
 
@@ -280,24 +346,41 @@ export default function ViewingChecklistForm({
           </div>
         </div>
 
-        {photos.length > 0 ? (
+        {photos.filter((p) => !p.itemKey).length > 0 ? (
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {photos.map((p) => (
-              <a
-                key={p.url}
-                href={p.url}
-                target="_blank"
-                rel="noreferrer"
-                className="group overflow-hidden rounded-md border border-slate-200 bg-slate-50"
-                title="Open image"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={p.url}
-                  alt="Viewing photo"
-                  className="h-28 w-full object-cover transition-transform group-hover:scale-[1.02]"
-                />
-              </a>
+            {photos
+              .filter((p) => !p.itemKey)
+              .map((p) => (
+              <div key={p.url} className="relative">
+                <a
+                  href={p.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="group block overflow-hidden rounded-md border border-slate-200 bg-slate-50"
+                  title="Open image"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={p.url}
+                    alt="Viewing photo"
+                    className="h-28 w-full object-cover transition-transform group-hover:scale-[1.02]"
+                  />
+                </a>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    void deletePhoto({ url: p.url, blobName: p.blobName });
+                  }}
+                  disabled={uploadingPhotos || deletingPhotoUrl === p.url}
+                  className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-xs font-semibold text-white hover:bg-black/70 disabled:opacity-60"
+                  aria-label="Remove photo"
+                  title="Remove photo"
+                >
+                  ×
+                </button>
+              </div>
             ))}
           </div>
         ) : (
@@ -326,6 +409,68 @@ export default function ViewingChecklistForm({
                 />
                 <span className="text-sm font-medium text-slate-900">{item.label}</span>
               </label>
+
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-xs text-slate-600">
+                  <label
+                    htmlFor={`checklist-photo-${item.key}`}
+                    className={
+                      uploadingPhotos
+                        ? "cursor-not-allowed text-slate-400"
+                        : "cursor-pointer text-blue-700 hover:text-blue-800"
+                    }
+                  >
+                    {uploadingPhotos ? "Uploading…" : "Upload photo"}
+                  </label>
+                  <input
+                    id={`checklist-photo-${item.key}`}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
+                    disabled={uploadingPhotos}
+                    className="hidden"
+                    onChange={(e) => {
+                      void uploadPhotos(e.target.files, item.key);
+                      e.currentTarget.value = "";
+                    }}
+                  />
+                </div>
+
+                {photos.filter((p) => p.itemKey === item.key).length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {photos
+                      .filter((p) => p.itemKey === item.key)
+                      .map((p) => (
+                        <div key={p.url} className="relative">
+                          <a
+                            href={p.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block overflow-hidden rounded-md border border-slate-200 bg-slate-50"
+                            title="Open image"
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={p.url} alt="Checklist photo" className="h-10 w-10 object-cover" />
+                          </a>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              void deletePhoto({ url: p.url, blobName: p.blobName });
+                            }}
+                            disabled={uploadingPhotos || deletingPhotoUrl === p.url}
+                            className="absolute -right-1 -top-1 h-5 w-5 rounded-full bg-black/60 text-xs font-semibold leading-5 text-white hover:bg-black/70 disabled:opacity-60"
+                            aria-label="Remove photo"
+                            title="Remove photo"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                ) : null}
+              </div>
+
               <input
                 type="text"
                 className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
@@ -381,25 +526,55 @@ export default function ViewingChecklistForm({
 
       <div className="sticky bottom-0 z-10 -mx-4 border-t border-slate-200 bg-white p-4 sm:mx-0 sm:rounded-lg sm:border">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-xs text-slate-500">
-            Tip: Save draft while on-site. Send when ready.
-          </div>
-          <div className="flex gap-2">
+          <div className="text-xs text-slate-500">Tip: Save draft while on-site. Send when ready.</div>
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <button
               type="button"
               onClick={saveDraft}
-              disabled={saving}
+              disabled={saving || draftLocked}
               className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60"
             >
-              {saving ? "Saving…" : "Save draft"}
+              {draftLocked ? "Draft locked" : saving ? "Saving…" : "Save draft"}
             </button>
+
+            {draftLocked ? (
+              <button
+                type="button"
+                onClick={unlockDraft}
+                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+              >
+                Unlock
+              </button>
+            ) : null}
+
+            {message ? (
+              <div
+                className={`max-w-[260px] truncate rounded-md px-3 py-2 text-xs sm:max-w-[360px] ${
+                  messageType === "error"
+                    ? "bg-red-50 text-red-800"
+                    : "bg-green-50 text-green-800"
+                }`}
+                title={message}
+              >
+                {message}
+              </div>
+            ) : null}
+
             <button
               type="button"
               onClick={sendToApplicant}
-              disabled={sending}
+              disabled={sending || !canSendToApplicant}
               className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
             >
-              {sending ? "Sending…" : "Send to applicant"}
+              {sentAt
+                ? canSendToApplicant
+                  ? sending
+                    ? "Resending…"
+                    : "Resend to applicant"
+                  : "Sent to applicant"
+                : sending
+                  ? "Sending…"
+                  : "Send to applicant"}
             </button>
           </div>
         </div>

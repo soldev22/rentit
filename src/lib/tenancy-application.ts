@@ -52,6 +52,8 @@ export interface TenancyApplication {
       photos?: Array<{
         url: string;
         blobName?: string;
+        /** Optional checklist item key this photo relates to. */
+        itemKey?: string;
         uploadedAt: string;
         uploadedBy?: ObjectId;
         fileName?: string;
@@ -64,6 +66,9 @@ export interface TenancyApplication {
       completedBy?: ObjectId;
 
       sentToApplicantAt?: string;
+      /** Landlord-only override to allow editing after sending. */
+      editingUnlockedAt?: string;
+      editingUnlockedBy?: ObjectId;
       confirmationTokenHash?: string;
       confirmationTokenExpiresAt?: string;
       confirmationTokenUsedAt?: string;

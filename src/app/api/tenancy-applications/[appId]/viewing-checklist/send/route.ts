@@ -66,6 +66,12 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
     );
   }
 
+  const alreadySentAt = application.stage1.viewingSummary?.sentToApplicantAt;
+  const unlockedForEdit = Boolean(application.stage1.viewingSummary?.editingUnlockedAt);
+  if (alreadySentAt && !unlockedForEdit) {
+    return NextResponse.json({ error: "Already sent to applicant" }, { status: 409 });
+  }
+
   const now = new Date();
   const nowIso = now.toISOString();
   const landlordObjectId = ObjectId.isValid(session.user.id) ? new ObjectId(session.user.id) : undefined;
@@ -117,12 +123,17 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
     `Please confirm you’re happy with the property you viewed. Open: ${confirmLink} - RentIT`;
 
   // Persist summary + token hash before sending
+  const {
+    editingUnlockedAt: _editingUnlockedAt,
+    editingUnlockedBy: _editingUnlockedBy,
+    ...existingSummary
+  } = (application.stage1.viewingSummary ?? {}) as any;
+
   const nextSummary = {
-    ...(application.stage1.viewingSummary ?? {}),
+    ...existingSummary,
     notes: parsed.data.notes ?? application.stage1.viewingSummary?.notes,
     checklist: parsed.data.checklist ?? application.stage1.viewingSummary?.checklist,
     savedAt: nowIso,
-    completedAt: nowIso,
     completedBy: landlordObjectId ?? application.stage1.viewingSummary?.completedBy,
     sentToApplicantAt: nowIso,
     confirmationTokenHash: tokenHash,
@@ -155,7 +166,9 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
     });
   }
 
-  if (prefs.sms && applicantPhone) {
+  // Always send the confirmation link by text when we have a phone number.
+  // (Email still follows applicant contact preferences.)
+  if (applicantPhone) {
     notification.sms = await notificationService.sendNotification({
       to: applicantPhone,
       message: smsMessage,

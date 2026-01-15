@@ -16,6 +16,7 @@ const ChecklistItemSchema = z.object({
 const BodySchema = z.object({
   notes: z.string().max(2000).optional(),
   checklist: z.array(ChecklistItemSchema).max(25).optional(),
+  stage1Complete: z.boolean().optional(),
 });
 
 export async function PUT(req: NextRequest, context: { params: Promise<{ appId: string }> }) {
@@ -49,6 +50,11 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ appId: 
     checklist: parsed.data.checklist ?? application.stage1.viewingSummary?.checklist,
     savedAt: now,
     completedBy: landlordObjectId ?? application.stage1.viewingSummary?.completedBy,
+    ...(parsed.data.stage1Complete
+      ? {
+          completedAt: application.stage1.viewingSummary?.completedAt ?? now,
+        }
+      : {}),
   };
 
   const ok = await updateTenancyApplication(appId, {
