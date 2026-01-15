@@ -4,6 +4,7 @@ import { ObjectId } from "mongodb";
 
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getTenancyApplicationById, updateTenancyApplication } from "@/lib/tenancy-application";
+import { auditEvent } from "@/lib/audit";
 
 export async function POST(_req: NextRequest, context: { params: Promise<{ appId: string }> }) {
   const session = await getServerSession(authOptions);
@@ -44,6 +45,17 @@ export async function POST(_req: NextRequest, context: { params: Promise<{ appId
   });
 
   if (!ok) return NextResponse.json({ error: "Failed to unlock" }, { status: 500 });
+
+  await auditEvent({
+    action: "VIEWING_CHECKLIST_UNLOCKED",
+    actorUserId: session.user.id,
+    tenancyApplicationId: String(application._id),
+    propertyId: application.propertyId.toString(),
+    description: 'Unlocked viewing checklist for resend',
+    metadata: {
+      stage: 1,
+    },
+  }).catch(() => undefined);
 
   return NextResponse.json({ ok: true });
 }

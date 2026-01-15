@@ -6,6 +6,7 @@ import { ObjectId } from "mongodb";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getCollection } from "@/lib/db";
 import { formatPropertyLabel } from "@/lib/formatPropertyLabel";
+import ApplicationAuditTimeline from "@/components/audit/ApplicationAuditTimeline";
 
 export const dynamic = "force-dynamic";
 
@@ -168,7 +169,12 @@ export default async function TenantViewingReportDetailPage({
         {applicantResponse?.respondedAt ? (
           <div className="rounded-md border border-slate-800 bg-slate-900 p-3">
             <div className="text-sm text-slate-200">
-              <span className="font-semibold">Your response:</span> {applicantResponse.status === "declined" ? "Not proceeding" : "Confirmed"} · {formatWhen(applicantResponse.respondedAt)}
+              <span className="font-semibold">Your response:</span>{" "}
+              {applicantResponse.status === "declined"
+                ? "Not proceeding"
+                : applicantResponse.status === "confirmed"
+                  ? "Consent to proceed"
+                  : "Query"} · {formatWhen(applicantResponse.respondedAt)}
             </div>
             {applicantResponse.comment ? (
               <div className="mt-1 text-sm text-slate-300">{applicantResponse.comment}</div>
@@ -176,6 +182,10 @@ export default async function TenantViewingReportDetailPage({
           </div>
         ) : null}
       </section>
+
+      <div id="activity">
+        <ApplicationAuditTimeline appId={appId} variant="dark" />
+      </div>
 
       <div className="flex items-center justify-between">
         <Link href="/tenant/viewing-reports" className="text-sm text-indigo-300 hover:text-indigo-200">

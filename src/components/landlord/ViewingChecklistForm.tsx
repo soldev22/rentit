@@ -10,7 +10,7 @@ type ViewingChecklistItem = {
 };
 
 type ApplicantResponse = {
-  status: "confirmed" | "declined";
+  status: "confirmed" | "declined" | "query";
   respondedAt: string;
   comment?: string;
 };
@@ -241,12 +241,25 @@ export default function ViewingChecklistForm({
       const data = await res.json().catch(() => null);
       if (!res.ok) {
         setMessageType("error");
-        setMessage(data?.error || "Failed to send to applicant");
+        const delivery = data?.delivery;
+        const emailReason = delivery?.email?.reason ? `Email: ${delivery.email.reason}` : null;
+        const smsReason = delivery?.sms?.reason ? `SMS: ${delivery.sms.reason}` : null;
+        const details = [emailReason, smsReason].filter(Boolean).join(" · ");
+
+        setMessage(details ? `${data?.error || "Failed to send"} (${details})` : data?.error || "Failed to send to applicant");
         return;
       }
 
+      const delivery = data?.delivery;
+      const emailSent = Boolean(delivery?.email?.sent);
+      const smsSent = Boolean(delivery?.sms?.sent);
+      const parts: string[] = [];
+      if (smsSent) parts.push("SMS sent");
+      if (emailSent) parts.push("Email sent");
+      if (parts.length === 0) parts.push("Delivered");
+
       setMessageType("success");
-      setMessage(`Sent to ${applicantName} for confirmation.`);
+      setMessage(`Sent to ${applicantName} for confirmation. ${parts.join(" · ")}.`);
       await refreshSummary();
     } catch {
       setMessageType("error");
@@ -508,7 +521,11 @@ export default function ViewingChecklistForm({
           {applicantResponse ? (
             <div>
               <span className="font-medium">Applicant response:</span> {" "}
-              {applicantResponse.status === "confirmed" ? "Confirmed" : "Not proceeding"} ·{" "}
+              {applicantResponse.status === "confirmed"
+                ? "Consent to proceed"
+                : applicantResponse.status === "declined"
+                  ? "Not proceeding"
+                  : "Query"} ·{" "}
               {formatWhen(applicantResponse.respondedAt)}
               {applicantResponse.comment ? (
                 <div className="mt-1 rounded-md bg-slate-50 p-2 text-slate-800">

@@ -15,6 +15,9 @@ export default function AdminPage() {
         <li className="mb-2">
           <Link href="/admin/audit">Audit Log</Link>
         </li>
+        <li className="mb-2">
+          <Link href="/admin/letter-templates">Letter Templates</Link>
+        </li>
         {/* Add more links to admin functional components here as needed */}
       </ul>
     </div>

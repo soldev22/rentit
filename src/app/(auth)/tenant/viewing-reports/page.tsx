@@ -81,6 +81,12 @@ export default async function TenantViewingReportsPage() {
         <p className="text-sm text-slate-400">Viewing checklist, notes, and photos shared for your applications.</p>
       </header>
 
+      <div>
+        <Link href="/tenant/dashboard" className="text-sm text-indigo-300 hover:text-indigo-200">
+          ← Back to dashboard
+        </Link>
+      </div>
+
       <section className="rounded-xl bg-slate-900 border border-slate-800 p-4 space-y-4">
         {reports.length === 0 ? (
           <p className="text-sm text-slate-400">No viewing report available yet.</p>
@@ -89,7 +95,7 @@ export default async function TenantViewingReportsPage() {
             {reports.map((r) => (
               <Link
                 key={r.id}
-                href={`/tenant/viewing-reports/${r.id}`}
+                href={`/tenant/viewing-reports/${r.id}#activity`}
                 className="block rounded-lg border border-slate-800 bg-slate-950 p-3 hover:bg-slate-900"
               >
                 <div className="font-medium">{r.propertyLabel}</div>
@@ -101,12 +107,6 @@ export default async function TenantViewingReportsPage() {
           </div>
         )}
       </section>
-
-      <div>
-        <Link href="/tenant/dashboard" className="text-sm text-indigo-300 hover:text-indigo-200">
-          ← Back to dashboard
-        </Link>
-      </div>
     </main>
   );
 }

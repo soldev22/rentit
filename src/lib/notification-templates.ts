@@ -137,11 +137,33 @@ export class NotificationTemplates {
     };
   }
 
+  static applicantQueriedPropertyLandlordEmail(
+    applicantName: string,
+    propertyLabel: string,
+    manageLink: string,
+    query: string
+  ): NotificationTemplate {
+    const name = applicantName?.trim() || 'An applicant';
+    const safeQuery = (query || '').trim();
+    return {
+      subject: 'Viewing update: applicant has a query',
+      message:
+        `${name} has a query about ${propertyLabel}.\n\n` +
+        (safeQuery ? `Query:\n${safeQuery}\n\n` : '') +
+        `View the application: ${manageLink}\n\n` +
+        `RentIT`,
+    };
+  }
+
   /**
    * Privacy-safe SMS for landlord (no address details).
    */
-  static applicantDecisionLandlordSms(decision: 'confirmed' | 'declined', manageLink: string): NotificationTemplate {
-    const decisionText = decision === 'confirmed' ? 'confirmed' : 'declined';
+  static applicantDecisionLandlordSms(
+    decision: 'confirmed' | 'declined' | 'query',
+    manageLink: string
+  ): NotificationTemplate {
+    const decisionText =
+      decision === 'confirmed' ? 'confirmed' : decision === 'declined' ? 'declined' : 'has a query';
     return {
       subject: 'Viewing update',
       message: `Viewing update: applicant ${decisionText}. Open: ${manageLink} - RentIT`,

@@ -9,6 +9,7 @@ import { NotificationTemplates } from "@/lib/notification-templates";
 import { notificationService } from "@/lib/notification";
 import { getTenancyApplicationById, updateTenancyApplication } from "@/lib/tenancy-application";
 import { z } from "zod";
+import { mirrorCommsToLandlord } from "@/lib/mirrorCommsToLandlord";
 
 const NotifyDecisionBodySchema = z
   .object({
@@ -181,6 +182,17 @@ async function notifyDecision(req: NextRequest, context: { params: Promise<{ app
     },
     ...(shouldAdvanceToStage3 ? { currentStage: nextCurrentStage as 1 | 2 | 3 | 4 | 5 | 6 } : null),
   });
+
+  // Mirror comms to landlord (receipt). Best-effort; does not affect the request outcome.
+  await mirrorCommsToLandlord({
+    landlordUserId: session.user.id,
+    subject: `Copy: Decision notification sent (${decision.toUpperCase()})`,
+    message:
+      `This is a copy for your records.\n\n` +
+      `Subject: ${chosenSubject}\n\n` +
+      message,
+    smsMessage: sendSms ? `Copy: ${smsMessage}` : undefined,
+  }).catch(() => undefined);
 
   return NextResponse.json({ ok: true, decision, results, notifiedAt });
 }

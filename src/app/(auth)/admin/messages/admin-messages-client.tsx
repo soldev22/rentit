@@ -133,6 +133,8 @@ export default function AdminMessagesClient() {
               onChange={(e) => setSelectedUserId(e.target.value)}
               className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               disabled={loadingUsers}
+              aria-label="Recipient"
+              title="Recipient"
             >
               <option value="">{loadingUsers ? "Loading…" : "Select a user"}</option>
               {filteredUsers.slice(0, 200).map((u) => (
@@ -164,6 +166,8 @@ export default function AdminMessagesClient() {
               value={kind}
               onChange={(e) => setKind(e.target.value as any)}
               className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              aria-label="Kind"
+              title="Kind"
             >
               <option value="adhoc">Ad hoc</option>
               <option value="legal">Legal</option>

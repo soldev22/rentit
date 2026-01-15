@@ -24,6 +24,7 @@ async function getAuditEvents(req: Request) {
   const successRaw = url.searchParams.get("success")?.trim() || null;
   const source = url.searchParams.get("source")?.trim() || null;
   const propertyId = url.searchParams.get("propertyId")?.trim() || null;
+  const tenancyApplicationIdRaw = url.searchParams.get("tenancyApplicationId")?.trim() || null;
   const tenancyId = url.searchParams.get("tenancyId")?.trim() || null;
   const maintenanceProjectId = url.searchParams.get("maintenanceProjectId")?.trim() || null;
 
@@ -44,6 +45,11 @@ async function getAuditEvents(req: Request) {
   if (action) filter.action = action;
   if (source) filter.source = source;
   if (propertyId) filter.propertyId = propertyId;
+  if (tenancyApplicationIdRaw) {
+    filter.tenancyApplicationId = ObjectId.isValid(tenancyApplicationIdRaw)
+      ? new ObjectId(tenancyApplicationIdRaw)
+      : tenancyApplicationIdRaw;
+  }
   if (tenancyId) filter.tenancyId = tenancyId;
   if (maintenanceProjectId) filter.maintenanceProjectId = maintenanceProjectId;
 
@@ -68,6 +74,7 @@ async function getAuditEvents(req: Request) {
       ...e,
       _id: e._id.toString(),
       targetUserId: e.targetUserId?.toString?.() ?? null,
+      tenancyApplicationId: e.tenancyApplicationId?.toString?.() ?? null,
       createdAt: e.createdAt?.toISOString?.() ?? null,
       activity: formatAuditActivity({
         action: e.action,

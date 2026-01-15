@@ -12,6 +12,7 @@ import { notificationService } from "@/lib/notification";
 import { NotificationTemplates } from "@/lib/notification-templates";
 import { withApiAudit } from "@/lib/api/withApiAudit";
 import { formatPropertyLabel } from "@/lib/formatPropertyLabel";
+import { auditEvent } from "@/lib/audit";
 
 type QueryFilter = {
   landlordId?: ObjectId;
@@ -178,6 +179,22 @@ async function createApplication(req: NextRequest) {
     };
 
     const result = await createTenancyApplication(application);
+
+    const createdApplicationId = result?._id?.toString?.() ?? null;
+    const actorUserIdForAudit = session?.user?.id ?? applicantEmail.toLowerCase();
+    if (createdApplicationId) {
+      await auditEvent({
+        action: "VIEWING_REQUESTED",
+        actorUserId: actorUserIdForAudit,
+        tenancyApplicationId: createdApplicationId,
+        propertyId: String(propertyId),
+        description: "Applicant/tenant arranged a viewing",
+        metadata: {
+          stage: 1,
+          viewingType: viewingType || null,
+        },
+      }).catch(() => undefined);
+    }
 
     // Notify landlord via email + SMS (best-effort)
     const notificationResults = {

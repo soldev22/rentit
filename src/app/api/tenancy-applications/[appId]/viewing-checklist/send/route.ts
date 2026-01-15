@@ -9,6 +9,8 @@ import { getCollection } from "@/lib/db";
 import { formatPropertyLabel } from "@/lib/formatPropertyLabel";
 import { notificationService, type UserContactPreferences } from "@/lib/notification";
 import { getTenancyApplicationById, updateTenancyApplication } from "@/lib/tenancy-application";
+import { auditEvent } from "@/lib/audit";
+import { mirrorCommsToLandlord } from "@/lib/mirrorCommsToLandlord";
 
 const ChecklistItemSchema = z.object({
   key: z.string().trim().min(1).max(40),
@@ -122,7 +124,96 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
   const smsMessage =
     `Please confirm you’re happy with the property you viewed. Open: ${confirmLink} - RentIT`;
 
-  // Persist summary + token hash before sending
+  const emailConfigured = Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
+  const smsConfigured = Boolean(
+    process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER
+  );
+
+  const delivery = {
+    email: {
+      attempted: false,
+      sent: false,
+      reason: undefined as string | undefined,
+    },
+    sms: {
+      attempted: false,
+      sent: false,
+      reason: undefined as string | undefined,
+    },
+  };
+
+  // Email follows applicant preferences.
+  if (!prefs.email) {
+    delivery.email.attempted = false;
+    delivery.email.reason = "Applicant email preferences disabled";
+  } else if (!applicantEmail) {
+    delivery.email.attempted = false;
+    delivery.email.reason = "Missing applicant email";
+  } else if (!emailConfigured) {
+    delivery.email.attempted = true;
+    delivery.email.sent = false;
+    delivery.email.reason = "Email not configured (RESEND_API_KEY/RESEND_FROM_EMAIL)";
+  } else {
+    delivery.email.attempted = true;
+    delivery.email.sent = await notificationService.sendNotification({
+      to: applicantEmail,
+      subject: emailSubject,
+      message: emailMessage,
+      method: "email",
+    });
+    if (!delivery.email.sent) delivery.email.reason = "Email send failed";
+  }
+
+  // Always attempt SMS when we have a phone number.
+  if (!applicantPhone) {
+    delivery.sms.attempted = false;
+    delivery.sms.reason = "No applicant phone number";
+  } else if (!smsConfigured) {
+    delivery.sms.attempted = true;
+    delivery.sms.sent = false;
+    delivery.sms.reason = "SMS not configured (TWILIO_* env vars)";
+  } else {
+    delivery.sms.attempted = true;
+    delivery.sms.sent = await notificationService.sendNotification({
+      to: applicantPhone,
+      message: smsMessage,
+      method: "sms",
+    });
+    if (!delivery.sms.sent) delivery.sms.reason = "SMS send failed";
+  }
+
+  const anyDelivered = Boolean(delivery.email.sent || delivery.sms.sent);
+  if (!anyDelivered) {
+    await auditEvent({
+      action: "VIEWING_CHECKLIST_SENT",
+      actorUserId: session.user.id,
+      tenancyApplicationId: String(application._id),
+      propertyId: application.propertyId.toString(),
+      targetUserId: (application as any)?.applicantId?.toString?.(),
+      description: "Attempted to send viewing confirmation link (delivery failed)",
+      success: false,
+      errorCode: "DELIVERY_FAILED",
+      errorMessage: "No delivery channels succeeded",
+      metadata: {
+        stage: 1,
+        isResend: Boolean(alreadySentAt),
+        delivery,
+        emailConfigured,
+        smsConfigured,
+      },
+    }).catch(() => undefined);
+
+    return NextResponse.json(
+      {
+        error: "Could not deliver the confirmation link (no email/SMS succeeded).",
+        delivery,
+      },
+      { status: 502 }
+    );
+  }
+
+  // Persist summary + token hash only after delivery succeeded.
+  // Also re-lock any landlord unlock used for resending.
   const {
     editingUnlockedAt: _editingUnlockedAt,
     editingUnlockedBy: _editingUnlockedBy,
@@ -151,30 +242,42 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
 
   if (!ok) return NextResponse.json({ error: "Failed to save" }, { status: 500 });
 
-  const notification = {
-    email: false,
-    sms: false,
-    whatsapp: false,
-  };
+  await auditEvent({
+    action: "VIEWING_CHECKLIST_SENT",
+    actorUserId: session.user.id,
+    tenancyApplicationId: String(application._id),
+    propertyId: application.propertyId.toString(),
+    targetUserId: (application as any)?.applicantId?.toString?.(),
+    description: alreadySentAt ? "Resent viewing confirmation link to applicant" : "Sent viewing confirmation link to applicant",
+    success: true,
+    metadata: {
+      stage: 1,
+      isResend: Boolean(alreadySentAt),
+      delivery,
+      emailConfigured,
+      smsConfigured,
+    },
+  }).catch(() => undefined);
 
-  if (prefs.email) {
-    notification.email = await notificationService.sendNotification({
-      to: applicantEmail,
-      subject: emailSubject,
-      message: emailMessage,
-      method: "email",
-    });
-  }
+  // Mirror comms to landlord (receipt). Do NOT include the applicant magic link.
+  await mirrorCommsToLandlord({
+    landlordUserId: session.user.id,
+    subject: alreadySentAt
+      ? `Resent viewing confirmation link to ${application.applicantName || "applicant"} (${propertyLabel})`
+      : `Sent viewing confirmation link to ${application.applicantName || "applicant"} (${propertyLabel})`,
+    message:
+      `This is a copy for your records.\n\n` +
+      `Applicant: ${application.applicantName || ""} <${applicantEmail}>\n` +
+      (applicantPhone ? `Applicant phone: ${applicantPhone}\n` : "") +
+      `Property: ${propertyLabel}\n` +
+      `Sent at: ${nowIso}\n` +
+      `Expires: ${expiresAtIso}\n\n` +
+      `Delivery: SMS=${delivery.sms.sent ? "sent" : "not sent"}, Email=${delivery.email.sent ? "sent" : "not sent"}.\n\n` +
+      `Note: Applicant receives a secure confirmation link (not included here).`,
+    smsMessage:
+      `${alreadySentAt ? "Resent" : "Sent"} viewing confirmation link to ${application.applicantName || "applicant"}. ` +
+      `Delivery: SMS=${delivery.sms.sent ? "sent" : "not sent"}, Email=${delivery.email.sent ? "sent" : "not sent"}.`,
+  }).catch(() => undefined);
 
-  // Always send the confirmation link by text when we have a phone number.
-  // (Email still follows applicant contact preferences.)
-  if (applicantPhone) {
-    notification.sms = await notificationService.sendNotification({
-      to: applicantPhone,
-      message: smsMessage,
-      method: "sms",
-    });
-  }
-
-  return NextResponse.json({ ok: true, notification });
+  return NextResponse.json({ ok: true, delivery });
 }

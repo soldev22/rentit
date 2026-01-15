@@ -36,6 +36,10 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
   const [message, setMessage] = useState<string | null>(null);
 
   const stage1Complete = Boolean(currentApplication.stage1?.viewingSummary?.completedAt);
+  const viewingOccurred = currentApplication.stage1?.viewingSummary?.viewingOccurred === true;
+  const viewingOccurredAt = currentApplication.stage1?.viewingSummary?.viewingOccurredAt;
+  const applicantHappyToProceed =
+    currentApplication.stage1?.viewingSummary?.applicantResponse?.status === 'confirmed';
 
   // Modal state for scheduling a viewing
   const [viewingModalOpen, setViewingModalOpen] = useState(false);
@@ -134,6 +138,31 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
       setMessage('Stage 1 marked complete. Stage 2 is now enabled.');
     } catch {
       setMessage('Failed to mark Stage 1 complete');
+    }
+  }
+
+  async function toggleViewingOccurred(next: boolean) {
+    setMessage(null);
+    try {
+      const response = await fetch(`/api/tenancy-applications/${currentApplication._id}/viewing-checklist`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ viewingOccurred: next }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        setMessage(data?.error || 'Failed to update viewing status');
+        return;
+      }
+
+      const refreshed = await fetch(`/api/tenancy-applications/${currentApplication._id}`);
+      if (refreshed.ok) {
+        const freshData = await refreshed.json().catch(() => null);
+        setCurrentApplication(freshData?.application ?? freshData);
+      }
+    } catch {
+      setMessage('Failed to update viewing status');
     }
   }
   // Viewing Modal JSX (move to return)
@@ -300,6 +329,29 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
                   >
                     {stage1Complete ? 'COMPLETE' : 'IN PROGRESS'}
                   </span>
+                </div>
+
+                <div className="mt-2 space-y-2">
+                  <label className="flex items-center gap-2 text-sm text-gray-800">
+                    <input
+                      type="checkbox"
+                      checked={viewingOccurred}
+                      onChange={(e) => {
+                        void toggleViewingOccurred(e.target.checked);
+                      }}
+                    />
+                    Viewing took place
+                    {viewingOccurredAt ? (
+                      <span className="text-xs text-gray-600">
+                        ({new Date(viewingOccurredAt).toLocaleString('en-GB')})
+                      </span>
+                    ) : null}
+                  </label>
+
+                  <label className="flex items-center gap-2 text-sm text-gray-800">
+                    <input type="checkbox" checked={applicantHappyToProceed} disabled />
+                    Applicant happy to proceed
+                  </label>
                 </div>
 
                 <label className="mt-2 flex items-center gap-2 text-sm text-gray-800">

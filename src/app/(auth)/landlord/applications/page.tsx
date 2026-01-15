@@ -159,12 +159,20 @@ export default async function LandlordTenancyApplicationsPage() {
                 <div className="text-sm text-gray-500">
                   Started {new Date(application.createdAt).toLocaleDateString()}
                 </div>
-                <Link
-                  href={`/landlord/applications/${application._id.toString()}`}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm font-medium"
-                >
-                  Manage Application
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/landlord/applications/${application._id.toString()}#activity`}
+                    className="bg-white text-slate-800 px-4 py-2 rounded-md border border-slate-300 hover:bg-slate-50 text-sm font-medium"
+                  >
+                    Activity
+                  </Link>
+                  <Link
+                    href={`/landlord/applications/${application._id.toString()}`}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm font-medium"
+                  >
+                    Manage Application
+                  </Link>
+                </div>
               </div>
             </div>
             );

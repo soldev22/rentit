@@ -184,12 +184,20 @@ export default async function TenantDashboardPage() {
       <section className="rounded-xl bg-slate-900 border border-slate-800 p-4 space-y-4">
         <div className="flex items-center justify-between gap-3">
           <h2 className="font-medium">Viewing report</h2>
-          <Link
-            href="/tenant/viewing-reports"
-            className="text-sm text-indigo-300 hover:text-indigo-200"
-          >
-            View all
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/tenant/viewing-reports"
+              className="text-sm text-indigo-300 hover:text-indigo-200"
+            >
+              View all
+            </Link>
+            <Link
+              href="/tenant/viewing-reports"
+              className="text-sm text-indigo-300 hover:text-indigo-200"
+            >
+              Activity log
+            </Link>
+          </div>
         </div>
 
         {viewingReports.length === 0 ? (
@@ -201,7 +209,7 @@ export default async function TenantDashboardPage() {
             {viewingReports.map((r) => (
               <Link
                 key={r.id}
-                href={`/tenant/viewing-reports/${r.id}`}
+                href={`/tenant/viewing-reports/${r.id}#activity`}
                 className="block rounded-lg border border-slate-800 bg-slate-950 p-3 hover:bg-slate-900"
               >
                 <div className="font-medium">{r.propertyLabel}</div>

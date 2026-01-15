@@ -65,6 +65,11 @@ export interface TenancyApplication {
       completedAt?: string;
       completedBy?: ObjectId;
 
+      /** Landlord-toggled flag indicating the viewing took place. */
+      viewingOccurred?: boolean;
+      /** Timestamp recorded when landlord marks the viewing as occurred. */
+      viewingOccurredAt?: string | null;
+
       sentToApplicantAt?: string;
       /** Landlord-only override to allow editing after sending. */
       editingUnlockedAt?: string;
@@ -74,7 +79,7 @@ export interface TenancyApplication {
       confirmationTokenUsedAt?: string;
 
       applicantResponse?: {
-        status: 'confirmed' | 'declined';
+        status: 'confirmed' | 'declined' | 'query';
         respondedAt: string;
         comment?: string;
       };
@@ -84,6 +89,24 @@ export interface TenancyApplication {
   // Stage 2: Background Checks Agreement
   stage2: {
     status: 'pending' | 'agreed' | 'declined' | 'complete';
+
+    /**
+     * Defensible letter sent after Stage 1 consent to proceed.
+     * Draft is editable until sent; send operation stores the exact content.
+     */
+    proceedLetter?: {
+      subject?: string;
+      content?: string;
+      savedAt?: string;
+      sentAt?: string;
+      sentBy?: ObjectId;
+      sentToEmail?: string;
+      sentToSms?: string | null;
+      delivery?: {
+        email: boolean;
+        sms: boolean;
+      };
+    };
 
     /**
      * Optional landlord decision after reviewing Stage 2 checks.

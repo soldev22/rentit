@@ -12,9 +12,16 @@ export type AuditAction =
   | "ROLE_ASSIGNED"
   | "API_REQUEST"
   | "PROPERTY_CREATED"
+  | "VIEWING_REQUESTED"
   | "VIEWING_SCHEDULED"
+  | "VIEWING_OCCURRED_RECORDED"
   | "TENANCY_COTENANT_ADDED"
   | "COMMUNICATION_SENT"
+  | "VIEWING_CHECKLIST_SENT"
+  | "VIEWING_CHECKLIST_UNLOCKED"
+  | "VIEWING_CHECKLIST_UPDATED"
+  | "VIEWING_CONFIRMATION_RECORDED"
+  | "TENANCY_PROCEED_LETTER_SENT"
   | "APPLICATION_SUBMITTED"
   | "APPLICATION_DECISION"
   | "TENANCY_STARTED"
@@ -41,6 +48,7 @@ export interface AuditEvent {
 
   // What this action relates to
   propertyId?: string;
+  tenancyApplicationId?: string;
   tenancyId?: string;
   targetUserId?: string;
   maintenanceProjectId?: string;

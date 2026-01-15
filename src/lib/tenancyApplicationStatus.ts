@@ -174,6 +174,9 @@ export function getUnifiedApplicationStatusView(
   if (viewingSummary?.applicantResponse?.status === "confirmed") {
     return { label: "Applicant confirmed property – ready for next steps" };
   }
+  if (viewingSummary?.applicantResponse?.status === "query") {
+    return { label: "Applicant raised a query" };
+  }
   if (viewingSummary?.sentToApplicantAt && !viewingSummary?.applicantResponse) {
     return { label: "Awaiting applicant confirmation" };
   }

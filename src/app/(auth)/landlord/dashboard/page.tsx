@@ -25,6 +25,13 @@ export default async function LandlordDashboardPage() {
         </Link>
 
         <Link
+          href="/landlord/applications"
+          className="ml-3 inline-block bg-white text-slate-800 px-4 py-2 rounded-md border border-slate-300 hover:bg-slate-50 font-medium"
+        >
+          🧾 Application activity
+        </Link>
+
+        <Link
           href="/landlord/settings/background-check-criteria"
           className="ml-3 inline-block bg-white text-slate-800 px-4 py-2 rounded-md border border-slate-300 hover:bg-slate-50 font-medium"
         >

@@ -15,6 +15,21 @@ type AuditMetadata = {
   path?: unknown;
 };
 
+type ViewingOccurredMetadata = {
+  viewingOccurredAt?: unknown;
+};
+
+type ViewingConfirmationMetadata = {
+  decision?: unknown;
+};
+
+function formatEnGbDateOnly(iso: string): string | null {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  // Date-only, UK formatting. Avoids displaying time.
+  return d.toLocaleDateString("en-GB");
+}
+
 function normalizePath(pathname: string): string {
   return pathname
     .replace(/\b[0-9a-f]{24}\b/gi, ':id')
@@ -29,6 +44,30 @@ function normalizePath(pathname: string): string {
  */
 export function formatAuditActivity(event: AuditActivityInput): string {
   const action = event.action ?? '';
+
+  if (action === 'VIEWING_REQUESTED') {
+    return event.description?.trim() || 'Applicant/tenant arranged a viewing';
+  }
+
+  if (action === 'VIEWING_OCCURRED_RECORDED') {
+    const meta: ViewingOccurredMetadata = event.metadata ?? {};
+    const iso = typeof meta.viewingOccurredAt === 'string' ? meta.viewingOccurredAt : null;
+    const dateOnly = iso ? formatEnGbDateOnly(iso) : null;
+    return dateOnly ? `Viewing took place on ${dateOnly}` : 'Viewing took place';
+  }
+
+  if (action === 'VIEWING_CONFIRMATION_RECORDED') {
+    const meta: ViewingConfirmationMetadata = event.metadata ?? {};
+    const decision = typeof meta.decision === 'string' ? meta.decision : null;
+    if (decision === 'confirmed') return 'Consent to proceed';
+    if (decision === 'declined') return 'Declined to proceed';
+    if (decision === 'query') return 'Query raised';
+    return event.description?.trim() || 'Consent decision recorded';
+  }
+
+  if (action === 'TENANCY_PROCEED_LETTER_SENT') {
+    return event.description?.trim() || 'Tenancy proceed letter sent';
+  }
 
   if (action === 'VIEWING_SCHEDULED') {
     return event.description?.trim() || 'Viewing scheduled';

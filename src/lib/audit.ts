@@ -23,9 +23,16 @@ export type AuditAction =
 
   // Property & tenancy
   | "PROPERTY_CREATED"
+  | "VIEWING_REQUESTED"
   | "VIEWING_SCHEDULED"
+  | "VIEWING_OCCURRED_RECORDED"
   | "TENANCY_COTENANT_ADDED"
   | "COMMUNICATION_SENT"
+  | "VIEWING_CHECKLIST_SENT"
+  | "VIEWING_CHECKLIST_UNLOCKED"
+  | "VIEWING_CHECKLIST_UPDATED"
+  | "VIEWING_CONFIRMATION_RECORDED"
+  | "TENANCY_PROCEED_LETTER_SENT"
   | "APPLICATION_SUBMITTED"
   | "APPLICATION_DECISION"
   | "TENANCY_STARTED"
@@ -48,6 +55,7 @@ export interface AuditEventInput {
 
   targetUserId?: string;
   propertyId?: string;
+  tenancyApplicationId?: string;
   tenancyId?: string;
   maintenanceProjectId?: string;
 
@@ -76,6 +84,9 @@ await db.collection("audit_events").insertOne({
   targetUserId: ObjectId.isValid(input.targetUserId ?? "")
     ? new ObjectId(input.targetUserId!)
     : input.targetUserId ?? null,
+  tenancyApplicationId: ObjectId.isValid(input.tenancyApplicationId ?? "")
+    ? new ObjectId(input.tenancyApplicationId!)
+    : input.tenancyApplicationId ?? null,
   success: input.success ?? true,
   source: input.source ?? null,
   errorCode: input.errorCode ?? null,

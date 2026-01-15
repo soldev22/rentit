@@ -69,7 +69,23 @@ export default async function LandlordViewingChecklistPage({
         appId={id}
         applicantName={serializedApplication.applicantName}
         applicantEmail={serializedApplication.applicantEmail}
-        initialSummary={serializedApplication.stage1?.viewingSummary ?? null}
+        initialSummary={
+          (() => {
+            const summary = serializedApplication.stage1?.viewingSummary;
+            if (!summary) return null;
+            if (
+              summary.applicantResponse &&
+              (summary.applicantResponse.status !== "confirmed" &&
+                summary.applicantResponse.status !== "declined" &&
+                summary.applicantResponse.status !== "query")
+            ) {
+              // Omit applicantResponse if status is not allowed
+              const { applicantResponse: _applicantResponse, ...rest } = summary;
+              return { ...rest };
+            }
+            return summary;
+          })()
+        }
       />
     </div>
   );

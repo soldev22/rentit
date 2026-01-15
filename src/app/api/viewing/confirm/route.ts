@@ -7,11 +7,23 @@ import { getCollection } from "@/lib/db";
 import { formatPropertyLabel } from "@/lib/formatPropertyLabel";
 import { notificationService, type UserContactPreferences } from "@/lib/notification";
 import { NotificationTemplates } from "@/lib/notification-templates";
+import { auditEvent } from "@/lib/audit";
 
 const BodySchema = z.object({
   token: z.string().min(10),
-  decision: z.enum(["confirmed", "declined"]),
+  decision: z.enum(["confirmed", "declined", "query"]),
   comment: z.string().max(1000).optional(),
+}).superRefine((val, ctx) => {
+  if (val.decision === 'query') {
+    const hasComment = typeof val.comment === 'string' && val.comment.trim().length > 0;
+    if (!hasComment) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['comment'],
+        message: 'Please enter your query/question',
+      });
+    }
+  }
 });
 
 function sha256Hex(input: string) {
@@ -67,23 +79,28 @@ export async function POST(req: NextRequest) {
 
   const nowIso = new Date().toISOString();
 
+  const decision = parsed.data.decision;
+  const isFinalDecision = decision === 'confirmed' || decision === 'declined';
+
   const updates: any = {
-    "stage1.viewingSummary.confirmationTokenUsedAt": nowIso,
+    ...(isFinalDecision
+      ? { "stage1.viewingSummary.confirmationTokenUsedAt": nowIso }
+      : {}),
     "stage1.viewingSummary.applicantResponse": {
-      status: parsed.data.decision,
+      status: decision,
       respondedAt: nowIso,
       comment: parsed.data.comment,
     },
   };
 
   // Auto-advance to Stage 2 on confirm (as requested)
-  if (parsed.data.decision === "confirmed") {
+  if (decision === "confirmed") {
     updates.currentStage = 2;
     updates.status = "in_progress";
   }
 
   // If declined, keep stage at 1 but mark as in-progress with response captured.
-  if (parsed.data.decision === "declined") {
+  if (decision === "declined") {
     updates.currentStage = 1;
     updates.status = "in_progress";
   }
@@ -97,6 +114,27 @@ export async function POST(req: NextRequest) {
       },
     }
   );
+
+  const applicantIdForAudit = (application as any)?.applicantId?.toString?.();
+  const actorUserIdForAudit = applicantIdForAudit || String((application as any)?.applicantEmail || "anonymous");
+
+  await auditEvent({
+    action: "VIEWING_CONFIRMATION_RECORDED",
+    actorUserId: actorUserIdForAudit,
+    tenancyApplicationId: String(application._id),
+    propertyId: (application as any)?.propertyId?.toString?.(),
+    description:
+      decision === 'confirmed'
+        ? 'Consent to proceed'
+        : decision === 'declined'
+          ? 'Declined to proceed'
+          : 'Query raised',
+    metadata: {
+      stage: 1,
+      decision,
+      via: 'magic_link',
+    },
+  }).catch(() => undefined);
 
   // Notify landlord (best-effort; do not fail confirmation if notification fails)
   try {
@@ -144,7 +182,14 @@ export async function POST(req: NextRequest) {
     const emailTemplate =
       decision === "confirmed"
         ? NotificationTemplates.applicantConfirmedPropertyLandlordEmail(applicantName, propertyLabel, manageLink)
-        : NotificationTemplates.applicantDeclinedPropertyLandlordEmail(applicantName, propertyLabel, manageLink);
+        : decision === "declined"
+          ? NotificationTemplates.applicantDeclinedPropertyLandlordEmail(applicantName, propertyLabel, manageLink)
+          : NotificationTemplates.applicantQueriedPropertyLandlordEmail(
+              applicantName,
+              propertyLabel,
+              manageLink,
+              parsed.data.comment || ""
+            );
 
     const smsTemplate = NotificationTemplates.applicantDecisionLandlordSms(decision, manageLink);
 

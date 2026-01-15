@@ -6,6 +6,7 @@ import { getTenancyApplicationById, updateTenancyApplication } from "@/lib/tenan
 import crypto from "crypto";
 import { notificationService } from "@/lib/notification";
 import { withApiAudit } from "@/lib/api/withApiAudit";
+import { mirrorCommsToLandlord } from "@/lib/mirrorCommsToLandlord";
 
 async function requestBackgroundCheck(req: NextRequest, context: { params: Promise<{ appId: string }> }) {
   const session = await getServerSession(authOptions);
@@ -180,6 +181,23 @@ async function requestBackgroundCheck(req: NextRequest, context: { params: Promi
       method: 'sms',
     });
   }
+
+  // Mirror comms to landlord (receipt). Do NOT include token URLs.
+  await mirrorCommsToLandlord({
+    landlordUserId: session.user.id,
+    subject: "Copy: Background check request sent",
+    message:
+      `This is a copy for your records.\n\n` +
+      `Application: ${appId}\n` +
+      `Sent at: ${sentAt}\n` +
+      `Recipients: ` +
+      `${sendPrimary ? "primary applicant" : ""}` +
+      `${sendPrimary && sendCoTenant ? " and " : ""}` +
+      `${sendCoTenant ? "co-tenant" : ""}` +
+      `\n\n` +
+      `Note: Secure completion links are not included in this copy.`,
+    smsMessage: "Copy: Background check request sent (links omitted).",
+  }).catch(() => undefined);
 
   return NextResponse.json({
     success: true,
