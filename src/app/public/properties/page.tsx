@@ -42,7 +42,7 @@ export default async function PublicPropertiesPage({ searchParams }: { searchPar
   const session = await getServerSession(authOptions);
 
   if (
-    session?.user?.role === 'APPLICANT' &&
+    (session?.user?.role === 'APPLICANT' || session?.user?.role === 'TENANT') &&
     (ObjectId.isValid(session.user.id) || Boolean(session.user.email))
   ) {
     const applications = await getCollection('tenancy_applications');
@@ -58,6 +58,10 @@ export default async function PublicPropertiesPage({ searchParams }: { searchPar
     }
     if (emailRegex) {
       applicantClauses.push({ applicantEmail: emailRegex });
+      // Legacy field names used by some older application records.
+      applicantClauses.push({ email: emailRegex });
+      applicantClauses.push({ userEmail: emailRegex });
+      applicantClauses.push({ 'applicant.email': emailRegex });
       applicantClauses.push({ 'coTenant.email': emailRegex });
     }
 
@@ -65,7 +69,6 @@ export default async function PublicPropertiesPage({ searchParams }: { searchPar
       .find(
         {
           ...(applicantClauses.length ? { $or: applicantClauses } : {}),
-          status: { $in: ['draft', 'in_progress'] },
         },
         { projection: { propertyId: 1 } }
       )

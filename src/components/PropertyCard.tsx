@@ -1,5 +1,6 @@
 import Link from "next/link";
 import ApplyButton from "./ApplyButton";
+import { formatPropertyLabel } from "@/lib/formatPropertyLabel";
 
 interface PropertyPhoto {
   url: string;
@@ -42,10 +43,14 @@ export default function PropertyCard({
     >
       {isApplied && (
         <div className="mb-3 inline-flex items-center gap-2 rounded-md bg-green-600 px-2 py-1 text-xs font-semibold text-white">
-          Property applied for
+          Arranging viewing
         </div>
       )}
-      <Link href={`/public/properties/${property._id}`} className="block" aria-label={`View property ${property.title}`}>
+      <Link
+        href={`/public/properties/${property._id}`}
+        className="block"
+        aria-label={`View property ${formatPropertyLabel(property)}`}
+      >
         <div className="w-full aspect-[4/3] rounded-md overflow-hidden mb-3 bg-gray-100 relative">
           {property.photos && property.photos.length > 0 ? (
             (() => {
@@ -97,7 +102,7 @@ export default function PropertyCard({
         <div className="mt-4">
           <ApplyButton 
             propertyId={property._id} 
-            propertyTitle={property.title}
+            propertyTitle={formatPropertyLabel(property)}
           />
         </div>
       )}

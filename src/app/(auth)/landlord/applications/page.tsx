@@ -5,6 +5,7 @@ import { getCollection } from "@/lib/db";
 import { ObjectId } from "mongodb";
 import Link from "next/link";
 import { getUnifiedApplicationStatusView } from "@/lib/tenancyApplicationStatus";
+import { formatPropertyLabel } from "@/lib/formatPropertyLabel";
 import { TENANCY_APPLICATION_STAGE_LABELS } from "@/lib/tenancyApplicationStages";
 
 export const dynamic = 'force-dynamic';
@@ -14,8 +15,13 @@ import type { TenancyApplication } from '@/lib/tenancy-application';
 
 async function getLandlordApplications(landlordId: string): Promise<TenancyApplication[]> {
   const applications = await getCollection('tenancy_applications');
+  const landlordObjectId = ObjectId.isValid(landlordId) ? new ObjectId(landlordId) : null;
   const results = await applications
-    .find({ landlordId: new ObjectId(landlordId) })
+    .find(
+      landlordObjectId
+        ? { $or: [{ landlordId: landlordObjectId }, { landlordId }] }
+        : { landlordId }
+    )
     .sort({ createdAt: -1 })
     .toArray();
   // Cast each result to TenancyApplication (runtime check omitted for brevity)
@@ -24,8 +30,16 @@ async function getLandlordApplications(landlordId: string): Promise<TenancyAppli
 
 async function getPropertyTitle(propertyId: string) {
   const properties = await getCollection('properties');
-  const property = await properties.findOne({ _id: new ObjectId(propertyId) });
-  return property?.title || 'Unknown Property';
+  const property = await properties.findOne(
+    { _id: new ObjectId(propertyId) },
+    { projection: { title: 1, address: 1 } }
+  );
+  const title = typeof property?.title === "string" ? property.title : undefined;
+  const address = property?.address as
+    | { line1?: string | null; city?: string | null; postcode?: string | null }
+    | null
+    | undefined;
+  return formatPropertyLabel({ title, address });
 }
 
 export default async function LandlordTenancyApplicationsPage() {
@@ -78,10 +92,7 @@ export default async function LandlordTenancyApplicationsPage() {
                 stage = 2;
               }
 
-              if (
-                application.stage6?.status === "completed" ||
-                application.status === "completed"
-              ) {
+              if (application.stage6?.status === "completed" || application.status === "completed") {
                 stage = Math.max(stage, 6);
               } else if (
                 application.stage5?.status === "scheduled" ||
@@ -125,29 +136,24 @@ export default async function LandlordTenancyApplicationsPage() {
               </div>
 
               {/* Progress indicator */}
-                <div className="mb-4">
-                  <div className="flex justify-between text-xs text-gray-500 mb-2">
-                    <span>1. {TENANCY_APPLICATION_STAGE_LABELS[1]}</span>
-                    <span>2. {TENANCY_APPLICATION_STAGE_LABELS[2]}</span>
-                    <span>3. {TENANCY_APPLICATION_STAGE_LABELS[3]}</span>
-                    <span>4. {TENANCY_APPLICATION_STAGE_LABELS[4]}</span>
-                    <span>5. {TENANCY_APPLICATION_STAGE_LABELS[5]}</span>
-                    <span>6. {TENANCY_APPLICATION_STAGE_LABELS[6]}</span>
-                  </div>
-                  <div className="flex space-x-1">
-                    {[1, 2, 3, 4, 5, 6].map((stageNum) => {
-                      let color = 'bg-gray-200';
-                      if (stageNum < effectiveCurrentStage) color = 'bg-green-500';
-                      if (stageNum === effectiveCurrentStage) color = 'bg-blue-500';
-                      return (
-                        <div
-                          key={stageNum}
-                          className={`flex-1 h-2 rounded ${color}`}
-                        />
-                      );
-                    })}
-                  </div>
+              <div className="mb-4">
+                <div className="flex justify-between text-xs text-gray-500 mb-2">
+                  <span>1. {TENANCY_APPLICATION_STAGE_LABELS[1]}</span>
+                  <span>2. {TENANCY_APPLICATION_STAGE_LABELS[2]}</span>
+                  <span>3. {TENANCY_APPLICATION_STAGE_LABELS[3]}</span>
+                  <span>4. {TENANCY_APPLICATION_STAGE_LABELS[4]}</span>
+                  <span>5. {TENANCY_APPLICATION_STAGE_LABELS[5]}</span>
+                  <span>6. {TENANCY_APPLICATION_STAGE_LABELS[6]}</span>
                 </div>
+                <div className="flex space-x-1">
+                  {[1, 2, 3, 4, 5, 6].map((stageNum) => {
+                    let color = "bg-gray-200";
+                    if (stageNum < effectiveCurrentStage) color = "bg-green-500";
+                    if (stageNum === effectiveCurrentStage) color = "bg-blue-500";
+                    return <div key={stageNum} className={`flex-1 h-2 rounded ${color}`} />;
+                  })}
+                </div>
+              </div>
 
               <div className="flex justify-between items-center">
                 <div className="text-sm text-gray-500">

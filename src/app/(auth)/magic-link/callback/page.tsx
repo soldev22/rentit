@@ -35,7 +35,7 @@ function MagicLinkCallbackInner() {
           magic: true,
           redirect: false
         });
-        router.replace("/dashboard");
+        router.replace("/");
       } catch {
         setStatus("Invalid or expired magic link.");
       }

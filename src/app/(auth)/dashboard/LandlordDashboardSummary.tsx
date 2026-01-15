@@ -18,13 +18,13 @@ type PropertyDoc = {
 
 export default async function LandlordDashboardSummary({ landlordId }: { landlordId: string }) {
   const collection = await getCollection("properties");
-  const landlordObjectId = new ObjectId(landlordId);
+  const landlordObjectId = ObjectId.isValid(landlordId) ? new ObjectId(landlordId) : null;
 
   // Fetch all properties for counts
   const allProperties = await collection
     .find({
       $or: [
-        { landlordId: landlordObjectId },
+        ...(landlordObjectId ? [{ landlordId: landlordObjectId }] : []),
         { landlordId },
       ],
     })
@@ -41,7 +41,11 @@ export default async function LandlordDashboardSummary({ landlordId }: { landlor
 
   // Fetch submitted applications count for this landlord
   const tenancyApplications = await getCollection('tenancy_applications');
-  const submittedApplicationsCount = await tenancyApplications.countDocuments({ landlordId: landlordObjectId });
+  const submittedApplicationsCount = await tenancyApplications.countDocuments(
+    landlordObjectId
+      ? { $or: [{ landlordId: landlordObjectId }, { landlordId }] }
+      : { landlordId }
+  );
 
   return (
     <div className="w-full pt-6">

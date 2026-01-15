@@ -4,6 +4,7 @@ import PropertyGallery from '@/components/PropertyGallery';
 import ShareButtons from '@/components/ShareButtons';
 import ApplyButton from '@/components/ApplyButton';
 import { formatDateShort } from '@/lib/formatDate';
+import { formatPropertyLabel } from "@/lib/formatPropertyLabel";
 import Link from "next/link";
 import { getServerSession } from 'next-auth';
 
@@ -119,7 +120,7 @@ export default async function PropertyDetailPage(
   let applicantApplication: WithId<TenancyApplication> | null = null;
 
   if (
-    session?.user?.role === 'APPLICANT' &&
+    (session?.user?.role === 'APPLICANT' || session?.user?.role === 'TENANT') &&
     ObjectId.isValid(id) &&
     (ObjectId.isValid(session.user.id) || Boolean(session.user.email))
   ) {
@@ -310,7 +311,7 @@ export default async function PropertyDetailPage(
             {/* Client-side apply button handles auth and starts the application workflow */}
             <ApplyButton 
               propertyId={property._id} 
-              propertyTitle={property.title}
+                propertyTitle={formatPropertyLabel(property)}
               isApplied={Boolean(applicantApplication)}
             />
           </div>

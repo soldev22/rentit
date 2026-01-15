@@ -266,6 +266,43 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
                 >
                   {currentApplication.stage1.status === 'agreed' ? 'Edit / Resend Notification' : 'Schedule Viewing'}
                 </button>
+
+                <div className="mt-2 flex items-center gap-2">
+                  <Link
+                    href={`/landlord/applications/${currentApplication._id}/viewing-checklist`}
+                    className="inline-block px-4 py-2 rounded-md font-medium transition-colors border border-slate-300 bg-white text-slate-800 hover:bg-slate-50"
+                  >
+                    Viewing checklist
+                  </Link>
+
+                  <Link
+                    href="/landlord/viewing-checklist-info"
+                    className="inline-flex h-[42px] w-[42px] items-center justify-center rounded-md border border-slate-300 bg-white text-slate-700 transition-colors hover:bg-slate-50"
+                    aria-label="Viewing checklist guidance"
+                    title="Viewing checklist guidance"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.8}
+                      stroke="currentColor"
+                      className="h-5 w-5"
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M11.25 11.25h1.5v5.25h-1.5V11.25zM12 7.875h.008v.008H12V7.875z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                      />
+                    </svg>
+                  </Link>
+                </div>
               </div>
             );
           }
@@ -274,7 +311,7 @@ export default function TenancyApplicationManager({ application }: TenancyApplic
           if (stage.number === 2) {
             // Stage 2 is enabled if status is not 'pending'
             const stage2Status = currentApplication.stage2?.status ?? 'pending';
-            const enabled = stage2Status !== 'pending';
+            const enabled = (currentApplication.currentStage ?? 1) >= 2 || stage2Status !== 'pending';
 
             return (
               <div

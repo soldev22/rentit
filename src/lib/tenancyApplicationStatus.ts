@@ -162,9 +162,20 @@ export function getUnifiedApplicationStatusView(
     // Some existing records use 'complete' here; treat it as 'agreed' for status display.
     const stage2Status = String(application.stage2.status);
     if (stage2Status === "agreed" || stage2Status === "complete") {
-      return { label: "Applicant wishes to proceed – waiting for signed financials" };
+      return { label: "Applicant confirmed property – next steps in progress" };
     }
     // Stage 2 pending/declined: fall through to Stage 1.
+  }
+
+  const viewingSummary = application.stage1?.viewingSummary;
+  if (viewingSummary?.applicantResponse?.status === "declined") {
+    return { label: "Applicant not proceeding" };
+  }
+  if (viewingSummary?.applicantResponse?.status === "confirmed") {
+    return { label: "Applicant confirmed property – ready for next steps" };
+  }
+  if (viewingSummary?.sentToApplicantAt && !viewingSummary?.applicantResponse) {
+    return { label: "Awaiting applicant confirmation" };
   }
 
   // 1) Apply -> waiting for viewing
@@ -179,7 +190,7 @@ export function getUnifiedApplicationStatusView(
   }
 
   if (application.stage1.status === "pending") {
-    return { label: "Application complete – waiting for viewing" };
+    return { label: "Organising viewing" };
   }
 
   // Fallback to stage number if we have something unexpected

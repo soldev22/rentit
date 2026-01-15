@@ -11,6 +11,7 @@ import {
 import { notificationService } from "@/lib/notification";
 import { NotificationTemplates } from "@/lib/notification-templates";
 import { withApiAudit } from "@/lib/api/withApiAudit";
+import { formatPropertyLabel } from "@/lib/formatPropertyLabel";
 
 type QueryFilter = {
   landlordId?: ObjectId;
@@ -48,38 +49,13 @@ async function createApplication(req: NextRequest) {
       applicantTel,
       applicantAddress,
       viewingType,
-      backgroundCheckConsents,
       referenceContacts
     } = body;
+      const contactPreferences = body.contactPreferences; // Added line for contact preferences
 
     if (!propertyId || !applicantName || !applicantEmail || !applicantTel) {
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 }
-      );
-    }
-
-    const consents = backgroundCheckConsents as
-      | {
-          creditCheck?: boolean;
-          socialMedia?: boolean;
-          landlordReference?: boolean;
-          employerReference?: boolean;
-        }
-      | undefined;
-
-    const hasAllConsents =
-      consents?.creditCheck === true &&
-      consents?.socialMedia === true &&
-      consents?.landlordReference === true &&
-      consents?.employerReference === true;
-
-    if (!hasAllConsents) {
-      return NextResponse.json(
-        {
-          error:
-            "You must grant consent for Credit Check, Social Media, Landlord Reference, and Employer Reference to continue."
-        },
         { status: 400 }
       );
     }
@@ -164,12 +140,11 @@ async function createApplication(req: NextRequest) {
         agreedAt: viewingType ? new Date().toISOString() : undefined
       },
       stage2: {
-        status: 'agreed',
-        creditCheckConsent: true,
-        socialMediaConsent: true,
-        landlordReferenceConsent: true,
-        employerReferenceConsent: true,
-        agreedAt: new Date().toISOString(),
+        status: 'pending',
+        creditCheckConsent: false,
+        socialMediaConsent: false,
+        landlordReferenceConsent: false,
+        employerReferenceConsent: false,
         creditCheck: {
           status: 'not_started'
         },
@@ -261,14 +236,14 @@ async function createApplication(req: NextRequest) {
           return e164;
         };
 
-        const propertyTitle = property?.title || 'your property';
-        const subject = `New application: ${propertyTitle}`;
+        const propertyLabel = formatPropertyLabel(property as any);
+        const subject = `New viewing request: ${propertyLabel}`;
         const message =
-          `A new applicant has applied for ${propertyTitle}.\n` +
+          `A new applicant has requested a viewing for ${propertyLabel}.\n` +
           `Name: ${applicantName}\n` +
           `Email: ${applicantEmailLower}` +
           (applicantTel ? `\nTel: ${applicantTel}` : '') +
-          `\n\nLog in to your landlord dashboard to review.`;
+          `\n\nLog in to your landlord dashboard to review and confirm the viewing.`;
 
         if (landlordEmail) {
           const ok = await notificationService.sendNotification({
@@ -309,17 +284,62 @@ async function createApplication(req: NextRequest) {
       try {
         const users = await getCollection('users');
         const user = await users.findOne({ email: session.user.email });
-        if (user?.profile?.contactPreferences) {
-          const template = NotificationTemplates.applicationSubmitted(property.title || 'your property');
-          const r = await notificationService.sendToUser(
-            session.user.email,
-            user.profile.phone,
-            user.profile.contactPreferences,
-            template.subject,
-            template.message
+        const cleanContactPreferences = (v: unknown) => {
+          if (!v || typeof v !== 'object') return undefined;
+          const anyV = v as any;
+          const email = anyV.email;
+          const sms = anyV.sms;
+          const whatsapp = anyV.whatsapp;
+          if (typeof email !== 'boolean' || typeof sms !== 'boolean' || typeof whatsapp !== 'boolean') return undefined;
+          return { email, sms, whatsapp };
+        };
+
+        const requestedContactPreferences = cleanContactPreferences(contactPreferences);
+
+        const prefsToUse =
+          requestedContactPreferences ||
+          (user as any)?.profile?.contactPreferences ||
+          { email: true, sms: false, whatsapp: false };
+
+        const userPhone = (user as any)?.profile?.phone as string | undefined;
+
+        if (requestedContactPreferences) {
+          await users.updateOne(
+            { email: session.user.email },
+            {
+              $set: {
+                'profile.contactPreferences': requestedContactPreferences,
+              },
+            }
           );
-          notificationResults.applicantNotification = Boolean(r.email || r.sms || r.whatsapp);
         }
+
+        const propertyLabelForEmail = formatPropertyLabel(property as any);
+        const emailTemplate = NotificationTemplates.viewingRequestSentEmail(propertyLabelForEmail);
+        const smsTemplate = NotificationTemplates.viewingRequestSentSms();
+
+        const sendEmail = Boolean(prefsToUse?.email);
+        const sendSms = Boolean(prefsToUse?.sms) && Boolean(userPhone);
+
+        const emailOk = sendEmail
+          ? await notificationService.sendNotification({
+              to: session.user.email,
+              subject: emailTemplate.subject,
+              message: emailTemplate.message,
+              method: 'email',
+            })
+          : false;
+
+        const smsOk = sendSms
+          ? await notificationService.sendNotification({
+              to: userPhone as string,
+              message: smsTemplate.message,
+              method: 'sms',
+            })
+          : false;
+
+        // WhatsApp sending is disabled in NotificationService; keep flag false.
+        notificationResults.applicantNotification = Boolean(emailOk || smsOk);
 
         // Persist reference contacts into profile for auto-fill next time
         if (hasAnyReferenceContact) {
@@ -351,7 +371,7 @@ async function createApplication(req: NextRequest) {
       success: true,
       applicationId: result._id?.toString(),
       currentStage: application.currentStage,
-      message: "Tenancy application started successfully",
+      message: "Viewing request sent successfully",
       notificationResults,
     });
   } catch (error) {

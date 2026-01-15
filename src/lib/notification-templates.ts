@@ -10,8 +10,22 @@ export interface NotificationTemplate {
 export class NotificationTemplates {
   static applicationSubmitted(propertyTitle: string): NotificationTemplate {
     return {
-      subject: 'Tenancy Application Submitted',
-      message: `Your tenancy application for ${propertyTitle} has been submitted successfully. We'll keep you updated on the progress.`
+      subject: 'Viewing Request Sent',
+      message: `Your viewing request for ${propertyTitle} has been sent successfully. We'll keep you updated.`
+    };
+  }
+
+  static viewingRequestSentEmail(propertyLabel: string): NotificationTemplate {
+    return {
+      subject: 'Viewing Request Sent',
+      message: `Your viewing request for ${propertyLabel} has been sent successfully. We'll keep you updated.`
+    };
+  }
+
+  static viewingRequestSentSms(): NotificationTemplate {
+    return {
+      subject: 'Viewing Request Sent',
+      message: `Your viewing request has been sent successfully. We'll keep you updated.`
     };
   }
 
@@ -90,6 +104,47 @@ export class NotificationTemplates {
     return {
       subject: 'Maintenance Request Update',
       message: `Your maintenance request for ${propertyTitle} has been updated. Status: ${status}.`
+    };
+  }
+
+  static applicantConfirmedPropertyLandlordEmail(
+    applicantName: string,
+    propertyLabel: string,
+    manageLink: string
+  ): NotificationTemplate {
+    const name = applicantName?.trim() || 'An applicant';
+    return {
+      subject: 'Viewing update: applicant confirmed',
+      message:
+        `${name} confirmed they’re happy to proceed with ${propertyLabel}.\n\n` +
+        `View the application: ${manageLink}\n\n` +
+        `RentIT`,
+    };
+  }
+
+  static applicantDeclinedPropertyLandlordEmail(
+    applicantName: string,
+    propertyLabel: string,
+    manageLink: string
+  ): NotificationTemplate {
+    const name = applicantName?.trim() || 'An applicant';
+    return {
+      subject: 'Viewing update: applicant declined',
+      message:
+        `${name} declined to proceed with ${propertyLabel}.\n\n` +
+        `View the application: ${manageLink}\n\n` +
+        `RentIT`,
+    };
+  }
+
+  /**
+   * Privacy-safe SMS for landlord (no address details).
+   */
+  static applicantDecisionLandlordSms(decision: 'confirmed' | 'declined', manageLink: string): NotificationTemplate {
+    const decisionText = decision === 'confirmed' ? 'confirmed' : 'declined';
+    return {
+      subject: 'Viewing update',
+      message: `Viewing update: applicant ${decisionText}. Open: ${manageLink} - RentIT`,
     };
   }
 }

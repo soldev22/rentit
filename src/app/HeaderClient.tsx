@@ -69,7 +69,7 @@ export default function HeaderClient() {
             <button
               onClick={() =>
                 signIn(undefined, {
-                  callbackUrl: "/dashboard",
+                  callbackUrl: "/",
                 })
               }
               className="rounded-md bg-white/10 px-3 py-1.5 text-sm font-semibold hover:bg-white/20"
@@ -150,7 +150,7 @@ export default function HeaderClient() {
             <div className="pt-2 border-t border-blue-700"></div>
             {status === 'unauthenticated' && pathname !== '/login' && (
               <button
-                onClick={() => signIn(undefined, { callbackUrl: '/dashboard' })}
+                onClick={() => signIn(undefined, { callbackUrl: '/' })}
                 className="rounded-md bg-white/10 px-3 py-1.5 text-sm font-semibold hover:bg-white/20"
               >
                 Sign in

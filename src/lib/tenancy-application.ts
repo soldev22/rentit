@@ -34,6 +34,45 @@ export interface TenancyApplication {
       time?: string;
       note?: string;
     };
+
+    /**
+     * Stage 1 viewing checklist + landlord notes, completed on-site and sent to the applicant
+     * for confirmation (magic-link token).
+     */
+    viewingSummary?: {
+      notes?: string;
+      checklist?: Array<{
+        key: string;
+        label: string;
+        checked: boolean;
+        comment?: string;
+      }>;
+
+      /** Optional photos captured during/after the viewing (landlord uploaded). */
+      photos?: Array<{
+        url: string;
+        uploadedAt: string;
+        uploadedBy?: ObjectId;
+        fileName?: string;
+        mimeType?: string;
+        sizeBytes?: number;
+      }>;
+
+      savedAt?: string;
+      completedAt?: string;
+      completedBy?: ObjectId;
+
+      sentToApplicantAt?: string;
+      confirmationTokenHash?: string;
+      confirmationTokenExpiresAt?: string;
+      confirmationTokenUsedAt?: string;
+
+      applicantResponse?: {
+        status: 'confirmed' | 'declined';
+        respondedAt: string;
+        comment?: string;
+      };
+    };
   };
 
   // Stage 2: Background Checks Agreement

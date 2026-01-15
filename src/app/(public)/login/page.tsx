@@ -29,6 +29,10 @@ function LoginForm() {
 
   const params = useSearchParams();
 
+  const callbackUrlParam = params.get("callbackUrl");
+  const callbackUrl =
+    callbackUrlParam && callbackUrlParam.startsWith("/") ? callbackUrlParam : "/";
+
   // ✅ FIXED: single, correct submit handler
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -38,7 +42,7 @@ function LoginForm() {
     const res = await signIn("credentials", {
       email,
       password,
-      callbackUrl: "/dashboard",
+      callbackUrl,
       redirect: true, // let NextAuth handle navigation
     });
 
@@ -57,7 +61,7 @@ function LoginForm() {
 
     const res = await signIn("email", {
       email: magicEmail,
-      callbackUrl: "/dashboard",
+      callbackUrl,
       redirect: false,
     });
 

@@ -12,6 +12,7 @@ export default function RegisterPage() {
   const [city, setCity] = useState("");
   const [postcode, setPostcode] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -22,14 +23,36 @@ export default function RegisterPage() {
     setLoading(true);
     setError("");
 
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+    const trimmedTel = tel.trim();
+
+    if (!trimmedName || !trimmedEmail || !trimmedTel || !password) {
+      setLoading(false);
+      setError("Please complete all required fields.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setLoading(false);
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setLoading(false);
+      setError("Passwords do not match.");
+      return;
+    }
+
     const res = await fetch("/api/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name,
-        email,
+        name: trimmedName,
+        email: trimmedEmail,
         password,
-        phone: tel,
+        phone: trimmedTel,
         addressLine1,
         addressLine2,
         city,
@@ -46,7 +69,7 @@ export default function RegisterPage() {
     }
 
     // Redirect to login with success flag
-    router.push("/login?registered=1");
+    router.push("/login?registered=1&callbackUrl=%2F");
   }
 
   return (
@@ -57,10 +80,23 @@ export default function RegisterPage() {
       >
         <h1 className="text-2xl font-bold mb-4">Register</h1>
 
-        {error && <div className="mb-3 text-red-600">{error}</div>}
+        <p className="mb-3 text-sm text-gray-600">
+          Fields marked with <span className="text-red-600">*</span> are required.
+        </p>
+
+        {error && (
+          <div className="mb-3 text-red-600" role="alert" aria-live="polite">
+            {error}
+          </div>
+        )}
 
         <label className="block mb-3">
-          Name
+          <span>
+            Name
+            <span className="ml-1 text-red-600" aria-hidden="true">
+              *
+            </span>
+          </span>
           <input
             type="text"
             className="mt-1 w-full p-2 border rounded"
@@ -71,7 +107,12 @@ export default function RegisterPage() {
         </label>
 
         <label className="block mb-3">
-          Email
+          <span>
+            Email
+            <span className="ml-1 text-red-600" aria-hidden="true">
+              *
+            </span>
+          </span>
           <input
             type="email"
             className="mt-1 w-full p-2 border rounded"
@@ -82,7 +123,12 @@ export default function RegisterPage() {
         </label>
 
         <label className="block mb-3">
-          Telephone
+          <span>
+            Telephone
+            <span className="ml-1 text-red-600" aria-hidden="true">
+              *
+            </span>
+          </span>
           <input
             type="tel"
             className="mt-1 w-full p-2 border rounded"
@@ -136,12 +182,34 @@ export default function RegisterPage() {
 
 
         <label className="block mb-4">
-          Password
+          <span>
+            Password (min 6 characters)
+            <span className="ml-1 text-red-600" aria-hidden="true">
+              *
+            </span>
+          </span>
           <input
             type="password"
             className="mt-1 w-full p-2 border rounded"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            required
+            minLength={6}
+          />
+        </label>
+
+        <label className="block mb-4">
+          <span>
+            Confirm password
+            <span className="ml-1 text-red-600" aria-hidden="true">
+              *
+            </span>
+          </span>
+          <input
+            type="password"
+            className="mt-1 w-full p-2 border rounded"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
             required
             minLength={6}
           />
@@ -156,6 +224,12 @@ export default function RegisterPage() {
         >
           {loading ? "Registering…" : "Register"}
         </button>
+
+        {error && (
+          <div className="mt-2 text-sm text-red-600" role="alert" aria-live="polite">
+            {error}
+          </div>
+        )}
 
         <div className="mt-4 text-center">
           <a

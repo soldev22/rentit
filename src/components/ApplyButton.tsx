@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import TenancyApplicationWorkflow from './TenancyApplicationWorkflow';
 
 export default function ApplyButton({
@@ -13,6 +14,7 @@ export default function ApplyButton({
   propertyTitle?: string;
   isApplied?: boolean;
 }) {
+  const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [showApplicationWorkflow, setShowApplicationWorkflow] = useState(() => {
@@ -92,8 +94,8 @@ export default function ApplyButton({
         }
       >
         {isAuthenticated
-          ? (isApplied ? 'Already applied' : 'Apply for this property')
-          : 'Sign in or register to apply'}
+          ? (isApplied ? 'Already applied' : 'Arrange a viewing')
+          : 'Sign in or register to arrange a viewing'}
       </button>
       {message && <div className="mt-2 text-sm text-gray-700">{message}</div>}
 
@@ -108,6 +110,10 @@ export default function ApplyButton({
                 setMessage(
                   "Thank you. The landlord will get back to you to confirm the viewing."
                 );
+
+                // Refresh the page the user started from (e.g. property detail/list)
+                // so server-rendered application status updates immediately.
+                router.refresh();
               }}
               onCancel={() => setShowApplicationWorkflow(false)}
             />

@@ -24,31 +24,22 @@ export default function TenancyApplicationWorkflow({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Stage 2: Background Checks
-  const [creditCheckConsent, setCreditCheckConsent] = useState(false);
-  const [socialMediaConsent, setSocialMediaConsent] = useState(false);
-  const [landlordReferenceConsent, setLandlordReferenceConsent] = useState(false);
-  const [employerReferenceConsent, setEmployerReferenceConsent] = useState(false);
+  type ContactPreferences = {
+    email: boolean;
+    sms: boolean;
+    whatsapp: boolean;
+  };
+
+  const [contactPreferences, setContactPreferences] = useState<ContactPreferences>({
+    email: true,
+    sms: false,
+    whatsapp: false,
+  });
 
   // Applicant details
   const [applicantName, setApplicantName] = useState(session?.user?.name || '');
   const [applicantEmail, setApplicantEmail] = useState(session?.user?.email || '');
   const [applicantTel, setApplicantTel] = useState('');
-  const [applicantAddress, setApplicantAddress] = useState({
-    line1: '',
-    line2: '',
-    city: '',
-    postcode: ''
-  });
-
-  // Reference contacts (prefilled from profile where possible)
-  const [employerName, setEmployerName] = useState('');
-  const [employerEmail, setEmployerEmail] = useState('');
-  const [previousEmployerName, setPreviousEmployerName] = useState('');
-  const [previousEmployerEmail, setPreviousEmployerEmail] = useState('');
-  const [prevLandlordName, setPrevLandlordName] = useState('');
-  const [prevLandlordContact, setPrevLandlordContact] = useState('');
-  const [prevLandlordEmail, setPrevLandlordEmail] = useState('');
 
   useEffect(() => {
     if (!session?.user?.email) return;
@@ -62,27 +53,16 @@ export default function TenancyApplicationWorkflow({
         if (cancelled) return;
 
         const phone = data.profile?.phone;
-        const address = data.profile?.address;
-        const bg = data.profile?.backgroundCheck;
+        const prefs = data.profile?.contactPreferences;
+        // NOTE: Reference contact fields are collected later in the process.
 
         if (typeof phone === 'string' && !applicantTel) setApplicantTel(phone);
-        if (address && !applicantAddress.line1) {
-          setApplicantAddress({
-            line1: address?.line1 ?? '',
-            line2: address?.line2 ?? '',
-            city: address?.city ?? '',
-            postcode: address?.postcode ?? '',
-          });
-        }
-
-        if (bg) {
-          if (typeof bg.employerName === 'string' && !employerName) setEmployerName(bg.employerName);
-          if (typeof bg.employerEmail === 'string' && !employerEmail) setEmployerEmail(bg.employerEmail);
-          if (typeof bg.previousEmployerName === 'string' && !previousEmployerName) setPreviousEmployerName(bg.previousEmployerName);
-          if (typeof bg.previousEmployerEmail === 'string' && !previousEmployerEmail) setPreviousEmployerEmail(bg.previousEmployerEmail);
-          if (typeof bg.prevLandlordName === 'string' && !prevLandlordName) setPrevLandlordName(bg.prevLandlordName);
-          if (typeof bg.prevLandlordContact === 'string' && !prevLandlordContact) setPrevLandlordContact(bg.prevLandlordContact);
-          if (typeof bg.prevLandlordEmail === 'string' && !prevLandlordEmail) setPrevLandlordEmail(bg.prevLandlordEmail);
+        if (prefs && typeof prefs === 'object') {
+          setContactPreferences((prev) => ({
+            email: typeof prefs.email === 'boolean' ? prefs.email : prev.email,
+            sms: typeof prefs.sms === 'boolean' ? prefs.sms : prev.sms,
+            whatsapp: typeof prefs.whatsapp === 'boolean' ? prefs.whatsapp : prev.whatsapp,
+          }));
         }
       } catch {
         // ignore prefill errors
@@ -96,14 +76,6 @@ export default function TenancyApplicationWorkflow({
   }, [
     session?.user?.email,
     applicantTel,
-    applicantAddress.line1,
-    employerName,
-    employerEmail,
-    previousEmployerName,
-    previousEmployerEmail,
-    prevLandlordName,
-    prevLandlordContact,
-    prevLandlordEmail,
   ]);
 
   // Block unauthenticated users from starting the workflow
@@ -119,7 +91,7 @@ export default function TenancyApplicationWorkflow({
     return (
       <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg text-center">
         <h2 className="text-2xl font-bold mb-4">Sign in required</h2>
-        <p className="text-gray-600 mb-4">You must be signed in to start a tenancy application.</p>
+        <p className="text-gray-600 mb-4">You must be signed in to arrange a viewing.</p>
         <button
           onClick={() => window.location.href = "/api/auth/signin"}
           className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
@@ -135,9 +107,9 @@ export default function TenancyApplicationWorkflow({
       setError('Please fill in your name, email, and phone number');
       return;
     }
-    // Require all Stage 2 consents
-    if (!creditCheckConsent || !socialMediaConsent || !landlordReferenceConsent || !employerReferenceConsent) {
-      setError('You must grant permission for all background checks in Stage 2 to continue.');
+
+    if (!contactPreferences.email && !contactPreferences.sms && !contactPreferences.whatsapp) {
+      setError('Please choose at least one contact method (email, SMS, or WhatsApp).');
       return;
     }
 
@@ -153,22 +125,7 @@ export default function TenancyApplicationWorkflow({
           applicantName,
           applicantEmail,
           applicantTel,
-          applicantAddress: applicantAddress.line1 ? applicantAddress : undefined,
-          referenceContacts: {
-            employerName: employerName || undefined,
-            employerEmail: employerEmail || undefined,
-            previousEmployerName: previousEmployerName || undefined,
-            previousEmployerEmail: previousEmployerEmail || undefined,
-            prevLandlordName: prevLandlordName || undefined,
-            prevLandlordContact: prevLandlordContact || undefined,
-            prevLandlordEmail: prevLandlordEmail || undefined,
-          },
-          backgroundCheckConsents: {
-            creditCheck: creditCheckConsent,
-            socialMedia: socialMediaConsent,
-            landlordReference: landlordReferenceConsent,
-            employerReference: employerReferenceConsent
-          }
+          contactPreferences,
         })
       });
 
@@ -190,183 +147,6 @@ export default function TenancyApplicationWorkflow({
       setLoading(false);
     }
   };
-
-  const renderStage2 = () => (
-    <div className="space-y-6">
-      <div className="text-center">
-        <h3 className="text-xl font-semibold mb-2">Stage 2: Background Checks</h3>
-        <p className="text-gray-600">Please consent to the following background checks</p>
-      </div>
-
-      <div className="space-y-4">
-        <div className="border rounded-lg p-4">
-          <label className="flex items-start space-x-3">
-            <input
-              type="checkbox"
-              checked={creditCheckConsent}
-              onChange={(e) => setCreditCheckConsent(e.target.checked)}
-              className="mt-1"
-            />
-            <div>
-              <div className="font-medium">Credit Check Consent</div>
-              <div className="text-sm text-gray-600">
-                I consent to a credit check being performed on my financial history
-              </div>
-            </div>
-          </label>
-        </div>
-
-        <div className="border rounded-lg p-4">
-          <label className="flex items-start space-x-3">
-            <input
-              type="checkbox"
-              checked={socialMediaConsent}
-              onChange={(e) => setSocialMediaConsent(e.target.checked)}
-              className="mt-1"
-            />
-            <div>
-              <div className="font-medium">Social Media Check Consent</div>
-              <div className="text-sm text-gray-600">
-                I consent to social media background checks
-              </div>
-            </div>
-          </label>
-        </div>
-
-        <div className="border rounded-lg p-4">
-          <label className="flex items-start space-x-3">
-            <input
-              type="checkbox"
-              checked={landlordReferenceConsent}
-              onChange={(e) => setLandlordReferenceConsent(e.target.checked)}
-              className="mt-1"
-            />
-            <div>
-              <div className="font-medium">Previous Landlord Reference</div>
-              <div className="text-sm text-gray-600">
-                I consent to contacting my previous landlord(s) for reference
-              </div>
-            </div>
-          </label>
-        </div>
-
-        <div className="border rounded-lg p-4">
-          <label className="flex items-start space-x-3">
-            <input
-              type="checkbox"
-              checked={employerReferenceConsent}
-              onChange={(e) => setEmployerReferenceConsent(e.target.checked)}
-              className="mt-1"
-            />
-            <div>
-              <div className="font-medium">Employer Reference</div>
-              <div className="text-sm text-gray-600">
-                I consent to contacting my employer for reference
-              </div>
-            </div>
-          </label>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderReferenceContacts = () => (
-    <div className="space-y-2">
-      <h3 className="text-lg font-medium">Employer & landlord references</h3>
-      <p className="text-sm text-gray-600">
-        Add these now so your application is ready. We also save them to your profile for next time.
-      </p>
-
-      <div className="border rounded-lg p-4">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div>
-            <label className="block text-sm font-medium mb-1" htmlFor="ref-employer-name">Employer name</label>
-            <input
-              id="ref-employer-name"
-              type="text"
-              value={employerName}
-              onChange={(e) => setEmployerName(e.target.value)}
-              className="w-full p-2 border rounded-md"
-              placeholder="Optional"
-              title="Employer name"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" htmlFor="ref-employer-email">Employer email</label>
-            <input
-              id="ref-employer-email"
-              type="email"
-              value={employerEmail}
-              onChange={(e) => setEmployerEmail(e.target.value)}
-              className="w-full p-2 border rounded-md"
-              placeholder="name@company.com"
-              title="Employer email"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" htmlFor="ref-prev-employer-name">Previous employer name</label>
-            <input
-              id="ref-prev-employer-name"
-              type="text"
-              value={previousEmployerName}
-              onChange={(e) => setPreviousEmployerName(e.target.value)}
-              className="w-full p-2 border rounded-md"
-              placeholder="Optional"
-              title="Previous employer name"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" htmlFor="ref-prev-employer-email">Previous employer email</label>
-            <input
-              id="ref-prev-employer-email"
-              type="email"
-              value={previousEmployerEmail}
-              onChange={(e) => setPreviousEmployerEmail(e.target.value)}
-              className="w-full p-2 border rounded-md"
-              placeholder="Optional"
-              title="Previous employer email"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" htmlFor="ref-prev-landlord-name">Previous landlord name</label>
-            <input
-              id="ref-prev-landlord-name"
-              type="text"
-              value={prevLandlordName}
-              onChange={(e) => setPrevLandlordName(e.target.value)}
-              className="w-full p-2 border rounded-md"
-              placeholder="Optional"
-              title="Previous landlord name"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" htmlFor="ref-prev-landlord-contact">Previous landlord contact</label>
-            <input
-              id="ref-prev-landlord-contact"
-              type="text"
-              value={prevLandlordContact}
-              onChange={(e) => setPrevLandlordContact(e.target.value)}
-              className="w-full p-2 border rounded-md"
-              placeholder="Phone or email (optional)"
-              title="Previous landlord contact"
-            />
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium mb-1" htmlFor="ref-prev-landlord-email">Previous landlord email</label>
-            <input
-              id="ref-prev-landlord-email"
-              type="email"
-              value={prevLandlordEmail}
-              onChange={(e) => setPrevLandlordEmail(e.target.value)}
-              className="w-full p-2 border rounded-md"
-              placeholder="Optional"
-              title="Previous landlord email"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 
   const renderProgressIndicator = () => {
     if (!application) return null;
@@ -410,11 +190,10 @@ export default function TenancyApplicationWorkflow({
   if (application) {
     return (
       <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg">
-        {renderProgressIndicator()}
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900">Thank you</h2>
           <p className="mt-3 text-gray-700">
-            The landlord will get back to you to confirm the viewing.
+            Your viewing request has been sent. The landlord will get back to you to confirm the viewing.
           </p>
           <p className="mt-2 text-sm text-gray-500">
             Property: {propertyTitle}
@@ -441,7 +220,7 @@ export default function TenancyApplicationWorkflow({
     <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg">
       {/* {renderApplicantBackgroundInfo()} */}
       <div className="mb-6">
-        <h2 className="text-2xl font-bold">Start Tenancy Application</h2>
+        <h2 className="text-2xl font-bold">Arrange a viewing</h2>
         <p className="text-gray-600">Property: {propertyTitle}</p>
       </div>
 
@@ -483,55 +262,71 @@ export default function TenancyApplicationWorkflow({
           </div>
         </div>
 
-        {/* Address */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Current Address</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium mb-2">Address Line 1</label>
-              <input
-                type="text"
-                value={applicantAddress.line1}
-                onChange={(e) => setApplicantAddress({...applicantAddress, line1: e.target.value})}
-                className="w-full p-2 border rounded-md"
-                placeholder="Enter address line 1"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium mb-2">Address Line 2</label>
-              <input
-                type="text"
-                value={applicantAddress.line2}
-                onChange={(e) => setApplicantAddress({...applicantAddress, line2: e.target.value})}
-                className="w-full p-2 border rounded-md"
-                placeholder="Enter address line 2"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">City</label>
-              <input
-                type="text"
-                value={applicantAddress.city}
-                onChange={(e) => setApplicantAddress({...applicantAddress, city: e.target.value})}
-                className="w-full p-2 border rounded-md"
-                placeholder="Enter city"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Postcode</label>
-              <input
-                type="text"
-                value={applicantAddress.postcode}
-                onChange={(e) => setApplicantAddress({...applicantAddress, postcode: e.target.value})}
-                className="w-full p-2 border rounded-md"
-                placeholder="Enter postcode"
-              />
-            </div>
-          </div>
-        </div>
+        {/* Contact preferences */}
+        <div className="space-y-3">
+          <h3 className="text-lg font-medium">Contact preferences</h3>
+          <p className="text-sm text-gray-600">Choose how you’d like to receive viewing updates.</p>
 
-        {renderReferenceContacts()}
-        {renderStage2()}
+          <label className="flex items-start gap-3 rounded-lg border p-3">
+            <input
+              type="checkbox"
+              checked={contactPreferences.email}
+              onChange={(e) =>
+                setContactPreferences((prev) => ({
+                  ...prev,
+                  email: e.target.checked,
+                }))
+              }
+              className="mt-1"
+            />
+            <div>
+              <div className="font-medium">Email</div>
+              <div className="text-sm text-gray-600">Receive viewing updates via email.</div>
+            </div>
+          </label>
+
+          <label className="flex items-start gap-3 rounded-lg border p-3">
+            <input
+              type="checkbox"
+              checked={contactPreferences.sms}
+              onChange={(e) =>
+                setContactPreferences((prev) => ({
+                  ...prev,
+                  sms: e.target.checked,
+                }))
+              }
+              disabled={!applicantTel}
+              className="mt-1 disabled:opacity-50"
+            />
+            <div>
+              <div className="font-medium">SMS</div>
+              <div className="text-sm text-gray-600">
+                Receive viewing updates by text {!applicantTel ? '(requires phone number)' : ''}.
+              </div>
+            </div>
+          </label>
+
+          <label className="flex items-start gap-3 rounded-lg border p-3">
+            <input
+              type="checkbox"
+              checked={contactPreferences.whatsapp}
+              onChange={(e) =>
+                setContactPreferences((prev) => ({
+                  ...prev,
+                  whatsapp: e.target.checked,
+                }))
+              }
+              disabled={!applicantTel}
+              className="mt-1 disabled:opacity-50"
+            />
+            <div>
+              <div className="font-medium">WhatsApp</div>
+              <div className="text-sm text-gray-600">
+                Receive viewing updates via WhatsApp {!applicantTel ? '(requires phone number)' : ''}.
+              </div>
+            </div>
+          </label>
+        </div>
 
         {error && (
           <div className="p-4 bg-red-50 border border-red-200 rounded-md">
@@ -550,12 +345,12 @@ export default function TenancyApplicationWorkflow({
             onClick={handleStartApplication}
             disabled={loading}
             className="px-8 py-3 bg-gradient-to-r from-green-500 to-blue-600 text-white font-bold text-lg rounded-lg shadow-lg hover:from-green-600 hover:to-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-all duration-200 disabled:opacity-50 border-2 border-blue-700"
-            aria-label="Start Application Stage 2"
+            aria-label="Send viewing request"
           >
             {loading ? (
-              <span className="flex items-center"><svg className="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>Starting Application...</span>
+              <span className="flex items-center"><svg className="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>Sending...</span>
             ) : (
-              <span>Send Application Form</span>
+              <span>Send viewing request</span>
             )}
           </button>
         </div>
