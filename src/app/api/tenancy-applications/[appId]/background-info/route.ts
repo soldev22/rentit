@@ -1,10 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTenancyApplicationById, updateTenancyApplication } from "@/lib/tenancy-application";
 import { ObjectId } from "mongodb";
-import { promises as fs } from "fs";
-import path from "path";
+import { BlobServiceClient } from "@azure/storage-blob";
+import crypto from "crypto";
 
 export const runtime = "nodejs"; // Required for file upload
+
+function sanitizeFilename(name: string) {
+  return name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+}
+
+function getAzureContainerClient() {
+  const conn = process.env.AZURE_STORAGE_CONNECTION_STRING;
+  const containerName =
+    process.env.AZURE_STORAGE_CONTAINER_NAME || process.env.AZURE_STORAGE_CONTAINER;
+  if (!conn || !containerName) return null;
+  const blobServiceClient = BlobServiceClient.fromConnectionString(conn);
+  return blobServiceClient.getContainerClient(containerName);
+}
 
 export async function POST(req: NextRequest, context: { params: Promise<{ appId: string }> }) {
   const { appId } = await context.params;
@@ -60,7 +73,30 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
   const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
   const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "application/pdf"];
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.BASE_URL || "http://localhost:3000";
+  const origin = (() => {
+    try {
+      return new URL(req.url).origin;
+    } catch {
+      return null;
+    }
+  })();
+  const baseUrl =
+    origin ||
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    process.env.NEXTAUTH_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+
+  const containerClient = getAzureContainerClient();
+  if (!containerClient) {
+    const errorMsg = encodeURIComponent(
+      "Uploads require Azure Blob Storage. Set AZURE_STORAGE_CONNECTION_STRING and AZURE_STORAGE_CONTAINER_NAME (or AZURE_STORAGE_CONTAINER)."
+    );
+    return NextResponse.redirect(
+      `${baseUrl}/application/complete/${appId}?token=${encodeURIComponent(token ?? "")}&party=${encodeURIComponent(party)}&error=${errorMsg}`,
+      303
+    );
+  }
+  await containerClient.createIfNotExists();
   if (!employmentStatus || !monthlyIncome || !creditConsent || !photoIdFrontFile || typeof photoIdFrontFile === "string") {
     const errorMsg = encodeURIComponent("Missing required fields");
     return NextResponse.redirect(`${baseUrl}/application/complete/${appId}?token=${encodeURIComponent(token ?? "")}&party=${encodeURIComponent(party)}&error=${errorMsg}`, 303);
@@ -91,23 +127,25 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
     }
   }
 
-  // Save uploaded files to /public/uploads (or another secure location)
-  const uploadsDir = path.join(process.cwd(), "public", "uploads");
-  await fs.mkdir(uploadsDir, { recursive: true });
-  // Save front
-  const fileExtFront = fileFront.name.split(".").pop();
-  const fileNameFront = `photoid_front_${appId}_${Date.now()}.${fileExtFront}`;
-  const filePathFront = path.join(uploadsDir, fileNameFront);
-  const arrayBufferFront = await fileFront.arrayBuffer();
-  await fs.writeFile(filePathFront, Buffer.from(arrayBufferFront));
-  // Save back if present
-  let fileNameBack: string | null = null;
+  const uploadedAt = new Date().toISOString();
+
+  const frontSafe = sanitizeFilename(fileFront.name || "photo-id-front");
+  const frontBlobName = `tenancy-applications/${appId}/background-info/${party}/photo-id-front/${crypto.randomUUID()}-${frontSafe}`;
+  const frontBlob = containerClient.getBlockBlobClient(frontBlobName);
+  await frontBlob.uploadData(Buffer.from(await fileFront.arrayBuffer()), {
+    blobHTTPHeaders: { blobContentType: fileFront.type || "application/octet-stream" },
+  });
+
+  let backUrl: string | undefined;
+  let backBlobName: string | undefined;
   if (fileBack) {
-    const fileExtBack = fileBack.name.split(".").pop();
-    fileNameBack = `photoid_back_${appId}_${Date.now()}.${fileExtBack}`;
-    const filePathBack = path.join(uploadsDir, fileNameBack);
-    const arrayBufferBack = await fileBack.arrayBuffer();
-    await fs.writeFile(filePathBack, Buffer.from(arrayBufferBack));
+    const backSafe = sanitizeFilename(fileBack.name || "photo-id-back");
+    backBlobName = `tenancy-applications/${appId}/background-info/${party}/photo-id-back/${crypto.randomUUID()}-${backSafe}`;
+    const backBlob = containerClient.getBlockBlobClient(backBlobName);
+    await backBlob.uploadData(Buffer.from(await fileBack.arrayBuffer()), {
+      blobHTTPHeaders: { blobContentType: fileBack.type || "application/octet-stream" },
+    });
+    backUrl = backBlob.url;
   }
 
   const submittedAt = new Date().toISOString();
@@ -125,8 +163,11 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
     prevLandlordContact,
     prevLandlordEmail: prevLandlordEmail || undefined,
     creditConsent,
-    photoIdFrontFile: `/uploads/${fileNameFront}`,
-    photoIdBackFile: fileNameBack ? `/uploads/${fileNameBack}` : undefined,
+    photoIdFrontFile: frontBlob.url,
+    photoIdFrontBlobName: frontBlobName,
+    photoIdBackFile: backUrl,
+    photoIdBackBlobName: backBlobName,
+    uploadedAt,
     submittedAt,
   };
 

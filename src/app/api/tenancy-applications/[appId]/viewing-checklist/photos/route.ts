@@ -3,8 +3,6 @@ import { NextResponse, type NextRequest } from "next/server";
 import { ObjectId } from "mongodb";
 import { BlobServiceClient } from "@azure/storage-blob";
 import crypto from "crypto";
-import path from "path";
-import { promises as fs } from "fs";
 
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getTenancyApplicationById, updateTenancyApplication } from "@/lib/tenancy-application";
@@ -81,25 +79,17 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
   }
 
   const containerClient = getAzureContainerClient();
-  if (containerClient) {
-    await containerClient.createIfNotExists();
-  }
-
-  if (!containerClient && process.env.VERCEL) {
+  if (!containerClient) {
     return NextResponse.json(
       {
         error:
-          "Photo uploads require Azure Blob Storage in production. Set AZURE_STORAGE_CONNECTION_STRING and AZURE_STORAGE_CONTAINER_NAME (or AZURE_STORAGE_CONTAINER).",
+          "Photo uploads require Azure Blob Storage. Set AZURE_STORAGE_CONNECTION_STRING and AZURE_STORAGE_CONTAINER_NAME (or AZURE_STORAGE_CONTAINER).",
       },
       { status: 500 }
     );
   }
 
-  const uploadsDir = path.join(process.cwd(), "public", "uploads", "viewing-checklist");
-  if (!containerClient) {
-    // Local/dev fallback only. Vercel/serverless filesystems are not durable.
-    await fs.mkdir(uploadsDir, { recursive: true });
-  }
+  await containerClient.createIfNotExists();
 
   const nowIso = new Date().toISOString();
   const landlordObjectId = ObjectId.isValid(session.user.id) ? new ObjectId(session.user.id) : undefined;
@@ -140,39 +130,24 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
     const safe = sanitizeFilename(file.name || `photo-${idx + 1}.${safeExt}`);
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    if (containerClient) {
-      const blobName = `viewing-checklists/${appId}/${crypto.randomUUID()}-${safe}`;
-      const blockBlob = containerClient.getBlockBlobClient(blobName);
+    const blobName = `viewing-checklists/${appId}/${crypto.randomUUID()}-${safe}`;
+    const blockBlob = containerClient.getBlockBlobClient(blobName);
 
-      await blockBlob.uploadData(buffer, {
-        blobHTTPHeaders: {
-          blobContentType: file.type || "application/octet-stream",
-        },
-      });
+    await blockBlob.uploadData(buffer, {
+      blobHTTPHeaders: {
+        blobContentType: file.type || "application/octet-stream",
+      },
+    });
 
-      uploaded.push({
-        url: blockBlob.url,
-        blobName,
-        uploadedAt: nowIso,
-        uploadedBy: landlordObjectId,
-        fileName: safe,
-        mimeType: file.type,
-        sizeBytes: file.size,
-      });
-    } else {
-      const fileName = `viewing_${appId}_${Date.now()}_${idx}_${safe}`;
-      const filePath = path.join(uploadsDir, fileName);
-      await fs.writeFile(filePath, buffer);
-
-      uploaded.push({
-        url: `/uploads/viewing-checklist/${fileName}`,
-        uploadedAt: nowIso,
-        uploadedBy: landlordObjectId,
-        fileName: safe,
-        mimeType: file.type,
-        sizeBytes: file.size,
-      });
-    }
+    uploaded.push({
+      url: blockBlob.url,
+      blobName,
+      uploadedAt: nowIso,
+      uploadedBy: landlordObjectId,
+      fileName: safe,
+      mimeType: file.type,
+      sizeBytes: file.size,
+    });
   }
 
   const existing = application.stage1.viewingSummary?.photos ?? [];
