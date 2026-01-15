@@ -16,7 +16,15 @@ export async function POST(req: Request) {
   const client = await clientPromise;
   const db = client.db();
 
-  const user = await db.collection("users").findOne({ email });
+  const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const normalizedEmail = String(email).trim().toLowerCase();
+  if (!normalizedEmail) {
+    return NextResponse.json({ ok: true });
+  }
+
+  const user = await db
+    .collection("users")
+    .findOne({ email: new RegExp(`^${escapeRegex(normalizedEmail)}$`, "i") });
   if (!user) {
     return NextResponse.json({ ok: true });
   }
@@ -45,7 +53,20 @@ export async function POST(req: Request) {
     description: "Password reset requested",
   });
 
-  await sendPasswordResetEmail({ to: user.email, token: rawToken });
+  const origin = (() => {
+    try {
+      return new URL(req.url).origin;
+    } catch {
+      return null;
+    }
+  })();
+  const baseUrl =
+    origin ||
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    process.env.NEXTAUTH_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+
+  await sendPasswordResetEmail({ to: user.email, token: rawToken, baseUrl });
 
   return NextResponse.json({ ok: true });
 }

@@ -20,6 +20,7 @@ type ViewingSummary = {
   checklist?: ViewingChecklistItem[];
   photos?: Array<{
     url: string;
+    blobName?: string;
     uploadedAt: string;
     fileName?: string;
     mimeType?: string;

@@ -20,21 +20,13 @@ function MagicLinkCallbackInner() {
       }
 
       try {
-        const res = await fetch("/api/auth/magic-link/consume", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token })
+        const result = await signIn("credentials", {
+          token,
+          magic: "true",
+          redirect: false,
         });
 
-        if (!res.ok) throw new Error("Invalid or expired link");
-        const data = await res.json();
-
-        // Now sign in with NextAuth credentials provider, magic mode
-        await signIn("credentials", {
-          email: data.email,
-          magic: true,
-          redirect: false
-        });
+        if (!result || result.error) throw new Error("Invalid or expired link");
         router.replace("/");
       } catch {
         setStatus("Invalid or expired magic link.");

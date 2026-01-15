@@ -6,17 +6,21 @@ export async function sendPasswordResetEmail({
   token,
   subject,
   html,
+  baseUrl,
 }: {
   to: string;
   token: string;
   subject?: string;
   html?: string;
+  baseUrl?: string;
 }) {
   const resend = new Resend(process.env.RESEND_API_KEY);
   let emailSubject = subject;
   let emailHtml = html;
   if (!subject || !html) {
-    const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/password-reset/confirm?token=${token}`;
+    const resolvedBaseUrl =
+      baseUrl || process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    const resetUrl = `${resolvedBaseUrl}/password-reset/confirm?token=${token}`;
     emailSubject = 'Reset your Rentsimple password';
     emailHtml = `
       <p>Hello,</p>

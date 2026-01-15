@@ -13,8 +13,11 @@ async function getProfile() {
 
   const users = await getCollection("users");
 
+  const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const normalizedEmail = String(session.user.email).trim().toLowerCase();
+
   const user = await users.findOne(
-    { email: session.user.email },
+    { email: new RegExp(`^${escapeRegex(normalizedEmail)}$`, "i") },
     {
       projection: {
         name: 1,

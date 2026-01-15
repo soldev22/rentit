@@ -1,6 +1,8 @@
 import { getServerSession } from "next-auth";
 import { NextResponse, type NextRequest } from "next/server";
 import { ObjectId } from "mongodb";
+import { BlobServiceClient } from "@azure/storage-blob";
+import crypto from "crypto";
 import path from "path";
 import { promises as fs } from "fs";
 
@@ -25,6 +27,17 @@ const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "heic", "heif"] as con
 function getExtension(fileName: string | undefined) {
   const ext = (fileName?.split(".").pop() || "").toLowerCase();
   return ext;
+}
+
+function getAzureContainerClient() {
+  const conn = process.env.AZURE_STORAGE_CONNECTION_STRING;
+  const containerName =
+    process.env.AZURE_STORAGE_CONTAINER_NAME || process.env.AZURE_STORAGE_CONTAINER;
+
+  if (!conn || !containerName) return null;
+
+  const blobServiceClient = BlobServiceClient.fromConnectionString(conn);
+  return blobServiceClient.getContainerClient(containerName);
 }
 
 function sanitizeFilename(name: string) {
@@ -67,14 +80,33 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
     return NextResponse.json({ error: `Too many files (max ${MAX_FILES})` }, { status: 400 });
   }
 
+  const containerClient = getAzureContainerClient();
+  if (containerClient) {
+    await containerClient.createIfNotExists();
+  }
+
+  if (!containerClient && process.env.VERCEL) {
+    return NextResponse.json(
+      {
+        error:
+          "Photo uploads require Azure Blob Storage in production. Set AZURE_STORAGE_CONNECTION_STRING and AZURE_STORAGE_CONTAINER_NAME (or AZURE_STORAGE_CONTAINER).",
+      },
+      { status: 500 }
+    );
+  }
+
   const uploadsDir = path.join(process.cwd(), "public", "uploads", "viewing-checklist");
-  await fs.mkdir(uploadsDir, { recursive: true });
+  if (!containerClient) {
+    // Local/dev fallback only. Vercel/serverless filesystems are not durable.
+    await fs.mkdir(uploadsDir, { recursive: true });
+  }
 
   const nowIso = new Date().toISOString();
   const landlordObjectId = ObjectId.isValid(session.user.id) ? new ObjectId(session.user.id) : undefined;
 
   const uploaded: Array<{
     url: string;
+    blobName?: string;
     uploadedAt: string;
     uploadedBy?: ObjectId;
     fileName?: string;
@@ -106,20 +138,41 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
 
     const safeExt = ext || "jpg";
     const safe = sanitizeFilename(file.name || `photo-${idx + 1}.${safeExt}`);
-    const fileName = `viewing_${appId}_${Date.now()}_${idx}_${safe}`;
-    const filePath = path.join(uploadsDir, fileName);
-
     const buffer = Buffer.from(await file.arrayBuffer());
-    await fs.writeFile(filePath, buffer);
 
-    uploaded.push({
-      url: `/uploads/viewing-checklist/${fileName}`,
-      uploadedAt: nowIso,
-      uploadedBy: landlordObjectId,
-      fileName: safe,
-      mimeType: file.type,
-      sizeBytes: file.size,
-    });
+    if (containerClient) {
+      const blobName = `viewing-checklists/${appId}/${crypto.randomUUID()}-${safe}`;
+      const blockBlob = containerClient.getBlockBlobClient(blobName);
+
+      await blockBlob.uploadData(buffer, {
+        blobHTTPHeaders: {
+          blobContentType: file.type || "application/octet-stream",
+        },
+      });
+
+      uploaded.push({
+        url: blockBlob.url,
+        blobName,
+        uploadedAt: nowIso,
+        uploadedBy: landlordObjectId,
+        fileName: safe,
+        mimeType: file.type,
+        sizeBytes: file.size,
+      });
+    } else {
+      const fileName = `viewing_${appId}_${Date.now()}_${idx}_${safe}`;
+      const filePath = path.join(uploadsDir, fileName);
+      await fs.writeFile(filePath, buffer);
+
+      uploaded.push({
+        url: `/uploads/viewing-checklist/${fileName}`,
+        uploadedAt: nowIso,
+        uploadedBy: landlordObjectId,
+        fileName: safe,
+        mimeType: file.type,
+        sizeBytes: file.size,
+      });
+    }
   }
 
   const existing = application.stage1.viewingSummary?.photos ?? [];

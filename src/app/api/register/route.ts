@@ -25,12 +25,18 @@ export async function POST(req: Request) {
     );
   }
 
+  const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const normalizedEmail = String(email).trim().toLowerCase();
+  if (!normalizedEmail) {
+    return NextResponse.json({ error: "Invalid email" }, { status: 400 });
+  }
+
   const client = await clientPromise;
   const db = client.db();
 
   const existingUser = await db
     .collection("users")
-    .findOne({ email });
+    .findOne({ email: new RegExp(`^${escapeRegex(normalizedEmail)}$`, "i") });
 
   if (existingUser) {
     return NextResponse.json(
@@ -42,7 +48,7 @@ export async function POST(req: Request) {
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const insertResult = await db.collection("users").insertOne({
-    email,
+    email: normalizedEmail,
     name,
     hashedPassword,
     role: "APPLICANT",

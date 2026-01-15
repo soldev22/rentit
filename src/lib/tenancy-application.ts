@@ -51,6 +51,7 @@ export interface TenancyApplication {
       /** Optional photos captured during/after the viewing (landlord uploaded). */
       photos?: Array<{
         url: string;
+        blobName?: string;
         uploadedAt: string;
         uploadedBy?: ObjectId;
         fileName?: string;
