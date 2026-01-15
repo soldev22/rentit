@@ -6,7 +6,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 /**
  * Throws or returns a NextResponse if session is missing or user is not active.
  */
-export async function requireSession(req: Request) {
+export async function requireSession(_req: Request) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -16,6 +16,7 @@ export async function requireSession(req: Request) {
   }
   return session;
 }
+
 
 /**
  * Throws or returns a NextResponse if user does not have required role.

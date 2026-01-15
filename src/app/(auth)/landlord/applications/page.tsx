@@ -44,16 +44,6 @@ export default async function LandlordTenancyApplicationsPage() {
     }))
   );
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'in_progress': return 'bg-blue-100 text-blue-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   return (
     <div className="p-6 max-w-6xl mx-auto">
       <div className="mb-6">
@@ -72,6 +62,51 @@ export default async function LandlordTenancyApplicationsPage() {
           {applicationsWithTitles.map((application: TenancyApplication & { propertyTitle: string }) => {
             if (!application._id) return null;
             const unified = getUnifiedApplicationStatusView(application);
+
+            const stage2ApprovedAndNotified =
+              application.stage2?.landlordDecision?.status === "pass" &&
+              Boolean(application.stage2?.landlordDecision?.notifiedAt);
+            const stage2Complete =
+              String(application.stage2?.status) === "complete" || stage2ApprovedAndNotified;
+
+            // Some legacy records start with currentStage=3 even while Stage 2 checks are still in progress.
+            // Treat Stage 2 as current until it's complete, then move into Stage 3.
+            const effectiveCurrentStage: 1 | 2 | 3 | 4 | 5 | 6 = (() => {
+              let stage: number = application.currentStage ?? 1;
+
+              if (!stage2Complete && stage >= 3 && application.stage3?.status === "pending") {
+                stage = 2;
+              }
+
+              if (
+                application.stage6?.status === "completed" ||
+                application.status === "completed"
+              ) {
+                stage = Math.max(stage, 6);
+              } else if (
+                application.stage5?.status === "scheduled" ||
+                application.stage5?.status === "confirmed"
+              ) {
+                stage = Math.max(stage, 5);
+              } else if (
+                application.stage4?.status === "signed_online" ||
+                application.stage4?.status === "signed_physical" ||
+                application.stage4?.status === "completed"
+              ) {
+                stage = Math.max(stage, 4);
+              } else if (
+                application.stage3?.status === "sent" ||
+                application.stage3?.status === "received"
+              ) {
+                stage = Math.max(stage, 3);
+              } else if (stage2Complete) {
+                stage = Math.max(stage, 3);
+              } else if (String(application.stage1?.status) === "agreed") {
+                stage = Math.max(stage, 2);
+              }
+
+              return Math.min(6, Math.max(1, stage)) as 1 | 2 | 3 | 4 | 5 | 6;
+            })();
             return (
               <div key={application._id.toString()} className="bg-white rounded-lg shadow p-6">
                 {/* Debug output removed */}
@@ -82,10 +117,7 @@ export default async function LandlordTenancyApplicationsPage() {
                   <p className="text-sm text-gray-500">{application.propertyTitle}</p>
                 </div>
                 <div className="text-right">
-                  <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(application.status)}`}>
-                    {application.status.replace('_', ' ').toUpperCase()}
-                  </span>
-                  <p className="text-sm text-gray-700 mt-1 font-medium">{unified.label}</p>
+                  <p className="text-sm text-gray-700 font-medium">{unified.label}</p>
                   {unified.detail ? (
                     <p className="text-xs text-gray-500 mt-0.5">{unified.detail}</p>
                   ) : null}
@@ -104,13 +136,9 @@ export default async function LandlordTenancyApplicationsPage() {
                   </div>
                   <div className="flex space-x-1">
                     {[1, 2, 3, 4, 5, 6].map((stageNum) => {
-                      const stageObj = (application as any)[`stage${stageNum}`];
                       let color = 'bg-gray-200';
-                      if (stageObj?.status === 'agreed' || stageObj?.status === 'complete' || stageObj?.status === 'signed_online' || stageObj?.status === 'signed_physical' || stageObj?.status === 'scheduled' || stageObj?.status === 'confirmed' || stageObj?.status === 'sent' || stageObj?.status === 'received' || stageObj?.status === 'completed') {
-                        color = 'bg-green-500';
-                      } else if (stageNum === 1) {
-                        color = 'bg-blue-500';
-                      }
+                      if (stageNum < effectiveCurrentStage) color = 'bg-green-500';
+                      if (stageNum === effectiveCurrentStage) color = 'bg-blue-500';
                       return (
                         <div
                           key={stageNum}

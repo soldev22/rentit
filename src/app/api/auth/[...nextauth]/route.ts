@@ -13,6 +13,30 @@ export const authOptions = {
     strategy: "jwt" as const,
   },
 
+  events: {
+    async signOut(message: any) {
+      const token = message?.token as any | undefined;
+      const session = message?.session as any | undefined;
+
+      const actorUserId = (token?.id ?? token?.sub ?? session?.user?.id) as string | undefined;
+      if (!actorUserId) return;
+
+      const email = (token?.email ?? session?.user?.email) as string | undefined;
+      const role = (token?.role ?? session?.user?.role) as string | undefined;
+
+      await auditEvent({
+        action: "LOGOUT",
+        actorUserId,
+        description: "User logout",
+        source: "/api/auth/signout",
+        metadata: {
+          email,
+          role,
+        },
+      }).catch(() => undefined);
+    },
+  },
+
   providers: [
     CredentialsProvider({
       name: "Credentials",

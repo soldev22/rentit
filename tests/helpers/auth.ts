@@ -18,7 +18,7 @@ export async function ensureLandlordAuth(page: Page) {
   if (!fs.existsSync(infoPath)) {
     try {
       execSync('node scripts/create-test-landlord.js', { stdio: 'inherit' });
-    } catch (e) {
+    } catch (_e) {
       throw new Error('Could not create test landlord. Ensure MONGODB_URI is set and script can run.');
     }
   }

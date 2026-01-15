@@ -74,6 +74,14 @@ export default async function LandlordApplicationDetailPage({
           <span className="inline-block rounded-md bg-blue-50 px-3 py-1 font-semibold text-blue-900">
             {application.applicantName}
           </span>
+          {application.coTenant?.name ? (
+            <>
+              <span className="text-gray-400">+</span>
+              <span className="inline-block rounded-md bg-blue-50 px-3 py-1 font-semibold text-blue-900">
+                {application.coTenant.name}
+              </span>
+            </>
+          ) : null}
           <span className="text-gray-600">-</span>
           <span className="text-gray-700">{propertySummary.title}</span>
         </div>

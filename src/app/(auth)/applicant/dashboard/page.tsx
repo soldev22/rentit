@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 type TenancyApplicationWithProperty = Pick<
   TenancyApplication,
-  "status" | "currentStage" | "stage1" | "stage2" | "stage3" | "stage4"
+  "status" | "currentStage" | "stage1" | "stage2" | "stage3" | "stage4" | "coTenant"
 > & {
   _id: ObjectId;
   propertyId?: ObjectId;
@@ -130,6 +130,18 @@ export default async function ApplicantDashboardPage() {
     .aggregate(pipeline)
     .toArray()) as unknown as TenancyApplicationWithProperty[];
 
+  const formatViewingDate = (value?: string) => {
+    if (!value) return null;
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    return d.toLocaleDateString('en-GB', {
+      weekday: 'short',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  };
+
   return (
     <main className="mx-auto max-w-3xl p-4 sm:p-6 space-y-5">
       <header className="space-y-1">
@@ -162,6 +174,21 @@ export default async function ApplicantDashboardPage() {
               .join(", ");
             const appliedAt = app.createdAt ? new Date(app.createdAt) : null;
 
+            const viewingAgreed =
+              app.stage1?.status === 'agreed' ||
+              Boolean(app.stage1?.agreedAt) ||
+              Boolean(app.stage1?.viewingDetails?.date);
+            const canAddCoTenant = viewingAgreed && !app.coTenant;
+
+            const viewingDateRaw = app.stage1?.viewingDetails?.date || app.stage1?.preferredDate;
+            const viewingTimeRaw = app.stage1?.viewingDetails?.time;
+            const viewingDateLabel = formatViewingDate(viewingDateRaw);
+            const viewingTypeLabel = app.stage1?.viewingType
+              ? app.stage1.viewingType === 'onsite'
+                ? 'On-site'
+                : 'Virtual'
+              : null;
+
             const photos = app.propertyPhotos || [];
             const heroPhoto = photos.find((p) => p?.isHero) || photos[0];
             const unified = getUnifiedApplicationStatusView(app);
@@ -171,42 +198,44 @@ export default async function ApplicantDashboardPage() {
                 key={app._id.toString()}
                 className="rounded-xl border bg-warm p-4 shadow-sm hover:shadow-md"
               >
-                <Link
-                  href={propertyId ? `/public/properties/${propertyId}` : "/applicant/dashboard"}
-                  className="block"
-                  aria-label={propertyId ? `View property ${title}` : title}
-                >
-                  <div className="w-full aspect-[4/3] rounded-md overflow-hidden mb-3 bg-gray-100 relative">
-                    {heroPhoto?.url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={heroPhoto.url}
-                        alt={title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="text-sm text-gray-400 h-full flex items-center justify-center">
-                        No image
-                      </div>
-                    )}
+                <div className="space-y-3">
+                  <Link
+                    href={propertyId ? `/public/properties/${propertyId}` : "/applicant/dashboard"}
+                    className="block"
+                    aria-label={propertyId ? `View property ${title}` : title}
+                  >
+                    <div className="w-full aspect-[4/3] rounded-md overflow-hidden mb-3 bg-gray-100 relative">
+                      {heroPhoto?.url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={heroPhoto.url}
+                          alt={title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="text-sm text-gray-400 h-full flex items-center justify-center">
+                          No image
+                        </div>
+                      )}
 
-                    {typeof app.propertyRentPcm === "number" ? (
-                      <div className="absolute left-3 top-3 bg-black bg-opacity-60 text-white px-3 py-1 rounded-md text-sm">
-                        £{app.propertyRentPcm}/pcm
-                      </div>
-                    ) : null}
-                  </div>
+                      {typeof app.propertyRentPcm === "number" ? (
+                        <div className="absolute left-3 top-3 bg-black bg-opacity-60 text-white px-3 py-1 rounded-md text-sm">
+                          £{app.propertyRentPcm}/pcm
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3">
+                      <h2 className="text-lg font-heading truncate text-text-dark">{title}</h2>
+                      {typeof app.propertyRentPcm === "number" ? (
+                        <div className="text-sm text-text-dark font-semibold">£{app.propertyRentPcm}</div>
+                      ) : null}
+                    </div>
+
+                    {address ? <div className="text-sm text-gray-700">{address}</div> : null}
+                  </Link>
 
                   <div className="flex items-center justify-between gap-3">
-                    <h2 className="text-lg font-heading truncate text-text-dark">{title}</h2>
-                    {typeof app.propertyRentPcm === "number" ? (
-                      <div className="text-sm text-text-dark font-semibold">£{app.propertyRentPcm}</div>
-                    ) : null}
-                  </div>
-
-                  {address ? <div className="text-sm text-gray-700">{address}</div> : null}
-
-                  <div className="mt-3 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 text-sm text-gray-600 flex-wrap">
                       {typeof app.propertyBedrooms === "number" ? (
                         <div>🛏 {app.propertyBedrooms}</div>
@@ -235,7 +264,45 @@ export default async function ApplicantDashboardPage() {
                     </div>
                   </div>
 
-                  <div className="mt-3 text-sm text-gray-600 space-y-1">
+                  {viewingAgreed ? (
+                    <div className="rounded-lg border border-green-200 bg-green-50 p-3">
+                      <div className="text-sm font-semibold text-green-900">Viewing agreed</div>
+                      <div className="mt-1 text-xs text-green-900">
+                        {viewingDateLabel ? (
+                          <>
+                            {viewingTypeLabel ? `${viewingTypeLabel} viewing` : 'Viewing'}: <span className="font-semibold">{viewingDateLabel}</span>
+                            {viewingTimeRaw ? (
+                              <>
+                                {' '}at <span className="font-semibold">{viewingTimeRaw}</span>
+                              </>
+                            ) : null}
+                          </>
+                        ) : (
+                          <>Viewing time will appear here once confirmed.</>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {canAddCoTenant ? (
+                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                      <div className="text-sm font-semibold text-slate-900">Add a second tenant to this tenancy</div>
+                      <div className="mt-1 text-xs text-slate-600">Max 2 signatories per tenancy (you + 1 co-tenant).</div>
+                      <Link
+                        href={`/application/co-tenant/${app._id.toString()}`}
+                        className="mt-2 inline-flex items-center rounded-md bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+                      >
+                        Add co-tenant
+                      </Link>
+                    </div>
+                  ) : app.coTenant ? (
+                    <div className="rounded-lg border border-slate-200 bg-white p-3">
+                      <div className="text-sm font-semibold text-slate-900">Second tenant linked</div>
+                      <div className="mt-1 text-xs text-slate-600">Co-tenant: {app.coTenant.name}</div>
+                    </div>
+                  ) : null}
+
+                  <div className="text-sm text-gray-600 space-y-1">
                     {typeof app.propertyDeposit === "number" ? (
                       <div>Deposit: £{app.propertyDeposit}</div>
                     ) : null}
@@ -258,7 +325,7 @@ export default async function ApplicantDashboardPage() {
                     ) : null}
                     {appliedAt ? <div>Applied: {appliedAt.toLocaleString()}</div> : null}
                   </div>
-                </Link>
+                </div>
               </article>
             );
           })}

@@ -31,9 +31,25 @@ function formatViewingDetails(stage1: TenancyApplication["stage1"]): string | un
 export function getUnifiedApplicationStatusView(
   application: Pick<
     TenancyApplication,
-    "status" | "stage1" | "stage2" | "stage3" | "stage4" | "currentStage"
+    "status" | "stage1" | "stage2" | "stage3" | "stage4" | "currentStage" | "coTenant"
   >
 ): UnifiedApplicationStatusView {
+  const landlordDecisionStatus = application.stage2?.landlordDecision?.status;
+  const landlordDecisionNotes = application.stage2?.landlordDecision?.notes;
+  const stage2Status = String(application.stage2?.status);
+  const stage2Complete = stage2Status === "complete";
+  const stage2ApprovedAndNotified =
+    landlordDecisionStatus === "pass" && Boolean(application.stage2?.landlordDecision?.notifiedAt);
+
+  // Guard against stale terminal states that were set automatically earlier.
+  // Example: credit-check route historically set application.status='rejected' on a failed check,
+  // but if a landlord later records PASS for all checks, we want the UI to reflect the current checks.
+  const primaryCheck = application.stage2?.creditCheck;
+  const coCheck = application.coTenant ? application.stage2?.coTenant?.creditCheck : undefined;
+  const primaryFailed = Boolean(primaryCheck && (primaryCheck.status === 'failed' || primaryCheck.passed === false));
+  const coFailed = Boolean(coCheck && (coCheck.status === 'failed' || coCheck.passed === false));
+  const hasAnyCreditFailure = primaryFailed || coFailed;
+
   if (application.status === "draft") {
     return { label: "Draft" };
   }
@@ -45,11 +61,14 @@ export function getUnifiedApplicationStatusView(
   if (application.status === "accepted") {
     return { label: "Accepted" };
   }
-  if (application.status === "rejected") {
-    return { label: "Rejected" };
+  if (landlordDecisionStatus === "fail") {
+    return { label: "Can't proceed", detail: landlordDecisionNotes || "Landlord cannot proceed after review" };
+  }
+  if (application.status === "rejected" && hasAnyCreditFailure) {
+    return { label: "Can't proceed" };
   }
   if (application.status === "refused") {
-    return { label: "Refused" };
+    return { label: "Can't proceed" };
   }
   if (application.status === "cancelled") {
     return { label: "Cancelled" };
@@ -72,19 +91,71 @@ export function getUnifiedApplicationStatusView(
   }
 
   if (application.currentStage >= 3) {
+    // Only surface Stage 3 as "current" once Stage 2 is truly complete/approved.
+    // Some existing records may have currentStage=3 earlier in the flow.
+    if (
+      application.stage3.status === "pending" &&
+      (stage2Complete || stage2ApprovedAndNotified)
+    ) {
+      return { label: "Ready to send document pack" };
+    }
     if (application.stage3.status === "sent") {
-      return { label: "Financials sent – waiting for signed financials" };
+      return { label: "Document pack sent – waiting for signed documents" };
     }
     if (application.stage3.status === "received") {
-      return { label: "Signed financials received – waiting for signed agreement" };
+      return { label: "Signed documents received – waiting for signed agreement" };
     }
     // Stage 3 pending: fall through to Stage 2 logic.
   }
 
   if (application.currentStage >= 2) {
-    // 4) Applicant Credit Check carried out – waiting for signed agreement
-    if (application.stage2.creditCheck.status === "completed") {
-      return { label: "Applicant credit check carried out – waiting for signed agreement" };
+    // 4) Applicant Credit Check carried out
+    const primaryCheck = application.stage2.creditCheck;
+    const coCheck = application.coTenant ? application.stage2.coTenant?.creditCheck : undefined;
+
+    const primaryScoreDetail = typeof primaryCheck.score === 'number' ? `Primary score: ${primaryCheck.score}` : undefined;
+    const coScoreDetail = typeof coCheck?.score === 'number' ? `Co-tenant score: ${coCheck.score}` : undefined;
+    const scoreDetail = [primaryScoreDetail, coScoreDetail].filter(Boolean).join(' · ') || undefined;
+
+    const primaryFailed = primaryCheck.status === 'failed' || primaryCheck.passed === false;
+    const coFailed = Boolean(coCheck && (coCheck.status === 'failed' || coCheck.passed === false));
+    if (primaryFailed || coFailed) {
+      const who = primaryFailed && coFailed ? ' (primary + co-tenant)' : primaryFailed ? ' (primary)' : ' (co-tenant)';
+      return { label: `Credit check failed${who} – awaiting review`, detail: scoreDetail };
+    }
+
+    const primaryPassed = primaryCheck.status === 'completed' && primaryCheck.passed === true;
+    const coPassed = Boolean(coCheck && coCheck.status === 'completed' && coCheck.passed === true);
+
+    // If landlord has manually marked PASS, surface that as the most important message at Stage 2.
+    if (landlordDecisionStatus === "pass") {
+      return {
+        label: "Background checks approved",
+        detail: landlordDecisionNotes || scoreDetail,
+      };
+    }
+
+    if (application.coTenant) {
+      if (primaryPassed && coPassed) {
+        return { label: 'Credit checks passed', detail: scoreDetail };
+      }
+      if (primaryPassed && !coPassed) {
+        return { label: 'Primary credit check passed – waiting for co-tenant credit check', detail: scoreDetail };
+      }
+      if (!primaryPassed && coPassed) {
+        return { label: 'Co-tenant credit check passed – waiting for primary credit check', detail: scoreDetail };
+      }
+    } else if (primaryCheck.status === 'completed') {
+      if (primaryCheck.passed === true) {
+        return { label: 'Credit check passed', detail: scoreDetail };
+      }
+      if (primaryCheck.passed === false) {
+        return { label: 'Credit check failed – awaiting review', detail: scoreDetail };
+      }
+      return {
+        label: 'Applicant credit check carried out',
+        detail: scoreDetail
+      };
     }
 
     // 3) Applicant wishes to proceed – waiting for signed financials

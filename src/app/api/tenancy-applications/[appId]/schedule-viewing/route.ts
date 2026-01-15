@@ -125,4 +125,7 @@ async function scheduleViewing(req: NextRequest, context: { params: Promise<{ ap
   return NextResponse.json({ ok: true, notification: notificationResult });
 }
 
-export const POST = withApiAudit(scheduleViewing);
+export const POST = withApiAudit(scheduleViewing, {
+  action: 'VIEWING_SCHEDULED',
+  description: () => 'Viewing scheduled',
+});

@@ -51,6 +51,7 @@ async function getAdminUser(
     email: rest.email ?? "",
     role: rest.role ?? "APPLICANT",
     status: rest.status ?? "ACTIVE",
+    commsEnabled: typeof rest.commsEnabled === "boolean" ? rest.commsEnabled : true,
     description: rest.description ?? "",
     applicationType: rest.applicationType ?? "",
     landlordRegId: rest.landlordRegId ?? "",
@@ -96,6 +97,7 @@ async function patchAdminUser(
   const patchUserSchema = z.object({
     role: z.string().min(1),
     status: z.string().min(1),
+    commsEnabled: z.boolean().optional(),
   });
 
   let body;
@@ -136,6 +138,7 @@ async function patchAdminUser(
     email: rest.email ?? "",
     role: rest.role ?? "APPLICANT",
     status: rest.status ?? "ACTIVE",
+    commsEnabled: typeof rest.commsEnabled === "boolean" ? rest.commsEnabled : true,
     description: rest.description ?? "",
     applicationType: rest.applicationType ?? "",
     landlordRegId: rest.landlordRegId ?? "",

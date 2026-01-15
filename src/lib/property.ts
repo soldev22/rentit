@@ -39,7 +39,6 @@ export async function getAllPublicProperties(filters?: { city?: string; minRent?
   }));
 }
 import { getCollection } from "@/lib/db";
-import { ObjectId } from "mongodb";
 
 export async function getListedProperties() {
   const propertiesCollection = await getCollection("properties");

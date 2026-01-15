@@ -18,6 +18,8 @@ export const dynamic = 'force-dynamic';
 import FilterBar from "./FilterBar"; // Import directly (FilterBar must be a client component)
 
 export default async function PublicPropertiesPage({ searchParams }: { searchParams?: { city?: string; minRent?: string; maxRent?: string; rooms?: string; hasHero?: string } | Promise<{ city?: string; minRent?: string; maxRent?: string; rooms?: string; hasHero?: string }> }) {
+  const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
   // `searchParams` may be a Promise in some Next.js runtimes; unwrap it safely before use
   function isPromise<T>(value: T | Promise<T>): value is Promise<T> {
     return typeof (value as Promise<T>)?.then === 'function';
@@ -41,22 +43,38 @@ export default async function PublicPropertiesPage({ searchParams }: { searchPar
 
   if (
     session?.user?.role === 'APPLICANT' &&
-    session.user.id &&
-    ObjectId.isValid(session.user.id)
+    (ObjectId.isValid(session.user.id) || Boolean(session.user.email))
   ) {
     const applications = await getCollection('tenancy_applications');
-    const applicantId = new ObjectId(session.user.id);
+
+    const rawEmail = session.user.email ? String(session.user.email).trim() : null;
+    const emailRegex = rawEmail ? new RegExp(`^${escapeRegex(rawEmail)}$`, 'i') : null;
+
+    // Be tolerant of legacy records where IDs may have been stored as strings.
+    const applicantClauses: Record<string, unknown>[] = [];
+    if (ObjectId.isValid(session.user.id)) {
+      applicantClauses.push({ applicantId: new ObjectId(session.user.id) });
+      applicantClauses.push({ applicantId: session.user.id });
+    }
+    if (emailRegex) {
+      applicantClauses.push({ applicantEmail: emailRegex });
+      applicantClauses.push({ 'coTenant.email': emailRegex });
+    }
 
     const activeApps = await applications
       .find(
-        { applicantId, status: { $in: ['draft', 'in_progress'] } },
+        {
+          ...(applicantClauses.length ? { $or: applicantClauses } : {}),
+          status: { $in: ['draft', 'in_progress'] },
+        },
         { projection: { propertyId: 1 } }
       )
       .toArray();
 
     for (const app of activeApps) {
-      const pid = (app as { propertyId?: ObjectId })?.propertyId;
+      const pid = (app as { propertyId?: ObjectId | string })?.propertyId;
       if (pid instanceof ObjectId) appliedPropertyIds.add(pid.toString());
+      else if (typeof pid === 'string' && pid) appliedPropertyIds.add(pid);
     }
   }
 

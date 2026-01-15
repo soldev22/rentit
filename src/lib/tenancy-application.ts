@@ -8,6 +8,13 @@ export interface TenancyApplication {
   applicantName: string;
   applicantEmail: string;
   applicantTel: string;
+  /** Optional second signatory (max 2 total). Added by the primary applicant after viewing. */
+  coTenant?: {
+    name: string;
+    email: string;
+    tel: string;
+    addedAt: string;
+  };
   applicantAddress?: {
     line1: string;
     line2?: string;
@@ -32,6 +39,30 @@ export interface TenancyApplication {
   // Stage 2: Background Checks Agreement
   stage2: {
     status: 'pending' | 'agreed' | 'declined' | 'complete';
+
+    /**
+     * Optional landlord decision after reviewing Stage 2 checks.
+     * This is the landlord's manual PASS/FAIL, separate from automated checks.
+     */
+    landlordDecision?: {
+      status: 'pending' | 'pass' | 'fail';
+      notes?: string;
+      decidedAt?: string;
+      decidedBy?: ObjectId;
+      notifiedAt?: string;
+      notifiedContent?: {
+        subject?: string;
+        message?: string;
+        smsMessage?: string;
+        sendSms?: boolean;
+      };
+      notifiedTo?: {
+        primaryEmail?: string;
+        primarySms?: string;
+        coTenantEmail?: string;
+        coTenantSms?: string;
+      };
+    };
     creditCheckConsent: boolean;
     socialMediaConsent: boolean;
     landlordReferenceConsent: boolean;
@@ -113,6 +144,34 @@ export interface TenancyApplication {
       photoIdFrontFile?: string;
       photoIdBackFile?: string;
     };
+
+    /** Optional Stage 2 data for the co-tenant (second signatory). */
+    coTenant?: {
+      status: 'pending' | 'agreed' | 'declined' | 'complete';
+      creditCheckConsent: boolean;
+      socialMediaConsent: boolean;
+      landlordReferenceConsent: boolean;
+      employerReferenceConsent: boolean;
+      agreedAt?: string;
+      sentAt?: string;
+      token?: string;
+      tokenUsed?: boolean;
+      tokenExpiresAt?: string;
+      creditCheck: {
+        status: 'not_started' | 'in_progress' | 'completed' | 'failed';
+        score?: number;
+        ccjCount?: number;
+        passed?: boolean;
+        failureReason?: string;
+        reportUrl?: string;
+        checkedAt?: string;
+      };
+
+      employerVerification?: TenancyApplication['stage2']['employerVerification'];
+      previousLandlordReference?: TenancyApplication['stage2']['previousLandlordReference'];
+      referenceContacts?: TenancyApplication['stage2']['referenceContacts'];
+      backgroundInfo?: TenancyApplication['stage2']['backgroundInfo'];
+    };
   };
 
   // Stage 3: Document Pack
@@ -138,6 +197,21 @@ export interface TenancyApplication {
       ipAddress: string;
       userAgent: string;
       signatureData: string; // Base64 encoded signature
+    };
+    /** New: supports up to 2 signatories (primary + co-tenant). */
+    onlineSignatures?: {
+      primary?: {
+        signedAt: string;
+        ipAddress: string;
+        userAgent: string;
+        signatureData: string; // Base64 encoded signature
+      };
+      coTenant?: {
+        signedAt: string;
+        ipAddress: string;
+        userAgent: string;
+        signatureData: string; // Base64 encoded signature
+      };
     };
     physicalSignatureReceived?: string;
     hardCopySent?: string;

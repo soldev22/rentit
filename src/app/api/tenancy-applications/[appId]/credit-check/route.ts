@@ -4,15 +4,15 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { ObjectId } from 'mongodb';
 import { getTenancyApplicationById, updateTenancyApplication } from '@/lib/tenancy-application';
 import { withApiAudit } from '@/lib/api/withApiAudit';
+import type { TenancyApplication } from '@/lib/tenancy-application';
+import { getCollection } from '@/lib/db';
+import { DEFAULT_LANDLORD_BACKGROUND_CHECK_CRITERIA } from '@/lib/landlordBackgroundCheckCriteria';
 
 type CreditCheckBody = {
   experianScore: number;
   ccjCount: number;
   reportUrl?: string;
 };
-
-const MIN_EXPERIAN_SCORE = 750;
-const MAX_CCJS = 1;
 
 async function submitCreditCheck(req: NextRequest, context: { params: Promise<{ appId: string }> }) {
   const session = await getServerSession(authOptions);
@@ -34,6 +34,27 @@ async function submitCreditCheck(req: NextRequest, context: { params: Promise<{ 
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
+  // Use landlord-configured criteria when deciding PASS/FAIL.
+  const criteriaCollection = await getCollection('landlord_background_check_criteria');
+  const criteriaDoc = await criteriaCollection.findOne({ landlordId: application.landlordId });
+  const creditCriteria =
+    (criteriaDoc as any)?.criteria?.credit ?? DEFAULT_LANDLORD_BACKGROUND_CHECK_CRITERIA.credit;
+  const minExperianScore = Number(creditCriteria?.minExperianScore);
+  const maxCcjs = Number(creditCriteria?.maxCcjs);
+  const minScore = Number.isFinite(minExperianScore)
+    ? minExperianScore
+    : DEFAULT_LANDLORD_BACKGROUND_CHECK_CRITERIA.credit.minExperianScore;
+  const maxAllowedCcjs = Number.isFinite(maxCcjs)
+    ? maxCcjs
+    : DEFAULT_LANDLORD_BACKGROUND_CHECK_CRITERIA.credit.maxCcjs;
+
+  const url = new URL(req.url);
+  const partyRaw = url.searchParams.get('party');
+  const party: 'primary' | 'coTenant' = partyRaw === 'coTenant' ? 'coTenant' : 'primary';
+  if (party === 'coTenant' && !application.coTenant) {
+    return NextResponse.json({ error: 'No co-tenant has been added to this application.' }, { status: 400 });
+  }
+
   const body = (await req.json().catch(() => null)) as Partial<CreditCheckBody> | null;
   const experianScore = Number(body?.experianScore);
   const ccjCount = Number(body?.ccjCount);
@@ -43,31 +64,84 @@ async function submitCreditCheck(req: NextRequest, context: { params: Promise<{ 
     return NextResponse.json({ error: 'Invalid experianScore or ccjCount' }, { status: 400 });
   }
 
-  const passed = experianScore >= MIN_EXPERIAN_SCORE && ccjCount <= MAX_CCJS;
+  const passed = experianScore >= minScore && ccjCount <= maxAllowedCcjs;
   const failureReason = !passed
-    ? experianScore < MIN_EXPERIAN_SCORE
-      ? `Experian score below ${MIN_EXPERIAN_SCORE}`
-      : `Too many CCJs (>= ${MAX_CCJS + 1})`
+    ? experianScore < minScore
+      ? `Experian score below ${minScore}`
+      : `Too many CCJs (>= ${maxAllowedCcjs + 1})`
     : undefined;
 
+  const checkedAt = new Date().toISOString();
+
+  const creditCheckStatus: TenancyApplication['stage2']['creditCheck']['status'] = passed
+    ? 'completed'
+    : 'failed';
+
+  const defaultCreditCheck: TenancyApplication['stage2']['creditCheck'] = {
+    status: 'not_started',
+  };
+
+  const defaultCoTenantStage2: NonNullable<TenancyApplication['stage2']['coTenant']> = {
+    status: 'agreed',
+    creditCheckConsent: false,
+    socialMediaConsent: false,
+    landlordReferenceConsent: false,
+    employerReferenceConsent: false,
+    creditCheck: defaultCreditCheck,
+  };
+
+  const updatedStage2 = {
+    ...application.stage2,
+    ...(party === 'primary'
+      ? {
+          creditCheck: {
+            ...(application.stage2.creditCheck ?? defaultCreditCheck),
+            status: creditCheckStatus,
+            score: experianScore,
+            ccjCount,
+            passed,
+            failureReason,
+            reportUrl,
+            checkedAt,
+          },
+        }
+      : {
+          coTenant: {
+            ...(application.stage2?.coTenant ?? defaultCoTenantStage2),
+            creditCheck: {
+              ...(application.stage2?.coTenant?.creditCheck ?? defaultCreditCheck),
+              status: creditCheckStatus,
+              score: experianScore,
+              ccjCount,
+              passed,
+              failureReason,
+              reportUrl,
+              checkedAt,
+            },
+          },
+        }),
+  };
+
+  const coTenantFailed = application.coTenant
+    ? updatedStage2.coTenant?.creditCheck?.passed === false || updatedStage2.coTenant?.creditCheck?.status === 'failed'
+    : false;
+  const primaryFailed = updatedStage2.creditCheck?.passed === false || updatedStage2.creditCheck?.status === 'failed';
+  const anyFailed = primaryFailed || coTenantFailed;
+
+  // If we previously auto-set the application to rejected due to a failed credit check,
+  // allow it to recover when both parties pass.
+  const nextStatus: TenancyApplication['status'] = anyFailed
+    ? 'rejected'
+    : application.status === 'rejected'
+      ? 'in_progress'
+      : application.status;
+
   await updateTenancyApplication(appId, {
-    stage2: {
-      ...application.stage2,
-      creditCheck: {
-        ...application.stage2.creditCheck,
-        status: passed ? 'completed' : 'failed',
-        score: experianScore,
-        ccjCount,
-        passed,
-        failureReason,
-        reportUrl,
-        checkedAt: new Date().toISOString(),
-      },
-    },
-    status: passed ? application.status : 'rejected',
+    stage2: updatedStage2,
+    status: nextStatus,
   });
 
-  return NextResponse.json({ ok: true, passed, failureReason });
+  return NextResponse.json({ ok: true, passed, failureReason, party });
 }
 
 export const POST = withApiAudit(submitCreditCheck);

@@ -410,6 +410,7 @@ export default function TenancyApplicationWorkflow({
   if (application) {
     return (
       <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg">
+        {renderProgressIndicator()}
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900">Thank you</h2>
           <p className="mt-3 text-gray-700">

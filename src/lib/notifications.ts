@@ -9,6 +9,7 @@ import resend from './resend';
 
 type SendResult = {
   email: { attempted: boolean; sent: boolean; to?: string; error?: string };
+  landlordEmail: { attempted: boolean; sent: boolean; to?: string; error?: string };
   adminEmail: { attempted: boolean; sent: boolean; to?: string; error?: string };
   sms: { attempted: boolean; sent: boolean; to?: string; error?: string };
 };
@@ -48,6 +49,8 @@ export interface Property {
 }
 
 export interface Landlord {
+  email?: string;
+  name?: string;
   phone?: string;
   tel?: string;
   profile?: {
@@ -63,6 +66,7 @@ export async function sendViewingNotification(
 ) : Promise<SendResult> {
   const result: SendResult = {
     email: { attempted: false, sent: false },
+    landlordEmail: { attempted: false, sent: false },
     adminEmail: { attempted: false, sent: false },
     sms: { attempted: false, sent: false },
   };
@@ -87,6 +91,8 @@ export async function sendViewingNotification(
 
   // Landlord contact info
   let landlordPhone = '';
+  const landlordEmail = details.landlord?.email;
+  const landlordName = details.landlord?.name;
   if (details.landlord) {
     if (details.landlord.phone) landlordPhone = details.landlord.phone;
     else if (details.landlord.tel) landlordPhone = details.landlord.tel;
@@ -122,6 +128,34 @@ export async function sendViewingNotification(
       });
       console.log(`EMAIL SENT via Resend to ${email}`);
       result.email.sent = true;
+
+      // Landlord confirmation email (send to the scheduling landlord if we have an email)
+      if (landlordEmail) {
+        result.landlordEmail.attempted = true;
+        result.landlordEmail.to = landlordEmail;
+        try {
+          const applicantLine = application.applicantName
+            ? `<br>Applicant: <b>${application.applicantName}</b>`
+            : '';
+          const applicantEmailLine = email ? `<br>Applicant email: <b>${email}</b>` : '';
+          const applicantPhoneLine = tel ? `<br>Applicant phone: <b>${tel}</b>` : '';
+
+          await resend.emails.send({
+            from: process.env.RESEND_FROM_EMAIL || 'NoReply@solutionsdeveloped.co.uk',
+            to: landlordEmail,
+            subject: `Viewing Scheduled (${ukDate} ${details.time})`,
+            html: `<p>Hi${landlordName ? ` ${landlordName}` : ''},<br><br>You scheduled a viewing for <b>${ukDate}</b> at <b>${details.time}</b>.<br>Property: <b>${addressString}</b>${noteLine}${applicantLine}${applicantEmailLine}${applicantPhoneLine}<br><br><b>Please do not reply to this email.</b><br><br>Best regards,<br>The Rentsimple Team</p>`,
+          });
+          console.log(`LANDLORD CONFIRMATION EMAIL SENT via Resend to ${landlordEmail}`);
+          result.landlordEmail.sent = true;
+        } catch (err) {
+          console.error('Landlord confirmation email error:', err);
+          result.landlordEmail.error = toErrorMessage(err);
+        }
+      } else {
+        result.landlordEmail.attempted = false;
+        result.landlordEmail.error = 'No landlord email available';
+      }
 
       // Optional: send an admin copy
       const adminEmail = process.env.ADMIN_EMAIL;

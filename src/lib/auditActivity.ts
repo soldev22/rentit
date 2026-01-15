@@ -30,6 +30,18 @@ function normalizePath(pathname: string): string {
 export function formatAuditActivity(event: AuditActivityInput): string {
   const action = event.action ?? '';
 
+  if (action === 'VIEWING_SCHEDULED') {
+    return event.description?.trim() || 'Viewing scheduled';
+  }
+
+  if (action === 'COMMUNICATION_SENT') {
+    return event.description?.trim() || 'Message sent';
+  }
+
+  if (action === 'TENANCY_COTENANT_ADDED') {
+    return event.description?.trim() || 'Co-tenant added';
+  }
+
   // If the event already has a meaningful description, prefer it.
   // Many explicit actions (LOGIN, USER_REGISTERED, etc) are written with good copy.
   if (action && action !== 'API_REQUEST' && event.description?.trim()) {
@@ -74,6 +86,9 @@ export function formatAuditActivity(event: AuditActivityInput): string {
     }
     if (method === 'POST' && path === '/api/tenancy-applications/:id/landlord-reference-request') {
       return 'Requested landlord reference';
+    }
+    if (method === 'POST' && path === '/api/tenancy-applications/:id/co-tenant') {
+      return 'Added co-tenant';
     }
 
     // Properties (landlord)

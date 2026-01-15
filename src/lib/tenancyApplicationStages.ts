@@ -6,7 +6,7 @@ export const TENANCY_APPLICATION_STAGE_LABELS: Record<
 > = {
   1: "Viewing",
   2: "Background Checks",
-  3: "Document Pack Delivered",
+  3: "Document Pack",
   4: "Documents Signed",
   5: "Move-in Date Agreed",
   6: "Tenant Settled",

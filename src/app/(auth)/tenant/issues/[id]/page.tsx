@@ -33,7 +33,7 @@ export default async function TenantIssueDetailPage({ params }: PageProps) {
         <div className="max-h-64 overflow-y-auto w-full">
           {issue.descriptionHistory && issue.descriptionHistory.length > 0 ? (
             <ul className="space-y-1">
-              {[...issue.descriptionHistory].reverse().map((item: any, index: number, arr) => (
+              {[...issue.descriptionHistory].reverse().map((item: any, index: number, _arr) => (
                 <li
                   key={index}
                   className={`rounded border px-3 py-2 ${

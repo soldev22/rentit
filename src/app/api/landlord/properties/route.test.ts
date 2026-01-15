@@ -25,6 +25,7 @@ vi.mock('@/lib/db', async () => {
 import { getServerSession } from 'next-auth';
 import { getCollection } from '@/lib/db';
 import { POST } from './route';
+import { NextRequest } from 'next/server';
 
 describe('POST /api/landlord/properties', () => {
   beforeEach(() => {
@@ -35,13 +36,13 @@ describe('POST /api/landlord/properties', () => {
   it('returns 401 when unauthenticated', async () => {
     vi.mocked(getServerSession).mockResolvedValue(null);
 
-    const req = new Request('http://localhost', {
+    const req = new NextRequest('http://localhost', {
       method: 'POST',
       body: JSON.stringify({}),
       headers: { 'content-type': 'application/json' },
     });
 
-    const res = await POST(req as Request);
+    const res = await POST(req as unknown as NextRequest, {});
     const body = await res.json();
 
     expect(res.status).toBe(401);
@@ -51,13 +52,13 @@ describe('POST /api/landlord/properties', () => {
   it('returns 403 when not landlord role', async () => {
     vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'abc', role: 'TENANT' } });
 
-    const req = new Request('http://localhost', {
+    const req = new NextRequest('http://localhost', {
       method: 'POST',
       body: JSON.stringify({}),
       headers: { 'content-type': 'application/json' },
     });
 
-    const res = await POST(req as Request);
+    const res = await POST(req as unknown as NextRequest, {});
     const body = await res.json();
 
     expect(res.status).toBe(403);
@@ -82,13 +83,13 @@ describe('POST /api/landlord/properties', () => {
       amenities: ['garden','parking'],
     };
 
-    const req = new Request('http://localhost', {
+    const req = new NextRequest('http://localhost', {
       method: 'POST',
       body: JSON.stringify(payload),
       headers: { 'content-type': 'application/json' },
     });
 
-    const res = await POST(req as Request);
+    const res = await POST(req as unknown as NextRequest, {});
     const body = await res.json();
 
     expect(res.status).toBe(201);
@@ -101,13 +102,13 @@ describe('POST /api/landlord/properties', () => {
 
   it('returns 400 for invalid payload', async () => {
     vi.mocked(getServerSession).mockResolvedValue({ user: { id: '507f1', role: 'LANDLORD' } });
-    const req = new Request('http://localhost', {
+    const req = new NextRequest('http://localhost', {
       method: 'POST',
       body: JSON.stringify({ title: '', address: {}, rentPcm: -10 }),
       headers: { 'content-type': 'application/json' },
     });
 
-    const res = await POST(req as Request);
+    const res = await POST(req as unknown as NextRequest, {});
     const body = await res.json();
 
     expect(res.status).toBe(400);

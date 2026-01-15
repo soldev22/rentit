@@ -15,7 +15,11 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
 
   const url = new URL(req.url);
   const token = url.searchParams.get('token');
-  const verifier = application.stage2?.employerVerification;
+  const partyRaw = url.searchParams.get('party');
+  const party: 'primary' | 'coTenant' = partyRaw === 'coTenant' ? 'coTenant' : 'primary';
+  const verifier = party === 'coTenant'
+    ? application.stage2?.coTenant?.employerVerification
+    : application.stage2?.employerVerification;
 
   if (!token || verifier?.token !== token) {
     return NextResponse.json({ error: 'Invalid or expired token' }, { status: 403 });
@@ -49,12 +53,33 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
   await updateTenancyApplication(appId, {
     stage2: {
       ...application.stage2,
-      employerVerification: {
-        ...verifier,
-        status: 'received',
-        tokenUsed: true,
-        response,
-      },
+      ...(party === 'primary'
+        ? {
+            employerVerification: {
+              ...verifier,
+              status: 'received',
+              tokenUsed: true,
+              response,
+            },
+          }
+        : {
+            coTenant: {
+              ...(application.stage2?.coTenant ?? {
+                status: 'agreed',
+                creditCheckConsent: false,
+                socialMediaConsent: false,
+                landlordReferenceConsent: false,
+                employerReferenceConsent: false,
+                creditCheck: { status: 'not_started' },
+              }),
+              employerVerification: {
+                ...verifier,
+                status: 'received',
+                tokenUsed: true,
+                response,
+              },
+            },
+          }),
     },
   });
 

@@ -11,6 +11,16 @@ export default function HeaderClient() {
   const pathname = usePathname();
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
+  const dashboardHref =
+    session?.user?.role === 'LANDLORD' ? '/landlord/dashboard' :
+    session?.user?.role === 'TENANT' ? '/tenant' :
+    session?.user?.role === 'AGENT' ? '/agent/dashboard' :
+    session?.user?.role === 'ADMIN' ? '/admin' :
+    session?.user?.role === 'APPLICANT' ? '/applicant' :
+    session?.user?.role === 'TRADESPERSON' ? '/tradesperson' :
+    session?.user?.role === 'ACCOUNTANT' ? '/accountant' :
+    '/dashboard';
+
   return (
     <header className="w-full border-b border-blue-600 bg-blue-600 px-4 py-3 text-white">
       <div className="flex items-center justify-between">
@@ -89,30 +99,29 @@ export default function HeaderClient() {
 
     {/* Dashboard link based on role */}
     {session.user.role && (
-      <a
-        href={
-          session.user.role === 'LANDLORD' ? '/landlord/dashboard' :
-          session.user.role === 'TENANT' ? '/tenant' :
-          session.user.role === 'AGENT' ? '/agent/dashboard' :
-          session.user.role === 'ADMIN' ? '/admin' :
-          session.user.role === 'APPLICANT' ? '/applicant' :
-          session.user.role === 'TRADESPERSON' ? '/tradesperson' :
-          session.user.role === 'ACCOUNTANT' ? '/accountant' :
-          '/dashboard'
-        }
+      <Link
+        href={dashboardHref}
         className="rounded-md bg-white/10 px-3 py-1.5 text-sm font-semibold hover:bg-white/20"
       >
         Dashboard
-      </a>
+      </Link>
     )}
 
     {/* My profile link */}
-    <a
+    <Link
       href="/profile"
       className="rounded-md bg-white/10 px-3 py-1.5 text-sm font-semibold hover:bg-white/20"
     >
       My profile
-    </a>
+    </Link>
+
+    {/* Messages */}
+    <Link
+      href="/messages"
+      className="rounded-md bg-white/10 px-3 py-1.5 text-sm font-semibold hover:bg-white/20"
+    >
+      Messages
+    </Link>
 
     <button
       onClick={() =>
@@ -150,23 +159,12 @@ export default function HeaderClient() {
             {status === 'authenticated' && (
               <>
                 {session?.user?.role && (
-                  <a 
-                    href={
-                      session.user.role === 'LANDLORD' ? '/landlord/dashboard' :
-                      session.user.role === 'TENANT' ? '/tenant' :
-                      session.user.role === 'AGENT' ? '/agent/dashboard' :
-                      session.user.role === 'ADMIN' ? '/admin' :
-                      session.user.role === 'APPLICANT' ? '/applicant' :
-                      session.user.role === 'TRADESPERSON' ? '/tradesperson' :
-                      session.user.role === 'ACCOUNTANT' ? '/accountant' :
-                      '/dashboard'
-                    }
-                    className="hover:underline font-medium"
-                  >
+                  <Link href={dashboardHref} className="hover:underline font-medium">
                     Dashboard
-                  </a>
+                  </Link>
                 )}
-                <a href="/profile" className="hover:underline font-medium">My profile</a>
+                <Link href="/profile" className="hover:underline font-medium">My profile</Link>
+                <Link href="/messages" className="hover:underline font-medium">Messages</Link>
                 <button onClick={() => signOut({ callbackUrl: '/login' })} className="rounded-md bg-white/10 px-3 py-1.5 text-sm font-semibold hover:bg-white/20">Sign out</button>
               </>
             )}

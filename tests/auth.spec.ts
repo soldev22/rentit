@@ -15,7 +15,7 @@ test('user can register and is redirected to login', async ({ page }) => {
   // Some browsers might be slower (WebKit); wait longer for either the success message or the redirect
   try {
     await page.waitForSelector('text=Registration successful! Please sign in.', { timeout: 20000 });
-  } catch (err) {
+  } catch (_err) {
     await page.waitForURL(/\/login.*registered=1/, { timeout: 20000 });
   }
   await expect(page.getByText('Registration successful! Please sign in.')).toBeVisible();
@@ -73,20 +73,20 @@ test('user can sign in and sign out', async ({ page }) => {
   try {
     await expect(signOutLocator).toBeVisible({ timeout: 5000 });
     found = true;
-  } catch (e) {}
+  } catch (_e) {}
 
   if (!found) {
     try {
       await expect(page.getByRole('link', { name: 'My profile' })).toBeVisible({ timeout: 5000 });
       found = true;
-    } catch (e) {}
+    } catch (_e) {}
   }
 
   if (!found) {
     try {
       await expect(page.getByRole('link', { name: 'Landlord Dashboard' })).toBeVisible({ timeout: 5000 });
       found = true;
-    } catch (e) {}
+    } catch (_e) {}
   }
 
   if (!found) {
@@ -98,7 +98,7 @@ test('user can sign in and sign out', async ({ page }) => {
       await signOutLocator.first().click();
       await expect(page).toHaveURL(/\/login/);
       return;
-    } catch (e) {
+    } catch (_e) {
       // Programmatic fallback: find a button or link with exact text "Sign out" and click it via page.evaluate
       await page.evaluate(() => {
         const el = Array.from(document.querySelectorAll('button, a')).find((n) => n.textContent?.trim() === 'Sign out');

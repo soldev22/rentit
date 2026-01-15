@@ -23,6 +23,13 @@ export default async function LandlordDashboardPage() {
         >
           📋 View Tenancy Applications
         </Link>
+
+        <Link
+          href="/landlord/settings/background-check-criteria"
+          className="ml-3 inline-block bg-white text-slate-800 px-4 py-2 rounded-md border border-slate-300 hover:bg-slate-50 font-medium"
+        >
+          ✅ Background check criteria
+        </Link>
       </div>
 
       <LandlordDashboardSummary landlordId={session.user.id} />

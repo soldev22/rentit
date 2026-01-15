@@ -1,14 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import TenancyApplicationWorkflow from './TenancyApplicationWorkflow';
 
 export default function ApplyButton({
   propertyId,
   propertyTitle,
+  isApplied,
 }: {
   propertyId: string;
   propertyTitle?: string;
+  isApplied?: boolean;
 }) {
   const [message, setMessage] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -51,6 +54,8 @@ export default function ApplyButton({
   }, []);
 
   async function handleApplyClick() {
+    if (isApplied) return;
+
     // If user isn't authenticated, send them to sign-in and come back with apply=1
     if (isAuthenticated === false) {
       const currentUrl = new URL(window.location.href);
@@ -66,11 +71,28 @@ export default function ApplyButton({
 
   return (
     <div>
+      {isApplied ? (
+        <div className="mb-2 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-900">
+          You have already applied for this property.
+          <div className="mt-1">
+            <Link href="/applicant/dashboard" className="font-semibold text-green-800 underline hover:text-green-900">
+              View your application in the dashboard
+            </Link>
+          </div>
+        </div>
+      ) : null}
+
       <button
         onClick={handleApplyClick}
-        className="w-full inline-block text-center rounded-md px-4 py-2 font-semibold bg-indigo-600 text-white hover:bg-indigo-700">
+        disabled={Boolean(isApplied)}
+        className={
+          isApplied
+            ? "w-full inline-block text-center rounded-md px-4 py-2 font-semibold bg-gray-200 text-gray-500 cursor-not-allowed"
+            : "w-full inline-block text-center rounded-md px-4 py-2 font-semibold bg-indigo-600 text-white hover:bg-indigo-700"
+        }
+      >
         {isAuthenticated
-          ? 'Apply for this property'
+          ? (isApplied ? 'Already applied' : 'Apply for this property')
           : 'Sign in or register to apply'}
       </button>
       {message && <div className="mt-2 text-sm text-gray-700">{message}</div>}

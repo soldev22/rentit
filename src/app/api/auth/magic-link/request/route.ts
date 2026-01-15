@@ -19,8 +19,8 @@ export async function POST(req: Request) {
 
   // Generate secure random token
   const rawToken = crypto.randomBytes(32).toString("hex");
-  const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
-  const expiresAt = new Date(Date.now() + 1000 * 60 * 15); // 15 minutes
+  const _tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+  const _expiresAt = new Date(Date.now() + 1000 * 60 * 15); // 15 minutes
 
   // (magicTokens usage removed)
 

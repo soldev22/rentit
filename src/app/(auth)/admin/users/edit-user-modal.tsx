@@ -15,6 +15,7 @@ type EditableUser = {
   name?: string;
   role: string;
   status: string;
+  commsEnabled?: boolean;
   createdAt?: string;
 };
 
@@ -33,6 +34,9 @@ export type EditUserModalProps = {
 export default function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
   const [role, setRole] = useState<RoleOption>(toRoleOption(user.role));
   const [status, setStatus] = useState<StatusOption>(toStatusOption(user.status));
+  const [commsEnabled, setCommsEnabled] = useState<boolean>(
+    typeof user.commsEnabled === "boolean" ? user.commsEnabled : true
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,7 +50,7 @@ export default function EditUserModal({ user, onClose, onSaved }: EditUserModalP
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ role, status }),
+        body: JSON.stringify({ role, status, commsEnabled }),
       });
 
       if (res.status === 401) {
@@ -114,6 +118,20 @@ export default function EditUserModal({ user, onClose, onSaved }: EditUserModalP
               </option>
             ))}
           </select>
+        </div>
+
+        <div className="mb-3">
+          <label className="flex items-center gap-2 text-sm select-none">
+            <input
+              type="checkbox"
+              checked={commsEnabled}
+              onChange={(e) => setCommsEnabled(e.target.checked)}
+            />
+            Enable communications (email/SMS)
+          </label>
+          <div className="text-xs text-gray-500 mt-1">
+            Default is enabled. Disable only if needed for compliance/support.
+          </div>
         </div>
         <div className="flex justify-end gap-2 mt-4">
           <button

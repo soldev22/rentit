@@ -10,6 +10,7 @@ type User = {
   name?: string;
   role: "ADMIN" | "LANDLORD" | "TENANT" | "APPLICANT" | "TRADESPERSON";
   status: "ACTIVE" | "INVITED" | "PAUSED";
+  commsEnabled?: boolean;
   createdAt?: string;
 };
 
@@ -165,6 +166,10 @@ export default function UsersTable({ users }: { users: User[] }) {
                       ...u,
                       role: updated.role as User["role"],
                       status: updated.status as User["status"],
+                      commsEnabled:
+                        typeof (updated as any).commsEnabled === "boolean"
+                          ? (updated as any).commsEnabled
+                          : u.commsEnabled,
                     }
                   : u
               )

@@ -4,6 +4,7 @@ import { ObjectId } from "mongodb";
 export type AuditAction =
   | "USER_REGISTERED"
   | "LOGIN"
+  | "LOGOUT"
   | "ROLE_ASSIGNED"
 
   // Generic activity
@@ -22,6 +23,9 @@ export type AuditAction =
 
   // Property & tenancy
   | "PROPERTY_CREATED"
+  | "VIEWING_SCHEDULED"
+  | "TENANCY_COTENANT_ADDED"
+  | "COMMUNICATION_SENT"
   | "APPLICATION_SUBMITTED"
   | "APPLICATION_DECISION"
   | "TENANCY_STARTED"

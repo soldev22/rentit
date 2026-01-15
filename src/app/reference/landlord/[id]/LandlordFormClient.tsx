@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 
-export default function LandlordFormClient(props: { appId: string; token: string; applicantName: string }) {
-  const { appId, token, applicantName } = props;
+export default function LandlordFormClient(props: { appId: string; token: string; applicantName: string; party?: 'primary' | 'coTenant' }) {
+  const { appId, token, applicantName, party } = props;
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -34,11 +34,14 @@ export default function LandlordFormClient(props: { appId: string; token: string
           };
 
           try {
-            const res = await fetch(`/api/tenancy-applications/${appId}/landlord-reference?token=${encodeURIComponent(token)}`, {
+            const res = await fetch(
+              `/api/tenancy-applications/${appId}/landlord-reference?token=${encodeURIComponent(token)}&party=${encodeURIComponent(party ?? 'primary')}`,
+              {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload),
-            });
+              }
+            );
 
             if (res.ok) {
               window.location.href = '/reference/thanks';

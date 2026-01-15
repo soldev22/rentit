@@ -1,5 +1,5 @@
 import { getCollection } from '@/lib/db';
-import { ObjectId } from 'mongodb';
+import { ObjectId, type WithId } from 'mongodb';
 import PropertyGallery from '@/components/PropertyGallery';
 import ShareButtons from '@/components/ShareButtons';
 import ApplyButton from '@/components/ApplyButton';
@@ -10,6 +10,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getUnifiedApplicationStatusView } from '@/lib/tenancyApplicationStatus';
 import { TENANCY_APPLICATION_STAGE_LABELS } from '@/lib/tenancyApplicationStages';
+import type { TenancyApplication } from '@/lib/tenancy-application';
 
 export const dynamic = 'force-dynamic';
 
@@ -103,6 +104,8 @@ export default async function PropertyDetailPage(
     params: { id: string } | Promise<{ id: string }>;
   }
 ) {
+  const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
   function isPromise<T>(value: T | Promise<T>): value is Promise<T> {
     return typeof (value as Promise<T>)?.then === 'function';
   }
@@ -113,25 +116,45 @@ export default async function PropertyDetailPage(
   // If an applicant is logged in, fetch their most recent application for this property
   // so we can show stage/status at the top of the page.
   const session = await getServerSession(authOptions);
-  let applicantApplication:
-    | (import('@/lib/tenancy-application').TenancyApplication & { _id?: ObjectId })
-    | null = null;
+  let applicantApplication: WithId<TenancyApplication> | null = null;
 
   if (
     session?.user?.role === 'APPLICANT' &&
-    session.user.id &&
-    ObjectId.isValid(session.user.id) &&
-    ObjectId.isValid(id)
+    ObjectId.isValid(id) &&
+    (ObjectId.isValid(session.user.id) || Boolean(session.user.email))
   ) {
     try {
-      const applications = await getCollection('tenancy_applications');
-      applicantApplication = (await applications.findOne(
-        {
-          applicantId: new ObjectId(session.user.id),
-          propertyId: new ObjectId(id),
-        },
+      const applications = await getCollection<TenancyApplication>('tenancy_applications');
+
+      const rawEmail = session.user.email ? String(session.user.email).trim() : null;
+      const emailRegex = rawEmail ? new RegExp(`^${escapeRegex(rawEmail)}$`, 'i') : null;
+
+      // Be tolerant of legacy records where IDs may have been stored as strings.
+      const applicantClauses: Record<string, unknown>[] = [];
+      if (ObjectId.isValid(session.user.id)) {
+        applicantClauses.push({ applicantId: new ObjectId(session.user.id) });
+        applicantClauses.push({ applicantId: session.user.id });
+      }
+      if (emailRegex) {
+        applicantClauses.push({ applicantEmail: emailRegex });
+        applicantClauses.push({ 'coTenant.email': emailRegex });
+      }
+
+      const propertyClauses: Record<string, unknown>[] = [
+        { propertyId: new ObjectId(id) },
+        { propertyId: id },
+      ];
+
+      applicantApplication = await applications.findOne(
+        applicantClauses.length
+          ? {
+              $and: [{ $or: applicantClauses }, { $or: propertyClauses }],
+            }
+          : {
+              $or: propertyClauses,
+            },
         { sort: { createdAt: -1 } }
-      )) as any;
+      );
     } catch (err) {
       console.error('Error fetching applicant application for property:', err);
       applicantApplication = null;
@@ -160,7 +183,36 @@ export default async function PropertyDetailPage(
       {applicantApplication ? (() => {
         const unified = getUnifiedApplicationStatusView(applicantApplication);
         const stageLabel = TENANCY_APPLICATION_STAGE_LABELS[applicantApplication.currentStage];
-        const statusText = applicantApplication.status.replace(/_/g, ' ');
+
+        const landlordDecisionStatus = applicantApplication.stage2?.landlordDecision?.status;
+        const primaryCheck = applicantApplication.stage2?.creditCheck;
+        const coCheck = applicantApplication.coTenant ? applicantApplication.stage2?.coTenant?.creditCheck : undefined;
+        const primaryFailed = Boolean(primaryCheck && (primaryCheck.status === 'failed' || primaryCheck.passed === false));
+        const coFailed = Boolean(coCheck && (coCheck.status === 'failed' || coCheck.passed === false));
+        const hasAnyCreditFailure = primaryFailed || coFailed;
+
+        const overallStatusLabel = (() => {
+          if (landlordDecisionStatus === 'fail') return "Can’t proceed";
+
+          // Only treat legacy 'rejected' as terminal if there is an active failure.
+          if (applicantApplication.status === 'rejected' && hasAnyCreditFailure) return "Can’t proceed";
+          if (applicantApplication.status === 'refused') return "Can’t proceed";
+          if (applicantApplication.status === 'cancelled') return "Cancelled";
+          if (applicantApplication.status === 'completed') return "Completed";
+          if (applicantApplication.status === 'accepted') return "Accepted";
+          if (applicantApplication.status === 'approved') return "Approved";
+
+          return "In progress";
+        })();
+
+        const viewingAgreed =
+          applicantApplication.stage1?.status === 'agreed' ||
+          Boolean(applicantApplication.stage1?.agreedAt) ||
+          Boolean(applicantApplication.stage1?.viewingDetails?.date);
+        const hasCoTenant = Boolean(applicantApplication.coTenant);
+        const showAddCoTenantCta = !hasCoTenant;
+        const canAddCoTenant = viewingAgreed && showAddCoTenantCta;
+        const applicantApplicationId = applicantApplication._id ? applicantApplication._id.toString() : null;
 
         return (
           <section className="mb-6 rounded-xl border border-green-200 bg-green-50 p-4" aria-label="Your application status">
@@ -168,7 +220,7 @@ export default async function PropertyDetailPage(
               <div>
                 <div className="text-lg font-bold text-green-900">Your application</div>
                 <div className="mt-1 text-lg font-bold text-green-900">
-                  <span className="font-bold capitalize">{statusText}</span>
+                  <span className="font-bold">{overallStatusLabel}</span>
                   <span className="mx-2 text-green-700">•</span>
                   <span className="font-bold">Stage {applicantApplication.currentStage}</span>: {stageLabel}
                 </div>
@@ -177,13 +229,43 @@ export default async function PropertyDetailPage(
                 </div>
               </div>
 
-              <Link
-                href="/applicant/dashboard"
-                className="inline-flex items-center rounded-md bg-green-700 px-3 py-2 text-sm font-semibold text-white hover:bg-green-800"
-              >
-                View in dashboard
-              </Link>
+              <div className="flex flex-wrap items-center gap-2">
+                {showAddCoTenantCta && applicantApplicationId ? (
+                  canAddCoTenant ? (
+                    <Link
+                      href={`/application/co-tenant/${applicantApplicationId}`}
+                      className="inline-flex items-center rounded-md bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+                    >
+                      Add co-tenant
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="inline-flex items-center rounded-md bg-gray-200 px-3 py-2 text-sm font-semibold text-gray-500 cursor-not-allowed"
+                      title="Available after the viewing is agreed"
+                    >
+                      Add co-tenant
+                    </button>
+                  )
+                ) : null}
+
+                <Link
+                  href="/applicant/dashboard"
+                  className="inline-flex items-center rounded-md bg-green-700 px-3 py-2 text-sm font-semibold text-white hover:bg-green-800"
+                >
+                  View in dashboard
+                </Link>
+              </div>
             </div>
+
+            {showAddCoTenantCta ? (
+              <div className="mt-2 text-xs text-green-900">
+                {canAddCoTenant
+                  ? 'You can add a second applicant (max 2 signatories).'
+                  : 'You can add a second applicant once the viewing is agreed.'}
+              </div>
+            ) : null}
           </section>
         );
       })() : null}
@@ -229,6 +311,7 @@ export default async function PropertyDetailPage(
             <ApplyButton 
               propertyId={property._id} 
               propertyTitle={property.title}
+              isApplied={Boolean(applicantApplication)}
             />
           </div>
 

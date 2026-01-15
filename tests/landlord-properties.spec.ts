@@ -172,7 +172,7 @@ test('landlord can create, edit, and delete property', async ({ page, context })
         (r) => r.request().method() === 'PUT' && r.url().includes('/api/landlord/properties/'),
         { timeout: 15000 }
       );
-    } catch (waitErr) {
+    } catch (_waitErr) {
       throw new Error('Timed out waiting for PUT response after clicking Save; the page may have reloaded or the request did not complete in time');
     }
 
@@ -180,7 +180,7 @@ test('landlord can create, edit, and delete property', async ({ page, context })
     try {
       const maybeBody = await putResp.json().catch(() => null);
       await fs.promises.writeFile(`test-results/debug-put-body-${Date.now()}.json`, JSON.stringify(maybeBody, null, 2));
-    } catch (e) {
+    } catch (_e) {
       // ignore
     }
 
@@ -214,7 +214,7 @@ test('landlord can create, edit, and delete property', async ({ page, context })
     await authPage.waitForTimeout(200);
     try {
       await delButton.click({ force: true });
-    } catch (clickErr) {
+    } catch (_clickErr) {
       const handle = await delButton.elementHandle();
       if (handle) await authPage.evaluate((el) => (el as HTMLElement).click(), handle);
       else throw new Error('Failed to click Delete button (force and JS click all failed)');
@@ -223,7 +223,7 @@ test('landlord can create, edit, and delete property', async ({ page, context })
     let delResp: any = null;
     try {
       delResp = await authPage.waitForResponse((r) => r.request().method() === 'DELETE' && r.url().includes('/api/landlord/properties/'), { timeout: 15000 });
-    } catch (err) {
+    } catch (_err) {
       throw new Error('Timed out waiting for DELETE response after clicking Delete');
     }
 
@@ -257,7 +257,7 @@ test('landlord can create, edit, and delete property', async ({ page, context })
     // Clean up the created context (ignore errors if already closed)
     try {
       if (authContext) await authContext.close();
-    } catch (e) {
+    } catch (_e) {
       // ignore
     }
   }

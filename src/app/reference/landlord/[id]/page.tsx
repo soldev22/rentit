@@ -1,12 +1,22 @@
 import { getTenancyApplicationById, TenancyApplication } from '@/lib/tenancy-application';
 import LandlordFormClient from './LandlordFormClient';
 
-async function verifyLandlordToken(appId: string, token?: string): Promise<TenancyApplication | null> {
+function getPartyFromSearchParam(party?: string): 'primary' | 'coTenant' {
+  return party === 'coTenant' ? 'coTenant' : 'primary';
+}
+
+async function verifyLandlordTokenForParty(
+  appId: string,
+  token?: string,
+  party: 'primary' | 'coTenant' = 'primary'
+): Promise<TenancyApplication | null> {
   if (!token) return null;
   const doc = await getTenancyApplicationById(appId);
   if (!doc) return null;
   const app = doc as TenancyApplication;
-  const reference = app.stage2?.previousLandlordReference;
+  const reference = party === 'coTenant'
+    ? app.stage2?.coTenant?.previousLandlordReference
+    : app.stage2?.previousLandlordReference;
   if (!reference?.token || reference.token !== token) return null;
   if (reference.tokenUsed) return null;
   if (reference.tokenExpiresAt && new Date(reference.tokenExpiresAt) < new Date()) return null;
@@ -15,14 +25,15 @@ async function verifyLandlordToken(appId: string, token?: string): Promise<Tenan
 
 export default async function PreviousLandlordReferencePage(props: {
   params: { id: string } | Promise<{ id: string }>;
-  searchParams: { token?: string } | Promise<{ token?: string }>;
+  searchParams: { token?: string; party?: string } | Promise<{ token?: string; party?: string }>;
 }) {
   const params = props.params instanceof Promise ? await props.params : props.params;
   const searchParams = props.searchParams instanceof Promise ? await props.searchParams : props.searchParams;
   const { id } = params;
-  const { token } = searchParams;
+  const { token, party } = searchParams;
+  const partyKey = getPartyFromSearchParam(party);
 
-  const application = await verifyLandlordToken(id, token);
+  const application = await verifyLandlordTokenForParty(id, token, partyKey);
   if (!application) {
     return (
       <div className="max-w-lg mx-auto mt-20 p-8 bg-white rounded shadow text-center">
@@ -32,5 +43,6 @@ export default async function PreviousLandlordReferencePage(props: {
     );
   }
 
-  return <LandlordFormClient appId={id} token={token ?? ''} applicantName={application.applicantName} />;
+  const displayName = partyKey === 'coTenant' ? (application.coTenant?.name ?? 'Co-tenant') : application.applicantName;
+  return <LandlordFormClient appId={id} token={token ?? ''} applicantName={displayName} party={partyKey} />;
 }

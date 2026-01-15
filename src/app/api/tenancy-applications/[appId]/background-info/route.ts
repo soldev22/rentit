@@ -21,13 +21,19 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
   // Token validation (single-use, expiry)
   const url = new URL(req.url);
   const token = url.searchParams.get("token");
-  if (!token || application.stage2?.token !== token) {
+  const partyRaw = url.searchParams.get('party');
+  const party: 'primary' | 'coTenant' = partyRaw === 'coTenant' ? 'coTenant' : 'primary';
+
+  const stage2 = application.stage2;
+  const partyStage2 = party === 'coTenant' ? stage2?.coTenant : stage2;
+
+  if (!token || partyStage2?.token !== token) {
     return NextResponse.json({ error: "Invalid or expired token" }, { status: 403 });
   }
-  if (application.stage2?.tokenUsed) {
+  if (partyStage2?.tokenUsed) {
     return NextResponse.json({ error: "Token already used" }, { status: 403 });
   }
-  if (application.stage2?.tokenExpiresAt && new Date(application.stage2.tokenExpiresAt) < new Date()) {
+  if (partyStage2?.tokenExpiresAt && new Date(partyStage2.tokenExpiresAt) < new Date()) {
     return NextResponse.json({ error: "Token expired" }, { status: 403 });
   }
 
@@ -57,18 +63,18 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.BASE_URL || "http://localhost:3000";
   if (!employmentStatus || !monthlyIncome || !creditConsent || !photoIdFrontFile || typeof photoIdFrontFile === "string") {
     const errorMsg = encodeURIComponent("Missing required fields");
-    return NextResponse.redirect(`${baseUrl}/application/complete/${appId}?token=${encodeURIComponent(token ?? "")}&error=${errorMsg}`, 303);
+    return NextResponse.redirect(`${baseUrl}/application/complete/${appId}?token=${encodeURIComponent(token ?? "")}&party=${encodeURIComponent(party)}&error=${errorMsg}`, 303);
   }
 
   // Validate front file
   const fileFront = photoIdFrontFile as File;
   if (fileFront.size > MAX_FILE_SIZE) {
     const errorMsg = encodeURIComponent("Front of photo ID is too large (max 5MB)");
-    return NextResponse.redirect(`${baseUrl}/application/complete/${appId}?token=${encodeURIComponent(token ?? "")}&error=${errorMsg}`, 303);
+    return NextResponse.redirect(`${baseUrl}/application/complete/${appId}?token=${encodeURIComponent(token ?? "")}&party=${encodeURIComponent(party)}&error=${errorMsg}`, 303);
   }
   if (!ALLOWED_MIME_TYPES.includes(fileFront.type)) {
     const errorMsg = encodeURIComponent("Invalid file type for front of photo ID. Only JPEG, PNG, or PDF allowed.");
-    return NextResponse.redirect(`${baseUrl}/application/complete/${appId}?token=${encodeURIComponent(token ?? "")}&error=${errorMsg}`, 303);
+    return NextResponse.redirect(`${baseUrl}/application/complete/${appId}?token=${encodeURIComponent(token ?? "")}&party=${encodeURIComponent(party)}&error=${errorMsg}`, 303);
   }
 
   // Validate back file if present
@@ -77,11 +83,11 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
     fileBack = photoIdBackFile as File;
     if (fileBack.size > MAX_FILE_SIZE) {
       const errorMsg = encodeURIComponent("Back of photo ID is too large (max 5MB)");
-      return NextResponse.redirect(`${baseUrl}/application/complete/${appId}?token=${encodeURIComponent(token ?? "")}&error=${errorMsg}`, 303);
+      return NextResponse.redirect(`${baseUrl}/application/complete/${appId}?token=${encodeURIComponent(token ?? "")}&party=${encodeURIComponent(party)}&error=${errorMsg}`, 303);
     }
     if (!ALLOWED_MIME_TYPES.includes(fileBack.type)) {
       const errorMsg = encodeURIComponent("Invalid file type for back of photo ID. Only JPEG, PNG, or PDF allowed.");
-      return NextResponse.redirect(`${baseUrl}/application/complete/${appId}?token=${encodeURIComponent(token ?? "")}&error=${errorMsg}`, 303);
+      return NextResponse.redirect(`${baseUrl}/application/complete/${appId}?token=${encodeURIComponent(token ?? "")}&party=${encodeURIComponent(party)}&error=${errorMsg}`, 303);
     }
   }
 
@@ -104,31 +110,60 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
     await fs.writeFile(filePathBack, Buffer.from(arrayBufferBack));
   }
 
+  const submittedAt = new Date().toISOString();
+  const backgroundInfo = {
+    employmentStatus,
+    employerName,
+    employerEmail: employerEmail || undefined,
+    previousEmployerName: previousEmployerName || undefined,
+    previousEmployerEmail: previousEmployerEmail || undefined,
+    employmentContractType: employmentContractType || undefined,
+    jobTitle,
+    monthlyIncome,
+    employmentLength,
+    prevLandlordName,
+    prevLandlordContact,
+    prevLandlordEmail: prevLandlordEmail || undefined,
+    creditConsent,
+    photoIdFrontFile: `/uploads/${fileNameFront}`,
+    photoIdBackFile: fileNameBack ? `/uploads/${fileNameBack}` : undefined,
+    submittedAt,
+  };
+
+  const nextStage2 = {
+    ...application.stage2,
+    ...(party === 'primary'
+      ? {
+          backgroundInfo,
+          tokenUsed: true,
+        }
+      : {
+          coTenant: {
+            ...(application.stage2?.coTenant ?? {
+              status: 'agreed',
+              creditCheckConsent: false,
+              socialMediaConsent: false,
+              landlordReferenceConsent: false,
+              employerReferenceConsent: false,
+              creditCheck: { status: 'not_started' },
+            }),
+            backgroundInfo,
+            tokenUsed: true,
+          },
+        }),
+  };
+
+  const primaryComplete = Boolean(nextStage2.backgroundInfo?.submittedAt);
+  const coTenantRequired = Boolean(application.coTenant);
+  const coTenantComplete = !coTenantRequired ? true : Boolean(nextStage2.coTenant?.backgroundInfo?.submittedAt);
+  const allComplete = primaryComplete && coTenantComplete;
+
   await updateTenancyApplication(appId, {
     stage2: {
-      ...application.stage2,
-      backgroundInfo: {
-        employmentStatus,
-        employerName,
-        employerEmail: employerEmail || undefined,
-        previousEmployerName: previousEmployerName || undefined,
-        previousEmployerEmail: previousEmployerEmail || undefined,
-        employmentContractType: employmentContractType || undefined,
-        jobTitle,
-        monthlyIncome,
-        employmentLength,
-        prevLandlordName,
-        prevLandlordContact,
-        prevLandlordEmail: prevLandlordEmail || undefined,
-        creditConsent,
-        photoIdFrontFile: `/uploads/${fileNameFront}`,
-        photoIdBackFile: fileNameBack ? `/uploads/${fileNameBack}` : undefined,
-        submittedAt: new Date().toISOString(),
-      },
-      status: 'complete',
-      tokenUsed: true,
+      ...nextStage2,
+      status: allComplete ? 'complete' : String(nextStage2.status) === 'declined' ? 'declined' : 'agreed',
     },
-    currentStage: 3,
+    currentStage: allComplete ? 3 : (application.currentStage ?? 2),
   });
 
   return NextResponse.redirect(`${baseUrl}/application/complete/${appId}?submitted=1`, 303);

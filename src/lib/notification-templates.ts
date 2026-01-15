@@ -25,7 +25,7 @@ export class NotificationTemplates {
   static viewingDeclined(propertyTitle: string): NotificationTemplate {
     return {
       subject: 'Viewing Request Update',
-      message: `Your viewing request for ${propertyTitle} has been declined. Please contact the landlord for more information.`
+      message: `We can't proceed with your viewing request for ${propertyTitle} at this time. Please contact the landlord for more information.`
     };
   }
 
@@ -39,7 +39,7 @@ export class NotificationTemplates {
   static backgroundChecksDeclined(propertyTitle: string): NotificationTemplate {
     return {
       subject: 'Application Update',
-      message: `Your application for ${propertyTitle} has been declined during background checks. Please contact the landlord for more information.`
+      message: `We can't proceed with your application for ${propertyTitle} at this time. Please contact the landlord for more information.`
     };
   }
 

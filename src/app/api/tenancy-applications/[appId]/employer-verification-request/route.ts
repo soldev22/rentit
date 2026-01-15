@@ -28,8 +28,18 @@ async function requestEmployerVerification(req: NextRequest, context: { params: 
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  let employerEmail = application.stage2?.referenceContacts?.employerEmail || application.stage2?.backgroundInfo?.employerEmail;
-  if (!employerEmail && application.applicantId) {
+  const url = new URL(req.url);
+  const partyRaw = url.searchParams.get('party');
+  const party: 'primary' | 'coTenant' = partyRaw === 'coTenant' ? 'coTenant' : 'primary';
+
+  if (party === 'coTenant' && !application.coTenant) {
+    return NextResponse.json({ error: 'No co-tenant has been added to this application.' }, { status: 400 });
+  }
+
+  const tenantStage2 = party === 'coTenant' ? application.stage2?.coTenant : application.stage2;
+
+  let employerEmail = tenantStage2?.referenceContacts?.employerEmail || tenantStage2?.backgroundInfo?.employerEmail;
+  if (!employerEmail && party === 'primary' && application.applicantId) {
     const users = await getCollection('users');
     const user = await users.findOne(
       { _id: application.applicantId },
@@ -53,18 +63,40 @@ async function requestEmployerVerification(req: NextRequest, context: { params: 
   await updateTenancyApplication(appId, {
     stage2: {
       ...application.stage2,
-      employerVerification: {
-        status: 'requested',
-        requestedAt,
-        token,
-        tokenUsed: false,
-        tokenExpiresAt,
-      },
+      ...(party === 'primary'
+        ? {
+            employerVerification: {
+              status: 'requested',
+              requestedAt,
+              token,
+              tokenUsed: false,
+              tokenExpiresAt,
+            },
+          }
+        : {
+            coTenant: {
+              ...(application.stage2?.coTenant ?? {
+                status: 'agreed',
+                creditCheckConsent: false,
+                socialMediaConsent: false,
+                landlordReferenceConsent: false,
+                employerReferenceConsent: false,
+                creditCheck: { status: 'not_started' },
+              }),
+              employerVerification: {
+                status: 'requested',
+                requestedAt,
+                token,
+                tokenUsed: false,
+                tokenExpiresAt,
+              },
+            },
+          }),
     },
   });
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.BASE_URL || 'http://localhost:3000';
-  const link = `${baseUrl}/reference/employer/${appId}?token=${encodeURIComponent(token)}`;
+  const link = `${baseUrl}/reference/employer/${appId}?token=${encodeURIComponent(token)}&party=${encodeURIComponent(party)}`;
 
   const subject = 'Employment Verification Request';
   const message =
@@ -77,7 +109,7 @@ async function requestEmployerVerification(req: NextRequest, context: { params: 
 
   const ok = await notificationService.sendNotification({ to: employerEmail, subject, message, method: 'email' });
 
-  return NextResponse.json({ ok: true, emailed: ok, to: employerEmail, requestedAt, link });
+  return NextResponse.json({ ok: true, emailed: ok, to: employerEmail, requestedAt, link, party });
 }
 
 export const POST = withApiAudit(requestEmployerVerification);

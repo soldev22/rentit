@@ -21,7 +21,7 @@ export default function IssueHistoryList({ history, variant = "manager" }: Issue
 
   return (
     <ul className={variant === "tenant" ? "space-y-1" : "space-y-1"}>
-      {[...history].reverse().map((item, index, arr) => (
+      {[...history].reverse().map((item, index) => (
         <li
           key={index}
           className={

@@ -6,7 +6,8 @@ import { getTenancyApplicationById, TenancyApplication } from "@/lib/tenancy-app
  */
 async function verifyToken(
   appId: string,
-  token?: string
+  token?: string,
+  party: 'primary' | 'coTenant' = 'primary'
 ): Promise<TenancyApplication | null> {
   if (!token) return null;
 
@@ -16,21 +17,24 @@ async function verifyToken(
   // Cast the result to TenancyApplication (we trust the DB shape)
   const application = applicationDoc as TenancyApplication;
 
-  // The token is stored in stage2.token
-  if (application.stage2?.token !== token) return null;
+  const stage2 = application.stage2;
+  const partyStage2 = party === 'coTenant' ? stage2?.coTenant : stage2;
+  const storedToken = partyStage2?.token;
+  if (!storedToken || storedToken !== token) return null;
 
   return application;
 }
 
 export default async function ApplicationCompletePage(props: {
   params: { id: string } | Promise<{ id: string }>;
-  searchParams: { token?: string; submitted?: string } | Promise<{ token?: string; submitted?: string }>;
+  searchParams: { token?: string; submitted?: string; party?: string } | Promise<{ token?: string; submitted?: string; party?: string }>;
 }) {
   // Unwrap params and searchParams if they are Promises (per Next.js App Router requirements)
   const params = props.params instanceof Promise ? await props.params : props.params;
   const searchParams = props.searchParams instanceof Promise ? await props.searchParams : props.searchParams;
   const { id } = params;
-  const { token, submitted, error } = searchParams as typeof searchParams & { error?: string };
+  const { token, submitted, error, party } = searchParams as typeof searchParams & { error?: string };
+  const partyKey: 'primary' | 'coTenant' = party === 'coTenant' ? 'coTenant' : 'primary';
 
   // Thank-you state after successful submission
   if (submitted === "1") {
@@ -46,7 +50,7 @@ export default async function ApplicationCompletePage(props: {
     );
   }
 
-  const application = await verifyToken(id, token);
+  const application = await verifyToken(id, token, partyKey);
 
   // Invalid or expired token
   if (!application) {
@@ -63,8 +67,11 @@ export default async function ApplicationCompletePage(props: {
     );
   }
 
+  const stage2 = application.stage2;
+  const partyStage2 = partyKey === 'coTenant' ? stage2?.coTenant : stage2;
+
   // Block the form if the token has already been used
-  if (application.stage2?.tokenUsed) {
+  if (partyStage2?.tokenUsed) {
     return (
       <div className="max-w-lg mx-auto mt-20 p-8 bg-white rounded shadow text-center">
         <h2 className="text-2xl font-bold mb-4 text-yellow-700">
@@ -82,7 +89,7 @@ export default async function ApplicationCompletePage(props: {
     <div className="max-w-lg mx-auto mt-20 p-8 bg-white rounded shadow">
       <h2 className="text-2xl font-bold mb-4">Complete Your Application</h2>
       <p className="mb-4 text-gray-700">
-        Welcome, {application.applicantName}. Please provide the required
+        Welcome, {partyKey === 'coTenant' ? (application.coTenant?.name ?? 'co-tenant') : application.applicantName}. Please provide the required
         background information to continue your application for this property.
       </p>
 
@@ -95,7 +102,7 @@ export default async function ApplicationCompletePage(props: {
 
       <form
         className="space-y-4"
-        action={`/api/tenancy-applications/${application._id}/background-info?token=${encodeURIComponent(token ?? "")}`}
+        action={`/api/tenancy-applications/${application._id}/background-info?token=${encodeURIComponent(token ?? "")}&party=${encodeURIComponent(partyKey)}`}
         method="POST"
         encType="multipart/form-data"
       >
