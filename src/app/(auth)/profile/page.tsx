@@ -15,6 +15,7 @@ export default function ProfilePage() {
 
   const [profile, setProfile] = useState({
     phone: "",
+    companyName: "",
     addressLine1: "",
     addressLine2: "",
     city: "",
@@ -58,6 +59,7 @@ export default function ProfilePage() {
 
         setProfile({
           phone: data.profile?.phone ?? "",
+          companyName: data.profile?.companyName ?? data.profile?.brandName ?? "",
           addressLine1: data.profile?.address?.line1 ?? "",
           addressLine2: data.profile?.address?.line2 ?? "",
           city: data.profile?.address?.city ?? "",
@@ -100,6 +102,7 @@ export default function ProfilePage() {
           name,
           profile: {
             phone: profile.phone,
+              companyName: profile.companyName,
             address: {
               line1: profile.addressLine1,
               line2: profile.addressLine2,
@@ -209,6 +212,24 @@ export default function ProfilePage() {
                 onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
                 className={inputClass}
               />
+            </div>
+
+            <div>
+              <label className={labelClass} htmlFor="companyName">
+                Company / brand name <span className="text-slate-400">(optional)</span>
+              </label>
+              <input
+                id="companyName"
+                type="text"
+                value={profile.companyName}
+                autoComplete="organization"
+                placeholder="e.g. Example Properties"
+                onChange={(e) => setProfile({ ...profile, companyName: e.target.value })}
+                className={inputClass}
+              />
+              <p className={helpClass}>
+                Used to auto-fill letter templates (e.g. [COMPANY / BRAND NAME]).
+              </p>
             </div>
           </div>
         </section>

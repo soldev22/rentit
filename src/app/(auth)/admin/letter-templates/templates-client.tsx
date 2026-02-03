@@ -29,6 +29,101 @@ function normalizeKind(input: string): string {
   return input.trim().toUpperCase().replace(/[^A-Z0-9_]/g, "_").replace(/_+/g, "_");
 }
 
+function extractPlaceholders(template: string): string[] {
+  const found = new Set<string>();
+  const re = /\{\{\s*([A-Z0-9_]+)\s*\}\}/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(template))) {
+    const key = m[1];
+    if (key) found.add(key);
+  }
+
+  const reBracket = /\[\s*([^\]]+?)\s*\]/g;
+  while ((m = reBracket.exec(template))) {
+    const raw = (m[1] || "").trim();
+    const norm = raw
+      .toUpperCase()
+      .replace(/\s*\/\s*/g, "_")
+      .replace(/\s+/g, "_")
+      .replace(/[^A-Z0-9_]/g, "");
+
+    // Map common human placeholders into our canonical keys.
+    if (norm === "APPLICANT_NAME") found.add("APPLICANT_NAME");
+    else if (norm === "PROPERTY_ADDRESS" || norm === "PROPERTY_LABEL") found.add("PROPERTY_LABEL");
+    else if (norm === "DATE_TIME" || norm === "DATETIME") found.add("DATE_TIME");
+    else if (norm === "APPLICATION_LINK") found.add("APPLICATION_LINK");
+    else if (norm === "YOUR_NAME" || norm === "LANDLORD_NAME") found.add("LANDLORD_NAME");
+    else if (norm === "COMPANY_BRAND_NAME" || norm === "COMPANY_NAME" || norm === "BRAND_NAME") found.add("LANDLORD_COMPANY");
+    else if (norm === "PHONE_NUMBER" || norm === "PHONE" || norm === "TEL") found.add("LANDLORD_PHONE");
+    else if (norm === "EMAIL" || norm === "EMAIL_ADDRESS") found.add("LANDLORD_EMAIL");
+  }
+
+  return Array.from(found).sort();
+}
+
+function applyTemplate(template: string, vars: Record<string, string>): string {
+  let out = template;
+  for (const [key, value] of Object.entries(vars)) {
+    out = out.replace(new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, "g"), value);
+  }
+
+  if (vars.APPLICANT_NAME) out = out.replace(/\[\s*APPLICANT\s+NAME\s*\]/gi, vars.APPLICANT_NAME);
+  if (vars.PROPERTY_LABEL) {
+    out = out.replace(/\[\s*PROPERTY\s+ADDRESS\s*\]/gi, vars.PROPERTY_LABEL);
+    out = out.replace(/\[\s*PROPERTY\s+LABEL\s*\]/gi, vars.PROPERTY_LABEL);
+  }
+  if (vars.DATE_TIME || vars.DATE) out = out.replace(/\[\s*DATE\s*\/\s*TIME\s*\]/gi, vars.DATE_TIME || vars.DATE);
+  if (vars.APPLICATION_LINK) out = out.replace(/\[\s*APPLICATION\s+LINK\s*\]/gi, vars.APPLICATION_LINK);
+
+  if (vars.LANDLORD_NAME) {
+    out = out.replace(/\[\s*YOUR\s+NAME\s*\]/gi, vars.LANDLORD_NAME);
+    out = out.replace(/\[\s*LANDLORD\s+NAME\s*\]/gi, vars.LANDLORD_NAME);
+  }
+  if (vars.LANDLORD_COMPANY) {
+    out = out.replace(/\[\s*COMPANY\s*\/\s*BRAND\s+NAME\s*\]/gi, vars.LANDLORD_COMPANY);
+    out = out.replace(/\[\s*COMPANY\s+NAME\s*\]/gi, vars.LANDLORD_COMPANY);
+    out = out.replace(/\[\s*BRAND\s+NAME\s*\]/gi, vars.LANDLORD_COMPANY);
+  }
+  if (vars.LANDLORD_PHONE) {
+    out = out.replace(/\[\s*PHONE\s+NUMBER\s*\]/gi, vars.LANDLORD_PHONE);
+    out = out.replace(/\[\s*PHONE\s*\]/gi, vars.LANDLORD_PHONE);
+    out = out.replace(/\[\s*TEL\s*\]/gi, vars.LANDLORD_PHONE);
+  }
+  if (vars.LANDLORD_EMAIL) {
+    out = out.replace(/\[\s*EMAIL\s+ADDRESS\s*\]/gi, vars.LANDLORD_EMAIL);
+    out = out.replace(/\[\s*EMAIL\s*\]/gi, vars.LANDLORD_EMAIL);
+  }
+
+  return out;
+}
+
+function getDefaultSampleValue(key: string): string {
+  switch (key) {
+    case "DATE":
+      return new Date().toLocaleDateString("en-GB");
+    case "DATE_TIME":
+      return new Date().toLocaleString("en-GB");
+    case "APPLICANT_NAME":
+      return "Jane Doe";
+    case "PROPERTY_LABEL":
+      return "Flat 12, Example Street, London";
+    case "APPLICATION_LINK":
+      return "http://localhost:3000/applicant/dashboard";
+    case "DASHBOARD_LINK":
+      return "http://localhost:3000/applicant/dashboard";
+    case "LANDLORD_NAME":
+      return "Alex Landlord";
+    case "LANDLORD_COMPANY":
+      return "Example Properties";
+    case "LANDLORD_PHONE":
+      return "+44 7700 900000";
+    case "LANDLORD_EMAIL":
+      return "alex@example.com";
+    default:
+      return "";
+  }
+}
+
 export default function AdminLetterTemplatesClient() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
@@ -48,6 +143,9 @@ export default function AdminLetterTemplatesClient() {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [preview, setPreview] = useState<string>("");
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewPlaceholders, setPreviewPlaceholders] = useState<string[]>([]);
+  const [previewVars, setPreviewVars] = useState<Record<string, string>>({});
+  const [showRawPreview, setShowRawPreview] = useState(false);
 
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -164,7 +262,7 @@ export default function AdminLetterTemplatesClient() {
   function applyNewKind() {
     const nk = normalizeKind(newKind);
     if (!nk) {
-      setError("Kind is required");
+      setError("Template type is required");
       return;
     }
     setError(null);
@@ -183,10 +281,27 @@ export default function AdminLetterTemplatesClient() {
       const res = await fetch(`/api/admin/letter-templates/${encodeURIComponent(templateId)}`, { cache: "no-store" });
       const payload = await res.json().catch(() => null);
       if (!res.ok) throw new Error(payload?.error ?? "Failed to load preview");
-      setPreview(typeof payload?.text === "string" ? payload.text : "");
+      const text = typeof payload?.text === "string" ? payload.text : "";
+      setPreview(text);
+
+      const keys = extractPlaceholders(text);
+      setPreviewPlaceholders(keys);
+      setPreviewVars((prev) => {
+        const next: Record<string, string> = { ...prev };
+        for (const key of keys) {
+          if (typeof next[key] !== "string") next[key] = getDefaultSampleValue(key);
+        }
+        // prune removed keys
+        for (const k of Object.keys(next)) {
+          if (!keys.includes(k)) delete next[k];
+        }
+        return next;
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load preview");
       setPreview("");
+      setPreviewPlaceholders([]);
+      setPreviewVars({});
     } finally {
       setPreviewLoading(false);
     }
@@ -236,7 +351,7 @@ export default function AdminLetterTemplatesClient() {
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <div className="text-xs font-semibold text-slate-700">Template kind</div>
+            <div className="text-xs font-semibold text-slate-700">Template type</div>
             <select
               value={kind}
               onChange={(e) => {
@@ -248,8 +363,8 @@ export default function AdminLetterTemplatesClient() {
               }}
               className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               disabled={busy}
-              aria-label="Template kind"
-              title="Template kind"
+              aria-label="Template type"
+              title="Template type"
             >
               <option value="TENANCY_PROCEED_LETTER">TENANCY_PROCEED_LETTER</option>
               {kinds
@@ -261,7 +376,7 @@ export default function AdminLetterTemplatesClient() {
                   </option>
                 ))}
             </select>
-            <div className="mt-1 text-xs text-slate-500">Active template is tracked per kind.</div>
+            <div className="mt-1 text-xs text-slate-500">Active template is tracked per template type.</div>
           </div>
 
           <div>
@@ -283,11 +398,11 @@ export default function AdminLetterTemplatesClient() {
               <option value="email">Email</option>
               <option value="sms">Text (SMS)</option>
             </select>
-            <div className="mt-1 text-xs text-slate-500">Each kind has an active Email template and an active SMS template.</div>
+            <div className="mt-1 text-xs text-slate-500">Each template type has an active Email template and an active SMS template.</div>
           </div>
 
           <div className="sm:col-span-1">
-            <div className="text-xs font-semibold text-slate-700">Create / switch to new kind</div>
+            <div className="text-xs font-semibold text-slate-700">Create / switch to new template type</div>
             <div className="mt-1 flex gap-2">
               <input
                 value={newKind}
@@ -301,7 +416,7 @@ export default function AdminLetterTemplatesClient() {
                 disabled={busy}
                 className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-50"
               >
-                Use kind
+                Use type
               </button>
             </div>
           </div>
@@ -336,7 +451,7 @@ export default function AdminLetterTemplatesClient() {
         <div className="text-sm font-semibold text-slate-900">Upload a new template</div>
 
         <div className="text-xs text-slate-500">
-          Uploading for kind <span className="font-semibold text-slate-700">{kind}</span> and channel <span className="font-semibold text-slate-700">{channel.toUpperCase()}</span>.
+          Uploading for template type <span className="font-semibold text-slate-700">{kind}</span> and channel <span className="font-semibold text-slate-700">{channel.toUpperCase()}</span>.
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -429,11 +544,52 @@ export default function AdminLetterTemplatesClient() {
                   {selectedTemplateId === t.id ? (
                     <div className="mt-3">
                       <div className="text-xs font-semibold text-slate-700">Preview</div>
-                      <pre className="mt-1 max-h-64 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-800 whitespace-pre-wrap">
-                        {previewLoading ? "Loading preview…" : preview || "(empty)"}
+                      {previewPlaceholders.length > 0 ? (
+                        <div className="mt-2 rounded-lg border border-slate-200 bg-white p-3">
+                          <div className="text-xs font-semibold text-slate-700">Sample values (used to replace placeholders)</div>
+                          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {previewPlaceholders.map((key) => (
+                              <label key={key} className="block">
+                                <div className="text-[11px] font-semibold text-slate-600">{`{{${key}}}`}</div>
+                                <input
+                                  value={previewVars[key] ?? ""}
+                                  onChange={(e) => setPreviewVars((prev) => ({ ...prev, [key]: e.target.value }))}
+                                  className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1 text-xs"
+                                  disabled={busy}
+                                  aria-label={`Sample value for ${key}`}
+                                />
+                              </label>
+                            ))}
+                          </div>
+
+                          <div className="mt-3 flex items-center justify-between gap-3">
+                            <div className="text-xs text-slate-600">
+                              Rendered preview shows your template with placeholders replaced.
+                            </div>
+                            <label className="flex items-center gap-2 text-xs text-slate-700">
+                              <input
+                                type="checkbox"
+                                checked={showRawPreview}
+                                onChange={(e) => setShowRawPreview(e.target.checked)}
+                                disabled={busy}
+                              />
+                              Show raw template
+                            </label>
+                          </div>
+                        </div>
+                      ) : null}
+
+                      <pre className="mt-2 max-h-64 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-800 whitespace-pre-wrap">
+                        {previewLoading
+                          ? "Loading preview…"
+                          : showRawPreview
+                            ? preview || "(empty)"
+                            : applyTemplate(preview || "", previewVars) || "(empty)"}
                       </pre>
                       <div className="mt-2 text-xs text-slate-500">
-                        Placeholders supported: {"{{DATE}}"}, {"{{APPLICANT_NAME}}"}, {"{{PROPERTY_LABEL}}"}.
+                        {channel === "sms"
+                          ? <>Placeholders supported: {"{{APPLICANT_NAME}}"}, {"{{PROPERTY_LABEL}}"}, {"{{DASHBOARD_LINK}}"}.</>
+                          : <>Placeholders supported: {"{{DATE}}"}, {"{{APPLICANT_NAME}}"}, {"{{PROPERTY_LABEL}}"}.</>}
                       </div>
                     </div>
                   ) : null}

@@ -18,8 +18,37 @@ const BodySchema = z.object({
 function applyTemplate(template: string, vars: Record<string, string>): string {
   let out = template;
   for (const [key, value] of Object.entries(vars)) {
-    out = out.replaceAll(`{{${key}}}`, value);
+    // Allow whitespace inside placeholder braces, e.g. {{ PROPERTY_LABEL }}
+    out = out.replace(new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, "g"), value);
   }
+
+  if (vars.APPLICANT_NAME) out = out.replace(/\[\s*APPLICANT\s+NAME\s*\]/gi, vars.APPLICANT_NAME);
+  if (vars.PROPERTY_LABEL) {
+    out = out.replace(/\[\s*PROPERTY\s+ADDRESS\s*\]/gi, vars.PROPERTY_LABEL);
+    out = out.replace(/\[\s*PROPERTY\s+LABEL\s*\]/gi, vars.PROPERTY_LABEL);
+  }
+  if (vars.DASHBOARD_LINK) out = out.replace(/\[\s*DASHBOARD\s+LINK\s*\]/gi, vars.DASHBOARD_LINK);
+  if (vars.APPLICATION_LINK) out = out.replace(/\[\s*APPLICATION\s+LINK\s*\]/gi, vars.APPLICATION_LINK);
+
+  if (vars.LANDLORD_NAME) {
+    out = out.replace(/\[\s*YOUR\s+NAME\s*\]/gi, vars.LANDLORD_NAME);
+    out = out.replace(/\[\s*LANDLORD\s+NAME\s*\]/gi, vars.LANDLORD_NAME);
+  }
+  if (vars.LANDLORD_COMPANY) {
+    out = out.replace(/\[\s*COMPANY\s*\/\s*BRAND\s+NAME\s*\]/gi, vars.LANDLORD_COMPANY);
+    out = out.replace(/\[\s*COMPANY\s+NAME\s*\]/gi, vars.LANDLORD_COMPANY);
+    out = out.replace(/\[\s*BRAND\s+NAME\s*\]/gi, vars.LANDLORD_COMPANY);
+  }
+  if (vars.LANDLORD_PHONE) {
+    out = out.replace(/\[\s*PHONE\s+NUMBER\s*\]/gi, vars.LANDLORD_PHONE);
+    out = out.replace(/\[\s*PHONE\s*\]/gi, vars.LANDLORD_PHONE);
+    out = out.replace(/\[\s*TEL\s*\]/gi, vars.LANDLORD_PHONE);
+  }
+  if (vars.LANDLORD_EMAIL) {
+    out = out.replace(/\[\s*EMAIL\s+ADDRESS\s*\]/gi, vars.LANDLORD_EMAIL);
+    out = out.replace(/\[\s*EMAIL\s*\]/gi, vars.LANDLORD_EMAIL);
+  }
+
   return out;
 }
 
@@ -198,11 +227,45 @@ export async function POST(req: NextRequest, context: { params: Promise<{ appId:
   }
 
   const smsTemplateText = await getActiveLetterTemplateText({ kind: "TENANCY_PROCEED_LETTER", channel: "sms" });
+
+  // Optional landlord info for signature placeholders.
+  let landlordName = session.user.name || "Landlord";
+  let landlordEmail: string | undefined = undefined;
+  let landlordPhone: string | undefined = undefined;
+  let landlordCompany = "";
+  try {
+    const users = await getCollection("users");
+    const landlordUser = await users.findOne({ _id: new ObjectId(session.user.id) });
+    landlordName =
+      (typeof (landlordUser as any)?.name === "string" && (landlordUser as any).name) || landlordName;
+    landlordEmail = typeof (landlordUser as any)?.email === "string" ? (landlordUser as any).email : landlordEmail;
+    landlordPhone =
+      (typeof (landlordUser as any)?.profile?.phone === "string" && (landlordUser as any).profile.phone) ||
+      (typeof (landlordUser as any)?.phone === "string" && (landlordUser as any).phone) ||
+      (typeof (landlordUser as any)?.tel === "string" && (landlordUser as any).tel) ||
+      landlordPhone;
+    landlordCompany =
+      (typeof (landlordUser as any)?.profile?.companyName === "string" && (landlordUser as any).profile.companyName) ||
+      (typeof (landlordUser as any)?.profile?.brandName === "string" && (landlordUser as any).profile.brandName) ||
+      (typeof (landlordUser as any)?.profile?.company === "string" && (landlordUser as any).profile.company) ||
+      (typeof (landlordUser as any)?.profile?.brand === "string" && (landlordUser as any).profile.brand) ||
+      (typeof (landlordUser as any)?.companyName === "string" && (landlordUser as any).companyName) ||
+      (typeof (landlordUser as any)?.brandName === "string" && (landlordUser as any).brandName) ||
+      landlordCompany;
+  } catch {
+    // best-effort only
+  }
+
   const smsMessage = smsTemplateText
     ? applyTemplate(smsTemplateText, {
         APPLICANT_NAME: String(application?.applicantName || "Applicant"),
         PROPERTY_LABEL: propertyLabel,
         DASHBOARD_LINK: dashboardLink,
+        APPLICATION_LINK: dashboardLink,
+        LANDLORD_NAME: landlordName,
+        LANDLORD_EMAIL: landlordEmail ?? "",
+        LANDLORD_PHONE: landlordPhone ?? "",
+        LANDLORD_COMPANY: landlordCompany,
       })
     : "RentIT: We’ve emailed you a letter confirming the next stage of your tenancy application. Please check your inbox.";
 

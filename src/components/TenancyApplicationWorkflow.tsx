@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { TenancyApplication } from '@/lib/tenancy-application';
-import { TENANCY_APPLICATION_STAGE_LABELS } from '@/lib/tenancyApplicationStages';
 
 interface TenancyApplicationWorkflowProps {
   propertyId: string;
@@ -148,44 +147,7 @@ export default function TenancyApplicationWorkflow({
     }
   };
 
-  const renderProgressIndicator = () => {
-    if (!application) return null;
-
-    const stages = [
-      { number: 1, name: TENANCY_APPLICATION_STAGE_LABELS[1], status: application.stage1.status },
-      { number: 2, name: TENANCY_APPLICATION_STAGE_LABELS[2], status: application.stage2.status },
-      { number: 3, name: TENANCY_APPLICATION_STAGE_LABELS[3], status: application.stage3.status },
-      { number: 4, name: TENANCY_APPLICATION_STAGE_LABELS[4], status: application.stage4.status },
-      { number: 5, name: TENANCY_APPLICATION_STAGE_LABELS[5], status: application.stage5.status },
-      { number: 6, name: TENANCY_APPLICATION_STAGE_LABELS[6], status: application.stage6.status }
-    ];
-
-    return (
-      <div className="mb-8">
-        <div className="flex justify-between items-center">
-          {stages.map((stage, index) => (
-            <div key={stage.number} className="flex items-center">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                application.currentStage > stage.number
-                  ? 'bg-green-500 text-white'
-                  : application.currentStage === stage.number
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-300 text-gray-600'
-              }`}>
-                {stage.number}
-              </div>
-              <span className="ml-2 text-sm hidden sm:inline">{stage.name}</span>
-              {index < stages.length - 1 && (
-                <div className={`w-12 h-1 mx-2 ${
-                  application.currentStage > stage.number ? 'bg-green-500' : 'bg-gray-300'
-                }`} />
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
+  // Removed unused renderProgressIndicator function
 
   if (application) {
     return (

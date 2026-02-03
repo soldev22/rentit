@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 type DeliveryResult = {
   email: { attempted: boolean; ok: boolean; reason?: string };
@@ -30,8 +30,6 @@ export default function ProceedLetterEditor(props: {
 
   const sentAt = props.existing?.sentAt;
   const isSent = Boolean(sentAt);
-
-  const preview = useMemo(() => content, [content]);
 
   async function saveDraft() {
     setMessage(null);
@@ -184,9 +182,9 @@ export default function ProceedLetterEditor(props: {
         </div>
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
-        <h3 className="text-sm font-semibold text-slate-900 print:hidden">Preview</h3>
-        <div className="mt-2 whitespace-pre-wrap text-sm text-slate-900">{preview}</div>
+      {/* Print-only copy of the letter */}
+      <div className="hidden print:block">
+        <div className="whitespace-pre-wrap text-sm text-slate-900">{content}</div>
       </div>
     </div>
   );
